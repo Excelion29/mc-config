@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────
+#  SECRETOS — nunca al repositorio
+# ─────────────────────────────────────────────
+secrets/
+*.local.md
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Dependencias y builds (para cuando haya código)
+node_modules/
+dist/
+build/
+__pycache__/
