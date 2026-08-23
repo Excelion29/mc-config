@@ -199,6 +199,16 @@ func (s *Server) deleteInstance(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, rutaInstancias, s.instanceError(err))
 		return
 	}
+	if esParcial(r) {
+		// Cuerpo vacio: la fila se quita, no se sustituye.
+		//
+		// Arrancar y parar NO usan esto a proposito: cambian el panel de "en
+		// este momento" y el resto de la pantalla, no solo una fila. Ahi la
+		// recarga completa dice la verdad y un intercambio de fila dejaria
+		// medio panel mintiendo.
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	s.redirectInfo(w, r, rutaInstancias, "Instancia borrada.")
 }
 

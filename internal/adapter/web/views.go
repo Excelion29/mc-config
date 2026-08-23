@@ -61,6 +61,26 @@ func nuevaVistaUsuarios(actor *domain.User, usuarios []domain.User) []userView {
 	return vistas
 }
 
+// userRow es lo que recibe la plantilla de una fila de usuario.
+//
+// Lleva los roles ademas del usuario porque el desplegable de cambio rapido
+// los necesita, y eso no es un dato del usuario. Con la fila extraida a su
+// propia plantilla -para poder devolverla suelta tras una accion- ya no hay un
+// "$page" del que sacarlos.
+type userRow struct {
+	U     userView
+	Roles []domain.Role
+}
+
+func filasDeUsuarios(actor *domain.User, usuarios []domain.User, roles []domain.Role) []userRow {
+	vistas := nuevaVistaUsuarios(actor, usuarios)
+	filas := make([]userRow, 0, len(vistas))
+	for _, v := range vistas {
+		filas = append(filas, userRow{U: v, Roles: roles})
+	}
+	return filas
+}
+
 // roleView es una fila de la tabla de roles.
 type roleView struct {
 	ID     int64

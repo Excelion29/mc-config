@@ -50,8 +50,8 @@ type auditPageData struct {
 
 type usersPageData struct {
 	PageData
-	// Users son vistas y no domain.User: ver views.go.
-	Users []userView
+	// Users son filas de vista, no domain.User: ver views.go.
+	Users []userRow
 	// Roles se queda como tipo de dominio porque aqui solo alimenta un
 	// desplegable de id y nombre; no se decide nada con el.
 	Roles []domain.Role
@@ -83,6 +83,8 @@ type instancesPageData struct {
 type playersPageData struct {
 	PageData
 	Players []domain.Player
+	Filtro  app.PlayerFilter
+	Estados [][2]string
 	Pag     paginador
 }
 

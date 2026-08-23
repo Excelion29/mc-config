@@ -13,6 +13,16 @@ import (
 // que alguien recuerde poner el middleware. Si se anade una ruta nueva y se
 // olvida el middleware, la regla sigue aplicandose.
 
+// UserByID devuelve un usuario suelto. Lo usa la web para repintar una fila
+// despues de cambiarla, releyendo lo que quedo guardado en vez de fiarse de lo
+// que venia en la peticion.
+func (a *Auth) UserByID(ctx context.Context, actor *domain.User, id int64) (*domain.User, error) {
+	if !actor.Can(domain.PermUserManage) {
+		return nil, domain.ErrForbidden
+	}
+	return a.users.ByID(ctx, id)
+}
+
 func (a *Auth) ListUsers(ctx context.Context, actor *domain.User) ([]domain.User, error) {
 	if !actor.Can(domain.PermUserManage) {
 		return nil, domain.ErrForbidden

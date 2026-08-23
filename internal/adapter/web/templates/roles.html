@@ -57,7 +57,8 @@
                 <a class="accion" href="#rol-{{.ID}}" title="Editar permisos"
                    aria-label="Editar los permisos de {{.Name}}">{{template "ico-editar"}}</a>
                 {{if .Borrable}}
-                <form method="post" action="/roles/delete">
+                <form method="post" action="/roles/delete"
+                      hx-post="/roles/delete" hx-target="closest tr" hx-swap="delete">
                   <input type="hidden" name="id" value="{{.ID}}">
                   <button class="accion accion-peligro" title="Borrar"
                           aria-label="Borrar el rol {{.Name}}">{{template "ico-borrar"}}</button>

@@ -12,6 +12,36 @@
   <a class="boton" href="#anadir-jugador">A&ntilde;adir jugador</a>
 </div>
 
+{{$f := .Filtro}}
+
+{{/*
+  Formulario GET, igual que en el registro: lo que buscas acaba en la URL, se
+  puede compartir, y "atras" deshace el filtro.
+*/}}
+<form method="get" action="/players" class="filtros">
+  <div class="campo">
+    <label for="f-jugador">Buscar</label>
+    <input id="f-jugador" name="q" value="{{$f.Text}}" autocomplete="off"
+           placeholder="Gamertag o nota">
+  </div>
+
+  <div class="campo">
+    <label for="f-estado">Estado</label>
+    <select id="f-estado" name="estado">
+      {{range $.Estados}}
+      <option value="{{index . 0}}" {{if eq (index . 0) $f.Estado}}selected{{end}}>{{index . 1}}</option>
+      {{end}}
+    </select>
+  </div>
+
+  <div class="campo campo-acciones">
+    <button type="submit">Filtrar</button>
+    {{if or $f.Text $f.Estado}}
+    <a class="enlace" href="/players">Quitar filtros</a>
+    {{end}}
+  </div>
+</form>
+
 <section class="tarjeta">
   <h2>Permitidos <span class="cuenta" data-total>{{.Pag.Info.Total}}</span></h2>
   {{if .Players}}
@@ -31,6 +61,11 @@
     </table>
   </div>
   {{template "paginador" .Pag}}
+  {{else if or $f.Text $f.Estado}}
+  <p class="vacio">
+    Ning&uacute;n jugador coincide con el filtro.
+    <a href="/players">Ver todos</a>.
+  </p>
   {{else}}
   <p class="vacio">
     La lista est&aacute; vac&iacute;a, y en Bedrock eso <strong>bloquea a

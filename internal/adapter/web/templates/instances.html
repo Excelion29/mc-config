@@ -145,7 +145,8 @@
                 <a class="accion" href="#logs-{{.ID}}"
                    title="Ver la consola" aria-label="Ver la consola de {{.Name}}">{{template "ico-logs"}}</a>
                 {{if $page.User.Can "instance.delete"}}
-                <form method="post" action="/instances/delete">
+                <form method="post" action="/instances/delete"
+                      hx-post="/instances/delete" hx-target="closest tr" hx-swap="delete">
                   <input type="hidden" name="id" value="{{.ID}}">
                   <button class="accion accion-peligro" title="Borrar"
                           aria-label="Borrar {{.Name}}">{{template "ico-borrar"}}</button>

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Excelion29/mc-config/internal/domain"
@@ -59,19 +60,52 @@ func (r *PlayerRepo) List(ctx context.Context) ([]domain.Player, error) {
 // List sigue siendo un caso particular de esto y no hay dos consultas que
 // mantener sincronizadas.
 func (r *PlayerRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.Player, int, error) {
+	return r.SearchPage(ctx, "", "", limit, offset)
+}
+
+// SearchPage filtra y pagina la lista maestra.
+//
+// El texto busca en el gamertag Y en la nota a la vez, igual que en el
+// registro: quien consulta piensa en "el del sotano", no en que columna
+// guardo eso.
+func (r *PlayerRepo) SearchPage(ctx context.Context, texto, estado string, limit, offset int) ([]domain.Player, int, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 
+	where := "WHERE 1=1"
+	var args []any
+
+	if t := strings.TrimSpace(texto); t != "" {
+		where += " AND (gamertag LIKE ? ESCAPE '\\' OR note LIKE ? ESCAPE '\\')"
+		patron := "%" + escapeLike(t) + "%"
+		args = append(args, patron, patron)
+	}
+
+	switch estado {
+	case "activos":
+		where += " AND active = 1"
+	case "bloqueados":
+		where += " AND active = 0"
+	case "sin-estrenar":
+		// Nunca se le ha visto entrar, asi que aun no se le puede hacer
+		// admin del juego. Es el filtro que responde "a quien le falta dar
+		// el primer paso".
+		where += " AND xuid = ''"
+	case "admins":
+		where += " AND is_op = 1"
+	}
+
 	var total int
 	if err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM players`).Scan(&total); err != nil {
+		"SELECT COUNT(*) FROM players "+where, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("contando players: %w", err)
 	}
 
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+playerColumns+` FROM players ORDER BY active DESC, gamertag ASC LIMIT ? OFFSET ?`,
-		limit, offset)
+		`SELECT `+playerColumns+` FROM players `+where+
+			` ORDER BY active DESC, gamertag ASC LIMIT ? OFFSET ?`,
+		append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("listando jugadores: %w", err)
 	}

@@ -26,61 +26,7 @@
       </thead>
       <tbody>
         {{$page := .}}
-        {{range .Users}}
-        <tr>
-          <td>
-            <span class="dato">{{.Email}}</span>
-            {{if .EsTuCuenta}}<span class="etiqueta">t&uacute;</span>{{end}}
-          </td>
-          <td>
-            {{if .Gestionable}}
-            {{/*
-              Cambio rapido de rol desde la propia fila: es la accion mas
-              frecuente de esta pantalla y no merece un formulario aparte.
-              Hay que confirmar con el boton en vez de enviarse solo al
-              elegir: un envio automatico convierte un clic equivocado en un
-              cambio de permisos ya hecho, sin vuelta atras.
-            */}}
-            <form method="post" action="/users/role" class="inline-form fila-rol">
-              <input type="hidden" name="id" value="{{.ID}}">
-              <select name="role_id" aria-label="Rol de {{.Email}}">
-                {{$current := .RoleID}}
-                {{range $page.Roles}}
-                <option value="{{.ID}}" {{if eq .ID $current}}selected{{end}}>{{.Name}}</option>
-                {{end}}
-              </select>
-              <button class="accion accion-positiva" title="Guardar el rol"
-                      aria-label="Guardar el rol de {{.Email}}">{{template "ico-guardar"}}</button>
-            </form>
-            {{else}}
-            <span class="etiqueta">{{.RoleName}}</span>
-            <span class="apagado">nivel {{.RoleLevel}}</span>
-            {{end}}
-          </td>
-          <td>
-            {{if .Active}}<span class="etiqueta ok">activo</span>
-            {{else}}<span class="etiqueta aviso">desactivado</span>{{end}}
-          </td>
-          <td class="nowrap apagado">{{.CreatedAt.Format "2006-01-02"}}</td>
-          <td>
-            <div class="acciones-fila">
-              {{if .Gestionable}}
-              <form method="post" action="/users/active">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
-                <button class="accion {{if .Active}}accion-atencion{{else}}accion-positiva{{end}}"
-                        title="{{if .Active}}Desactivar la cuenta{{else}}Activar la cuenta{{end}}"
-                        aria-label="{{if .Active}}Desactivar{{else}}Activar{{end}} la cuenta de {{.Email}}">{{template "ico-interruptor"}}</button>
-              </form>
-              {{else if .EsTuCuenta}}
-              <span class="apagado">&mdash;</span>
-              {{else}}
-              <span class="apagado" title="Esta a tu mismo nivel o por encima">bloqueado</span>
-              {{end}}
-            </div>
-          </td>
-        </tr>
-        {{end}}
+        {{range .Users}}{{template "fila-usuario" .}}{{end}}
       </tbody>
     </table>
   </div>
@@ -128,4 +74,67 @@
     </form>
   </div>
 </div>
+{{end}}
+
+{{/*
+  La fila, aparte, porque se pinta desde el listado y desde la respuesta a una
+  accion suelta. Recibe un envoltorio y no el usuario a secas: el desplegable
+  de rol necesita la lista de roles, que no es un dato del usuario.
+*/}}
+{{define "fila-usuario"}}
+        <tr>
+          <td>
+            <span class="dato">{{.U.Email}}</span>
+            {{if .U.EsTuCuenta}}<span class="etiqueta">t&uacute;</span>{{end}}
+          </td>
+          <td>
+            {{if .U.Gestionable}}
+            {{/*
+              Cambio rapido de rol desde la propia fila: es la accion mas
+              frecuente de esta pantalla y no merece un formulario aparte.
+              Hay que confirmar con el boton en vez de enviarse solo al
+              elegir: un envio automatico convierte un clic equivocado en un
+              cambio de permisos ya hecho, sin vuelta atras.
+            */}}
+            <form method="post" action="/users/role" class="inline-form fila-rol"
+                  hx-post="/users/role" hx-target="closest tr" hx-swap="outerHTML">
+              <input type="hidden" name="id" value="{{.U.ID}}">
+              <select name="role_id" aria-label="Rol de {{.U.Email}}">
+                {{$current := .U.RoleID}}
+                {{range .Roles}}
+                <option value="{{.ID}}" {{if eq .ID $current}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+              </select>
+              <button class="accion accion-positiva" title="Guardar el rol"
+                      aria-label="Guardar el rol de {{.U.Email}}">{{template "ico-guardar"}}</button>
+            </form>
+            {{else}}
+            <span class="etiqueta">{{.U.RoleName}}</span>
+            <span class="apagado">nivel {{.U.RoleLevel}}</span>
+            {{end}}
+          </td>
+          <td>
+            {{if .U.Active}}<span class="etiqueta ok">activo</span>
+            {{else}}<span class="etiqueta aviso">desactivado</span>{{end}}
+          </td>
+          <td class="nowrap apagado">{{.U.CreatedAt.Format "2006-01-02"}}</td>
+          <td>
+            <div class="acciones-fila">
+              {{if .U.Gestionable}}
+              <form method="post" action="/users/active"
+                    hx-post="/users/active" hx-target="closest tr" hx-swap="outerHTML">
+                <input type="hidden" name="id" value="{{.U.ID}}">
+                <input type="hidden" name="active" value="{{if .U.Active}}0{{else}}1{{end}}">
+                <button class="accion {{if .U.Active}}accion-atencion{{else}}accion-positiva{{end}}"
+                        title="{{if .U.Active}}Desactivar la cuenta{{else}}Activar la cuenta{{end}}"
+                        aria-label="{{if .U.Active}}Desactivar{{else}}Activar{{end}} la cuenta de {{.U.Email}}">{{template "ico-interruptor"}}</button>
+              </form>
+              {{else if .U.EsTuCuenta}}
+              <span class="apagado">&mdash;</span>
+              {{else}}
+              <span class="apagado" title="Esta a tu mismo nivel o por encima">bloqueado</span>
+              {{end}}
+            </div>
+          </td>
+        </tr>
 {{end}}

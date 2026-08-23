@@ -10,31 +10,31 @@ import (
 )
 
 func (s *Server) showUsers(w http.ResponseWriter, r *http.Request) {
-	s.renderUsers(w, r, http.StatusOK, "", "")
+	s.renderUsers(w, r, "", "")
 }
 
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/users", "No se pudo leer el formulario.")
 		return
 	}
 
 	roleID, err := strconv.ParseInt(r.PostFormValue("role_id"), 10, 64)
 	if err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, "Selecciona un rol valido.", "")
+		s.redirectError(w, r, "/users", "Selecciona un rol valido.")
 		return
 	}
 
 	u, err := s.auth.AddUser(r.Context(), actor,
 		r.PostFormValue("email"), r.PostFormValue("password"), roleID, clientIP(r))
 	if err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, s.errorMessage(err), "")
+		s.redirectError(w, r, "/users", s.errorMessage(err))
 		return
 	}
 
-	s.renderUsers(w, r, http.StatusOK, "",
+	s.redirectInfo(w, r, "/users",
 		"Usuario "+u.Email+" creado como "+u.RoleName()+".")
 }
 
@@ -42,19 +42,19 @@ func (s *Server) setUserActive(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/users", "No se pudo leer el formulario.")
 		return
 	}
 
 	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	if err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, "Usuario invalido.", "")
+		s.redirectError(w, r, "/users", "Usuario invalido.")
 		return
 	}
 	active := r.PostFormValue("active") == "1"
 
 	if err := s.auth.SetUserActive(r.Context(), actor, id, active, clientIP(r)); err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, s.errorMessage(err), "")
+		s.redirectError(w, r, "/users", s.errorMessage(err))
 		return
 	}
 
@@ -62,34 +62,75 @@ func (s *Server) setUserActive(w http.ResponseWriter, r *http.Request) {
 	if active {
 		msg = "Usuario activado."
 	}
-	s.renderUsers(w, r, http.StatusOK, "", msg)
+	if esParcial(r) {
+		s.responderFilaUsuario(w, r, id)
+		return
+	}
+	s.redirectInfo(w, r, "/users", msg)
 }
 
 func (s *Server) setUserRole(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/users", "No se pudo leer el formulario.")
 		return
 	}
 
 	id, err1 := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	roleID, err2 := strconv.ParseInt(r.PostFormValue("role_id"), 10, 64)
 	if err1 != nil || err2 != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, "Datos invalidos.", "")
+		s.redirectError(w, r, "/users", "Datos invalidos.")
 		return
 	}
 
 	if err := s.auth.SetUserRole(r.Context(), actor, id, roleID, clientIP(r)); err != nil {
-		s.renderUsers(w, r, http.StatusBadRequest, s.errorMessage(err), "")
+		s.redirectError(w, r, "/users", s.errorMessage(err))
 		return
 	}
-	s.renderUsers(w, r, http.StatusOK, "", "Rol actualizado.")
+	if esParcial(r) {
+		s.responderFilaUsuario(w, r, id)
+		return
+	}
+	s.redirectInfo(w, r, "/users", "Rol actualizado.")
 }
 
 // renderUsers recarga siempre la lista desde la base antes de mostrarla, para
 // que la pantalla refleje el estado real y no lo que creiamos que era.
-func (s *Server) renderUsers(w http.ResponseWriter, r *http.Request, status int, errMsg, infoMsg string) {
+// responderFilaUsuario devuelve la fila recién cambiada.
+//
+// Se relee de la base en vez de construirla con lo enviado: lo que vale es lo
+// que quedo guardado. Y se comprueba de nuevo la jerarquia, porque el actor
+// pudo perder su nivel entre que cargo la pagina y pulso el boton.
+func (s *Server) responderFilaUsuario(w http.ResponseWriter, r *http.Request, id int64) {
+	actor := userFrom(r)
+
+	u, err := s.auth.UserByID(r.Context(), actor, id)
+	if err != nil {
+		s.log.Error("no se pudo releer el usuario", "id", id, "error", err)
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+	roles, err := s.auth.RolesForAssignment(r.Context(), actor)
+	if err != nil {
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+
+	filas := filasDeUsuarios(actor, []domain.User{*u}, roles)
+	if err := s.renderer.fragment(w, "users.html", "fila-usuario", filas[0]); err != nil {
+		s.log.Error("no se pudo pintar la fila", "error", err)
+	}
+}
+
+func (s *Server) renderUsers(w http.ResponseWriter, r *http.Request, errMsg, infoMsg string) {
+	// El mensaje de la accion anterior llega por el flash de la redireccion:
+	// se muestra una vez y se borra. Antes se renderizaba directamente desde
+	// el POST, y refrescar reenviaba el formulario.
+	if info, err := s.takeFlash(w, r); info != "" || err != "" {
+		infoMsg, errMsg = info, err
+	}
+
 	actor := userFrom(r)
 
 	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
@@ -104,9 +145,9 @@ func (s *Server) renderUsers(w http.ResponseWriter, r *http.Request, status int,
 		return
 	}
 
-	s.renderer.render(w, status, "users.html", usersPageData{
+	s.renderer.render(w, http.StatusOK, "users.html", usersPageData{
 		PageData: s.pagina(r, "Usuarios", errMsg, infoMsg),
-		Users:    nuevaVistaUsuarios(actor, page.Users),
+		Users:    filasDeUsuarios(actor, page.Users, roles),
 		Roles:    roles,
 		Pag:      paginador{Info: page.PageInfo, Base: "/users?"},
 	})

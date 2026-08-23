@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/Excelion29/mc-config/internal/app"
@@ -15,8 +16,11 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 	info, errMsg := s.takeFlash(w, r)
 
-	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
-	page, err := s.players.ListPage(r.Context(), actor, app.Paging{Page: pagina})
+	q := r.URL.Query()
+	pagina, _ := strconv.Atoi(q.Get("p"))
+	filtro := app.PlayerFilter{Text: q.Get("q"), Estado: q.Get("estado")}
+
+	page, err := s.players.SearchPage(r.Context(), actor, filtro, app.Paging{Page: pagina})
 	if err != nil {
 		s.renderFailure(w, actor, "Jugadores", "No se pudo leer la lista de jugadores.", err)
 		return
@@ -25,7 +29,17 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 	s.renderer.render(w, http.StatusOK, "players.html", playersPageData{
 		PageData: s.pagina(r, "Jugadores", errMsg, info),
 		Players:  page.Players,
-		Pag:      paginador{Info: page.PageInfo, Base: rutaJugadores + "?"},
+		Filtro:   page.Filter,
+		Estados:  app.EstadosDeJugador(),
+		Pag: paginador{
+			Info: page.PageInfo,
+			// Los filtros viajan dentro de la base para no perderlos al
+			// pasar de pagina. url.Values escapa lo que escriba el usuario.
+			Base: rutaJugadores + "?" + url.Values{
+				"q":      {filtro.Text},
+				"estado": {filtro.Estado},
+			}.Encode() + "&",
+		},
 	})
 }
 

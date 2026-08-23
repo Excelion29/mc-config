@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Server) showMaps(w http.ResponseWriter, r *http.Request) {
-	s.renderMaps(w, r, http.StatusOK, "", "")
+	s.renderMaps(w, r, "", "")
 }
 
 func (s *Server) importMap(w http.ResponseWriter, r *http.Request) {
@@ -25,31 +25,29 @@ func (s *Server) importMap(w http.ResponseWriter, r *http.Request) {
 	// temporales del sistema. Con 16 MiB los formularios normales no tocan
 	// disco y los mapas grandes no se cargan en RAM.
 	if err := r.ParseMultipartForm(16 << 20); err != nil {
-		s.renderMaps(w, r, http.StatusBadRequest,
+		s.redirectError(w, r, "/maps",
 			"No se pudo leer el archivo. Puede que supere el tamano maximo ("+
-				app.HumanSize(max)+").", "")
+				app.HumanSize(max)+").")
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
 
 	file, header, err := r.FormFile("archivo")
 	if err != nil {
-		s.renderMaps(w, r, http.StatusBadRequest, "Selecciona un archivo .mcworld o .zip.", "")
+		s.redirectError(w, r, "/maps", "Selecciona un archivo .mcworld o .zip.")
 		return
 	}
 	defer file.Close()
 
 	mp, err := s.maps.Import(r.Context(), actor, file, header.Filename, header.Size, clientIP(r))
 	if err != nil {
-		status := http.StatusBadRequest
-		if errors.Is(err, domain.ErrForbidden) {
-			status = http.StatusForbidden
-		}
-		s.renderMaps(w, r, status, s.mapErrorMessage(err, mp), "")
+		// El codigo de estado deja de importar: la respuesta pasa a ser
+		// siempre una redireccion y el motivo viaja en el flash.
+		s.redirectError(w, r, "/maps", s.mapErrorMessage(err, mp))
 		return
 	}
 
-	s.renderMaps(w, r, http.StatusOK, "",
+	s.redirectInfo(w, r, "/maps",
 		"Mapa \""+mp.Name+"\" importado: "+mp.Edition.Label()+" "+mp.Version+".")
 }
 
@@ -57,21 +55,21 @@ func (s *Server) deleteMap(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderMaps(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/maps", "No se pudo leer el formulario.")
 		return
 	}
 
 	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	if err != nil {
-		s.renderMaps(w, r, http.StatusBadRequest, "Mapa invalido.", "")
+		s.redirectError(w, r, "/maps", "Mapa invalido.")
 		return
 	}
 
 	if err := s.maps.Delete(r.Context(), actor, id, clientIP(r)); err != nil {
-		s.renderMaps(w, r, http.StatusBadRequest, s.mapErrorMessage(err, nil), "")
+		s.redirectError(w, r, "/maps", s.mapErrorMessage(err, nil))
 		return
 	}
-	s.renderMaps(w, r, http.StatusOK, "", "Mapa borrado.")
+	s.redirectInfo(w, r, "/maps", "Mapa borrado.")
 }
 
 // mapIcon sirve la miniatura que venia dentro del .mcworld (H-F0-4).
@@ -93,7 +91,14 @@ func (s *Server) mapIcon(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (s *Server) renderMaps(w http.ResponseWriter, r *http.Request, status int, errMsg, infoMsg string) {
+func (s *Server) renderMaps(w http.ResponseWriter, r *http.Request, errMsg, infoMsg string) {
+	// El mensaje de la accion anterior llega por el flash de la redireccion:
+	// se muestra una vez y se borra. Antes se renderizaba directamente desde
+	// el POST, y refrescar reenviaba el formulario.
+	if info, err := s.takeFlash(w, r); info != "" || err != "" {
+		infoMsg, errMsg = info, err
+	}
+
 	actor := userFrom(r)
 
 	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
@@ -103,7 +108,7 @@ func (s *Server) renderMaps(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 
-	s.renderer.render(w, status, "maps.html", mapsPageData{
+	s.renderer.render(w, http.StatusOK, "maps.html", mapsPageData{
 		PageData:  s.pagina(r, "Mapas", errMsg, infoMsg),
 		Maps:      page.Maps,
 		MaxUpload: app.HumanSize(s.maps.MaxUpload()),

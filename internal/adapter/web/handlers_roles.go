@@ -8,20 +8,20 @@ import (
 )
 
 func (s *Server) showRoles(w http.ResponseWriter, r *http.Request) {
-	s.renderRoles(w, r, http.StatusOK, "", "")
+	s.renderRoles(w, r, "", "")
 }
 
 func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/roles", "No se pudo leer el formulario.")
 		return
 	}
 
 	level, err := strconv.Atoi(r.PostFormValue("level"))
 	if err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, "Indica un nivel valido.", "")
+		s.redirectError(w, r, "/roles", "Indica un nivel valido.")
 		return
 	}
 
@@ -29,59 +29,71 @@ func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
 		r.PostFormValue("code"), r.PostFormValue("name"), level,
 		permissionsFromForm(r), clientIP(r))
 	if err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, s.errorMessage(err), "")
+		s.redirectError(w, r, "/roles", s.errorMessage(err))
 		return
 	}
 
-	s.renderRoles(w, r, http.StatusOK, "", "Rol "+role.Name+" creado.")
+	s.redirectInfo(w, r, "/roles", "Rol "+role.Name+" creado.")
 }
 
 func (s *Server) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/roles", "No se pudo leer el formulario.")
 		return
 	}
 
 	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	if err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, "Rol invalido.", "")
+		s.redirectError(w, r, "/roles", "Rol invalido.")
 		return
 	}
 
 	if err := s.auth.SetRolePermissions(r.Context(), actor, id,
 		permissionsFromForm(r), clientIP(r)); err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, s.errorMessage(err), "")
+		s.redirectError(w, r, "/roles", s.errorMessage(err))
 		return
 	}
 
-	s.renderRoles(w, r, http.StatusOK, "", "Permisos guardados.")
+	s.redirectInfo(w, r, "/roles", "Permisos guardados.")
 }
 
 func (s *Server) deleteRole(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 
 	if err := r.ParseForm(); err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, "No se pudo leer el formulario.", "")
+		s.redirectError(w, r, "/roles", "No se pudo leer el formulario.")
 		return
 	}
 
 	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	if err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, "Rol invalido.", "")
+		s.redirectError(w, r, "/roles", "Rol invalido.")
 		return
 	}
 
 	if err := s.auth.DeleteRole(r.Context(), actor, id, clientIP(r)); err != nil {
-		s.renderRoles(w, r, http.StatusBadRequest, s.errorMessage(err), "")
+		s.redirectError(w, r, "/roles", s.errorMessage(err))
 		return
 	}
 
-	s.renderRoles(w, r, http.StatusOK, "", "Rol borrado.")
+	if esParcial(r) {
+		// Cuerpo vacio: la fila se quita, no se sustituye.
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	s.redirectInfo(w, r, "/roles", "Rol borrado.")
 }
 
-func (s *Server) renderRoles(w http.ResponseWriter, r *http.Request, status int, errMsg, infoMsg string) {
+func (s *Server) renderRoles(w http.ResponseWriter, r *http.Request, errMsg, infoMsg string) {
+	// El mensaje de la accion anterior llega por el flash de la redireccion:
+	// se muestra una vez y se borra. Antes se renderizaba directamente desde
+	// el POST, y refrescar reenviaba el formulario.
+	if info, err := s.takeFlash(w, r); info != "" || err != "" {
+		infoMsg, errMsg = info, err
+	}
+
 	actor := userFrom(r)
 
 	roles, err := s.auth.ListRoles(r.Context(), actor)
@@ -98,7 +110,7 @@ func (s *Server) renderRoles(w http.ResponseWriter, r *http.Request, status int,
 		}
 	}
 
-	s.renderer.render(w, status, "roles.html", rolesPageData{
+	s.renderer.render(w, http.StatusOK, "roles.html", rolesPageData{
 		PageData: s.pagina(r, "Roles", errMsg, infoMsg),
 		Roles:    nuevaVistaRoles(actor, roles, counts),
 		Permisos: permisosPorRol(roles),
