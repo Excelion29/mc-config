@@ -19,7 +19,7 @@ func TestPlantillasCompilan(t *testing.T) {
 	// Renombrar un archivo y olvidar una referencia da un 500 en produccion.
 	for _, page := range []string{
 		"home.html", "login.html", "error.html", "audit.html",
-		"maps.html", "instances.html", "players.html",
+		"worlds.html", "instances.html", "players.html",
 		"users.html", "roles.html",
 	} {
 		if _, ok := r.pages[page]; !ok {

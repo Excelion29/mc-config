@@ -38,7 +38,7 @@ func (d DiskStatus) Lleno() bool { return d.Ocupado >= DiscoTope }
 func (d DiskStatus) LibreLegible() string { return HumanSize(int64(d.Libre)) }
 
 // Disk consulta el estado del disco.
-func (m *Maps) Disk() (DiskStatus, error) {
+func (m *Worlds) Disk() (DiskStatus, error) {
 	libre, total, err := m.store.DiskUsage()
 	if err != nil {
 		return DiskStatus{}, err
@@ -61,7 +61,7 @@ func (m *Maps) Disk() (DiskStatus, error) {
 // poder subir mapas porque una llamada al sistema devolvio error seria un
 // remedio peor que la enfermedad. Se anota y se sigue; el margen absoluto que
 // ya comprueba Import sigue protegiendo el caso extremo.
-func (m *Maps) checkDisk() error {
+func (m *Worlds) checkDisk() error {
 	estado, err := m.Disk()
 	if err != nil {
 		m.log.Warn("no se pudo consultar el disco; se permite la importacion", "error", err)

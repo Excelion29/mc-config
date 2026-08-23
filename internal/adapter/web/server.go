@@ -27,7 +27,7 @@ const cookieName = "mcvps_session"
 type Server struct {
 	auth     *app.Auth
 	audit    *app.Audit
-	maps      *app.Maps
+	maps      *app.Worlds
 	instances *app.Instances
 	players   *app.Players
 	renderer *renderer
@@ -42,7 +42,7 @@ type Server struct {
 func NewServer(
 	auth *app.Auth,
 	audit *app.Audit,
-	maps *app.Maps,
+	maps *app.Worlds,
 	instances *app.Instances,
 	players *app.Players,
 	log *slog.Logger,
@@ -90,8 +90,8 @@ func (s *Server) Routes() http.Handler {
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermServerView))
-			g.Get("/maps", s.showMaps)
-			g.Get("/maps/{id}/icon", s.mapIcon)
+			g.Get("/worlds", s.showWorlds)
+			g.Get("/worlds/{id}/icon", s.worldIcon)
 			g.Get("/instances", s.showInstances)
 			g.Get("/instances/{id}/logs", s.instanceLogs)
 			// Flujo en vivo para la consola. Se queda abierto mientras el
@@ -118,12 +118,12 @@ func (s *Server) Routes() http.Handler {
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermMapImport))
-			g.Post("/maps", s.importMap)
+			g.Post("/worlds", s.importWorld)
 		})
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermMapDelete))
-			g.Post("/maps/delete", s.deleteMap)
+			g.Post("/worlds/delete", s.deleteWorld)
 		})
 
 		private.Group(func(g chi.Router) {

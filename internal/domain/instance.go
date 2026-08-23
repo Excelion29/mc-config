@@ -54,8 +54,8 @@ type Instance struct {
 	Slug        string
 	Edition     Edition
 	Version     string
-	MapID       int64
-	MapName     string
+	WorldID       int64
+	WorldName     string
 	LevelName   string
 	ContainerID string
 	Port        int

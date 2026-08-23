@@ -1,6 +1,6 @@
 // Package storage guarda los archivos de los mapas en disco.
 //
-// Implementa el puerto app.MapStorage. El almacenamiento es por hash del
+// Implementa el puerto app.WorldStorage. El almacenamiento es por hash del
 // contenido: dos subidas del mismo archivo comparten carpeta y el duplicado se
 // detecta solo.
 package storage

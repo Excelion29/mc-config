@@ -111,6 +111,6 @@ func (d *DB) Roles() *RoleRepo { return &RoleRepo{db: d.db} }
 func (d *DB) Users() *UserRepo       { return &UserRepo{db: d.db, roles: d.Roles()} }
 func (d *DB) Sessions() *SessionRepo { return &SessionRepo{db: d.db} }
 func (d *DB) Audit() *AuditRepo      { return &AuditRepo{db: d.db} }
-func (d *DB) Maps() *MapRepo         { return &MapRepo{db: d.db} }
+func (d *DB) Worlds() *WorldRepo         { return &WorldRepo{db: d.db} }
 func (d *DB) Instances() *InstanceRepo { return &InstanceRepo{db: d.db} }
 func (d *DB) Players() *PlayerRepo     { return &PlayerRepo{db: d.db} }

@@ -16,10 +16,10 @@ import (
 )
 
 // Maps resuelve los casos de uso de la biblioteca de mapas (F2).
-type Maps struct {
-	repo      MapRepo
-	store     MapStorage
-	inspector MapInspector
+type Worlds struct {
+	repo      WorldRepo
+	store     WorldStorage
+	inspector WorldInspector
 	audit     *Audit
 	clock     Clock
 	log       *slog.Logger
@@ -27,23 +27,23 @@ type Maps struct {
 	maxUpload int64
 }
 
-func NewMaps(repo MapRepo, store MapStorage, inspector MapInspector, audit *Audit, clock Clock, maxUpload int64, log *slog.Logger) *Maps {
-	return &Maps{
+func NewWorlds(repo WorldRepo, store WorldStorage, inspector WorldInspector, audit *Audit, clock Clock, maxUpload int64, log *slog.Logger) *Worlds {
+	return &Worlds{
 		repo: repo, store: store, inspector: inspector,
 		audit: audit, clock: clock, maxUpload: maxUpload, log: log,
 	}
 }
 
-func (m *Maps) MaxUpload() int64 { return m.maxUpload }
+func (m *Worlds) MaxUpload() int64 { return m.maxUpload }
 
-func (m *Maps) List(ctx context.Context, actor *domain.User) ([]domain.Map, error) {
+func (m *Worlds) List(ctx context.Context, actor *domain.User) ([]domain.World, error) {
 	if !actor.Can(domain.PermServerView) {
 		return nil, domain.ErrForbidden
 	}
 	return m.repo.List(ctx)
 }
 
-func (m *Maps) Icon(ctx context.Context, actor *domain.User, id int64) ([]byte, error) {
+func (m *Worlds) Icon(ctx context.Context, actor *domain.User, id int64) ([]byte, error) {
 	if !actor.Can(domain.PermServerView) {
 		return nil, domain.ErrForbidden
 	}
@@ -59,7 +59,7 @@ func (m *Maps) Icon(ctx context.Context, actor *domain.User, id int64) ([]byte, 
 // El orden importa: primero se vuelca a un temporal con limite de tamano,
 // despues se inspecciona, y solo si todo cuadra se mueve a su sitio. Asi un
 // archivo malo nunca llega a la biblioteca.
-func (m *Maps) Import(ctx context.Context, actor *domain.User, src io.Reader, fileName string, declaredSize int64, ip string) (*domain.Map, error) {
+func (m *Worlds) Import(ctx context.Context, actor *domain.User, src io.Reader, fileName string, declaredSize int64, ip string) (*domain.World, error) {
 	if !actor.Can(domain.PermMapImport) {
 		return nil, domain.ErrForbidden
 	}
@@ -117,8 +117,8 @@ func (m *Maps) Import(ctx context.Context, actor *domain.User, src io.Reader, fi
 	// El hash del contenido detecta el duplicado aunque el archivo se haya
 	// renombrado.
 	if existing, err := m.repo.BySHA(ctx, sha); err == nil {
-		return existing, domain.ErrDuplicateMap
-	} else if !errors.Is(err, domain.ErrMapNotFound) {
+		return existing, domain.ErrDuplicateWorld
+	} else if !errors.Is(err, domain.ErrWorldNotFound) {
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func (m *Maps) Import(ctx context.Context, actor *domain.User, src io.Reader, fi
 		name = strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
 	}
 
-	mp := &domain.Map{
+	mp := &domain.World{
 		Name:       name,
 		RawName:    insp.RawName,
 		Edition:    insp.Edition,
@@ -172,7 +172,7 @@ func (m *Maps) Import(ctx context.Context, actor *domain.User, src io.Reader, fi
 	return mp, nil
 }
 
-func (m *Maps) Delete(ctx context.Context, actor *domain.User, id int64, ip string) error {
+func (m *Worlds) Delete(ctx context.Context, actor *domain.User, id int64, ip string) error {
 	if !actor.Can(domain.PermMapDelete) {
 		return domain.ErrForbidden
 	}

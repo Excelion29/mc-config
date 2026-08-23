@@ -38,8 +38,8 @@ var (
 	ErrUnsafePath      = errors.New("el archivo contiene rutas inseguras")
 	ErrZipBomb         = errors.New("el archivo se expande demasiado al descomprimirse")
 	ErrNoDiskSpace     = errors.New("no hay espacio suficiente en disco")
-	ErrDuplicateMap    = errors.New("ese mapa ya esta en la biblioteca")
-	ErrMapNotFound     = errors.New("el mapa no existe")
+	ErrDuplicateWorld    = errors.New("ese mapa ya esta en la biblioteca")
+	ErrWorldNotFound     = errors.New("el mapa no existe")
 	ErrEditionMismatch = errors.New("la edicion del mapa no coincide con la de la instancia")
 
 	// Jerarquia de roles.

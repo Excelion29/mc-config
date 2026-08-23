@@ -18,7 +18,7 @@ type Config struct {
 	DBPath string
 
 	// Carpeta donde se guardan los archivos de los mapas.
-	MapsPath string
+	WorldsPath string
 
 	// Tamano maximo de un mapa subido (D-11).
 	MaxUpload int64
@@ -57,7 +57,12 @@ func Load() (Config, error) {
 	c := Config{
 		Addr:          env("MCVPS_ADDR", ":8080"),
 		DBPath:        env("MCVPS_DB_PATH", "/data/mcvps.db"),
-		MapsPath:      env("MCVPS_MAPS_PATH", "/data/maps"),
+		// Se acepta el nombre viejo a proposito. La variable ya esta puesta
+		// en el .env de la VPS, y el despliegue es automatico al empujar a
+		// main: cambiarle el nombre sin mas dejaria el panel apuntando al
+		// valor por defecto -otra carpeta- y los mundos "desaparecerian" sin
+		// un solo error en el log. Se retirara cuando el .env se actualice.
+		WorldsPath: envAlguno("/data/worlds", "MCVPS_WORLDS_PATH", "MCVPS_MAPS_PATH"),
 		InstancesPath: env("MCVPS_INSTANCES_PATH", "/data/instances"),
 		DockerHost:    os.Getenv("MCVPS_DOCKER_HOST"),
 		GameHost:      env("MCVPS_GAME_HOST", "127.0.0.1"),
@@ -110,4 +115,16 @@ func envBool(key string, def bool) bool {
 		return def
 	}
 	return b
+}
+
+// envAlguno devuelve la primera variable de entorno con valor, o el valor por
+// defecto. Sirve para renombrar una variable sin romper los despliegues que
+// aun usan el nombre anterior.
+func envAlguno(porDefecto string, nombres ...string) string {
+	for _, n := range nombres {
+		if v := os.Getenv(n); v != "" {
+			return v
+		}
+	}
+	return porDefecto
 }

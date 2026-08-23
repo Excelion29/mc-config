@@ -75,7 +75,7 @@
       <strong>{{.Online}}</strong> <span class="apagado">/ {{.MaxOnline}} jugando</span>
     </p>
     <p class="ayuda">
-      Mapa: {{if .Current.MapName}}{{.Current.MapName}}{{else}}&mdash;{{end}}<br>
+      Mundo: {{if .Current.WorldName}}{{.Current.WorldName}}{{else}}&mdash;{{end}}<br>
       Puerto <code>{{.Current.Port}}</code> &middot; {{.Current.MemoryMB}} MiB
     </p>
     {{end}}
@@ -107,7 +107,7 @@
         <thead>
           <tr>
             <th>Servidor</th>
-            <th>Mapa</th>
+            <th>Mundo</th>
             <th>Estado</th>
             <th class="derecha">Acciones</th>
           </tr>
@@ -122,7 +122,7 @@
                 {{.Edition.Label}}{{if .Version}} &middot; {{.Version}}{{end}}
               </span>
             </td>
-            <td class="apagado">{{if .MapName}}{{.MapName}}{{else}}&mdash;{{end}}</td>
+            <td class="apagado">{{if .WorldName}}{{.WorldName}}{{else}}&mdash;{{end}}</td>
             <td><span class="estado estado-{{.State}}">{{.State.Label}}</span></td>
             <td>
               <div class="acciones-fila">
@@ -163,7 +163,7 @@
     <p class="vacio">
       Todav&iacute;a no hay servidores.
       {{if .User.Can "instance.create"}}
-      <a href="#crear-servidor">Crea uno a partir de un mapa</a>.
+      <a href="#crear-servidor">Crea uno a partir de un mundo</a>.
       {{else}}Pide a un administrador que cree alguno.{{end}}
     </p>
     {{end}}
@@ -175,14 +175,14 @@
   <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
   <div class="modal-caja" role="dialog" aria-labelledby="titulo-crear">
     <header class="modal-cabecera">
-      <h2 id="titulo-crear">Crear servidor desde un mapa</h2>
+      <h2 id="titulo-crear">Crear servidor desde un mundo</h2>
       <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
     </header>
 
     {{if .Maps}}
     <form method="post" action="/instances">
       <div class="modal-cuerpo formulario">
-        <label for="inst-map">Mapa</label>
+        <label for="inst-map">Mundo</label>
         <select id="inst-map" name="map_id" required>
           {{range .Maps}}
           <option value="{{.ID}}">{{.Name}} &mdash; {{.Edition.Label}} {{.Version}}</option>
@@ -191,7 +191,7 @@
 
         <label for="inst-name">Nombre (opcional)</label>
         <input id="inst-name" name="name" autocomplete="off"
-               placeholder="Si lo dejas vac&iacute;o, se usa el del mapa">
+               placeholder="Si lo dejas vac&iacute;o, se usa el del mundo">
 
         <label for="inst-version">Versi&oacute;n del servidor</label>
         {{if .Versions}}
@@ -212,7 +212,7 @@
         <details class="detalle">
           <summary>&iquest;Por qu&eacute; la lista de versiones es tan corta?</summary>
           <p class="ayuda">
-            <strong>No es la versi&oacute;n del mapa.</strong> El
+            <strong>No es la versi&oacute;n del mundo.</strong> El
             <code>level.dat</code> dice con qu&eacute; versi&oacute;n se
             abri&oacute; el mundo por &uacute;ltima vez, y eso es un
             <em>requisito m&iacute;nimo</em>, no un n&uacute;mero de build que
@@ -240,7 +240,7 @@
     {{else}}
     <div class="modal-cuerpo">
       <p class="vacio">
-        Primero sube un mapa en <a href="/maps">la biblioteca</a>.
+        Primero a&ntilde;ade un mundo en <a href="/worlds">Mundos</a>.
       </p>
     </div>
     {{end}}

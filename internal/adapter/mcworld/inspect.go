@@ -1,6 +1,6 @@
 // Package mcworld analiza archivos de mundo de Minecraft.
 //
-// Es un adaptador: implementa el puerto app.MapInspector. Todo lo que sabe de
+// Es un adaptador: implementa el puerto app.WorldInspector. Todo lo que sabe de
 // formatos de Minecraft (ZIP, NBT, level.dat) vive aqui y en ningun otro sitio.
 package mcworld
 
@@ -45,7 +45,7 @@ func New() *Inspector { return &Inspector{} }
 //
 // No extrae nada: solo lee la tabla del ZIP y los pocos archivos que necesita.
 // La extraccion real ocurre en F3, al crear la instancia.
-func (Inspector) Inspect(r io.ReaderAt, size int64) (*domain.MapInspection, error) {
+func (Inspector) Inspect(r io.ReaderAt, size int64) (*domain.WorldInspection, error) {
 	zr, err := zip.NewReader(r, size)
 	if err != nil {
 		return nil, domain.ErrNotAnArchive
@@ -114,7 +114,7 @@ func (Inspector) Inspect(r io.ReaderAt, size int64) (*domain.MapInspection, erro
 		return nil, fmt.Errorf("leyendo level.dat: %w", err)
 	}
 
-	insp := &domain.MapInspection{
+	insp := &domain.WorldInspection{
 		Entries:      len(zr.File),
 		Uncompressed: total,
 	}

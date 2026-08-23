@@ -102,7 +102,7 @@ func (s *Server) createInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mapID, err := strconv.ParseInt(r.PostFormValue("map_id"), 10, 64)
+	worldID, err := strconv.ParseInt(r.PostFormValue("world_id"), 10, 64)
 	if err != nil {
 		s.redirectError(w, r, rutaInstancias, "Selecciona un mapa.")
 		return
@@ -116,7 +116,7 @@ func (s *Server) createInstance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	inst, err := s.instances.Create(r.Context(), actor,
-		r.PostFormValue("name"), mapID, version, nil, clientIP(r))
+		r.PostFormValue("name"), worldID, version, nil, clientIP(r))
 	if err != nil {
 		s.redirectError(w, r, rutaInstancias, s.instanceError(err))
 		return
@@ -250,7 +250,7 @@ func (s *Server) instanceError(err error) string {
 		return "Detén la instancia antes de borrarla."
 	case errors.Is(err, domain.ErrEditionMismatch):
 		return "La edicion del mapa no coincide con la del servidor."
-	case errors.Is(err, domain.ErrMapNotFound):
+	case errors.Is(err, domain.ErrWorldNotFound):
 		return "Ese mapa ya no esta en la biblioteca."
 	case errors.Is(err, domain.ErrForbidden):
 		return "No tienes permiso para esta accion."

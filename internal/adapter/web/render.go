@@ -58,9 +58,9 @@ type usersPageData struct {
 	Pag   paginador
 }
 
-type mapsPageData struct {
+type worldsPageData struct {
 	PageData
-	Maps      []domain.Map
+	Maps      []domain.World
 	MaxUpload string
 	Pag       paginador
 }
@@ -73,7 +73,7 @@ type instancesPageData struct {
 	// Solo puede haber una (D-02), asi que no es una fila mas de la tabla:
 	// es LA informacion de la pantalla y se presenta aparte.
 	Current *domain.Instance
-	Maps      []domain.Map
+	Maps      []domain.World
 	Online    int
 	MaxOnline int
 	Versions  []app.VersionOption

@@ -136,15 +136,31 @@ func (w *ConnectionWatcher) propagar(ctx context.Context) {
 	w.instances.ApplyOps(ctx, ops)
 }
 
-// OpsFrom traduce jugadores del dominio a lo que pide el archivo.
-func OpsFrom(jugadores []domain.Player) []OpEntry {
-	out := make([]OpEntry, 0, len(jugadores))
+// OpsFrom traduce jugadores del dominio a lo que pide el adaptador.
+//
+// Solo de Bedrock por ahora: Java resuelve su UUID desde el nombre y no
+// necesita esperar a la primera conexion (H-J-8), asi que tendra su propia
+// traduccion cuando llegue F5.
+func OpsFrom(jugadores []domain.Player) []PlayerRef {
+	out := make([]PlayerRef, 0, len(jugadores))
 	for i := range jugadores {
 		p := &jugadores[i]
 		if !p.HaEntrado() {
 			continue
 		}
-		out = append(out, OpEntry{XUID: p.XUID, Gamertag: p.Gamertag})
+		out = append(out, PlayerRef{ID: p.XUID, Name: p.Gamertag})
+	}
+	return out
+}
+
+// RefsFrom convierte nombres sueltos en referencias sin identificador.
+//
+// Lo usa la allow-list de Bedrock, que se conforma con el gamertag. En Java
+// haria falta ademas el UUID, y por eso el tipo lleva los dos campos.
+func RefsFrom(nombres []string) []PlayerRef {
+	out := make([]PlayerRef, 0, len(nombres))
+	for _, n := range nombres {
+		out = append(out, PlayerRef{Name: n})
 	}
 	return out
 }

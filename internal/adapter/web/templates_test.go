@@ -49,7 +49,7 @@ func TestBotonesAbrenUnModalQueExiste(t *testing.T) {
 // misma: la lista se ve, pero no hay forma de anadir nada.
 func TestCadaPantallaTieneSuAccion(t *testing.T) {
 	for _, pagina := range []string{
-		"instances.html", "maps.html", "players.html",
+		"instances.html", "worlds.html", "players.html",
 		"users.html", "roles.html",
 	} {
 		datos, err := fs.ReadFile(assets, "templates/"+pagina)

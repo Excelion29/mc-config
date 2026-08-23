@@ -59,7 +59,7 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 	if i.allowlist != nil {
 		if names, err := i.allowlist(ctx); err == nil {
 			if flavor, ok := i.flavors[inst.Edition]; ok {
-				if err := flavor.WriteConfig(inst, i.dataDir(inst), names); err != nil {
+				if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsFrom(names)); err != nil {
 					i.log.Warn("no se pudo escribir la lista de permitidos",
 						"instancia", inst.Name, "error", err)
 				}

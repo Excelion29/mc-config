@@ -60,15 +60,15 @@ func (p *Players) SearchPage(ctx context.Context, actor *domain.User, f PlayerFi
 	return PlayersPage{Players: list, PageInfo: NewPageInfo(pg, total), Filter: f}, nil
 }
 
-// MapsPage es una pagina de la biblioteca.
-type MapsPage struct {
-	Maps []domain.Map
+// WorldsPage es una pagina de la biblioteca.
+type WorldsPage struct {
+	Maps []domain.World
 	PageInfo
 }
 
-func (m *Maps) ListPage(ctx context.Context, actor *domain.User, pg Paging) (MapsPage, error) {
+func (m *Worlds) ListPage(ctx context.Context, actor *domain.User, pg Paging) (WorldsPage, error) {
 	if !actor.Can(domain.PermServerView) {
-		return MapsPage{}, domain.ErrForbidden
+		return WorldsPage{}, domain.ErrForbidden
 	}
 
 	// Los mapas se pintan con portada, asi que caben menos por pagina que
@@ -76,9 +76,9 @@ func (m *Maps) ListPage(ctx context.Context, actor *domain.User, pg Paging) (Map
 	pg = pg.Normalize(12, 100)
 	list, total, err := m.repo.ListPage(ctx, pg.Size, pg.Offset())
 	if err != nil {
-		return MapsPage{}, err
+		return WorldsPage{}, err
 	}
-	return MapsPage{Maps: list, PageInfo: NewPageInfo(pg, total)}, nil
+	return WorldsPage{Maps: list, PageInfo: NewPageInfo(pg, total)}, nil
 }
 
 // UsersPage es una pagina de las cuentas del panel.

@@ -76,7 +76,7 @@ func (f *Flavor) InstallWorld(archivePath, dataDir, levelName string) error {
 }
 
 // WriteConfig genera server.properties y allowlist.json.
-func (f *Flavor) WriteConfig(inst *domain.Instance, dataDir string, allowlist []string) error {
+func (f *Flavor) WriteConfig(inst *domain.Instance, dataDir string, allowlist []app.PlayerRef) error {
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		return fmt.Errorf("creando %s: %w", dataDir, err)
 	}
@@ -96,7 +96,7 @@ func (f *Flavor) WriteConfig(inst *domain.Instance, dataDir string, allowlist []
 	if err := writeProperties(filepath.Join(dataDir, "server.properties"), props); err != nil {
 		return err
 	}
-	return WriteAllowlist(dataDir, allowlist)
+	return WriteAllowlist(dataDir, nombresDe(allowlist))
 }
 
 // WriteAllowlist escribe allowlist.json con el formato exacto que genera el
@@ -215,7 +215,7 @@ func writeProperties(path string, values map[string]string) error {
 // Las entradas sin XUID se descartan en silencio: son jugadores dados de alta
 // que aun no han entrado nunca, y para el servidor no existen todavia. Quien
 // decide que no se ofrezca la opcion hasta entonces es la interfaz.
-func WritePermissions(dataDir string, ops []app.OpEntry) error {
+func WritePermissions(dataDir string, ops []app.PlayerRef) error {
 	type entry struct {
 		Permission string `json:"permission"`
 		XUID       string `json:"xuid"`
@@ -223,10 +223,10 @@ func WritePermissions(dataDir string, ops []app.OpEntry) error {
 
 	list := make([]entry, 0, len(ops))
 	for _, o := range ops {
-		if strings.TrimSpace(o.XUID) == "" {
+		if strings.TrimSpace(o.ID) == "" {
 			continue
 		}
-		list = append(list, entry{Permission: "operator", XUID: o.XUID})
+		list = append(list, entry{Permission: "operator", XUID: o.ID})
 	}
 
 	data, err := json.Marshal(list)
@@ -240,7 +240,7 @@ func WritePermissions(dataDir string, ops []app.OpEntry) error {
 }
 
 // WritePermissions cumple el puerto app.ServerFlavor.
-func (*Flavor) WritePermissions(dataDir string, ops []app.OpEntry) error {
+func (*Flavor) WritePermissions(dataDir string, ops []app.PlayerRef) error {
 	return WritePermissions(dataDir, ops)
 }
 
@@ -251,4 +251,14 @@ func (*Flavor) ReloadPermissions(ctx context.Context, rt app.ContainerRuntime, c
 		return nil
 	}
 	return rt.SendStdin(ctx, containerID, "permission reload")
+}
+
+// nombresDe se queda solo con los nombres: la allow-list de Bedrock identifica
+// por gamertag y el XUID no le sirve. Java hace lo contrario.
+func nombresDe(refs []app.PlayerRef) []string {
+	out := make([]string, 0, len(refs))
+	for _, r := range refs {
+		out = append(out, r.Name)
+	}
+	return out
 }

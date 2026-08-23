@@ -31,7 +31,7 @@ func (e Edition) Label() string {
 }
 
 // Map es un mapa de la biblioteca: el archivo subido mas lo que se dedujo de el.
-type Map struct {
+type World struct {
 	ID int64
 	// Name es el nombre visible, ya limpio de codigos de formato.
 	Name string
@@ -87,8 +87,8 @@ func isDecoration(r rune) bool {
 	return false
 }
 
-// MapInspection es lo que se deduce de un archivo antes de aceptarlo.
-type MapInspection struct {
+// WorldInspection es lo que se deduce de un archivo antes de aceptarlo.
+type WorldInspection struct {
 	Edition   Edition
 	RawName   string
 	Version   string

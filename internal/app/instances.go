@@ -13,8 +13,8 @@ import (
 // Instances resuelve los casos de uso de servidores (F3).
 type Instances struct {
 	repo    InstanceRepo
-	maps    MapRepo
-	store   MapStorage
+	maps    WorldRepo
+	store   WorldStorage
 	runtime ContainerRuntime
 	flavors map[domain.Edition]ServerFlavor
 	audit   *Audit
@@ -35,7 +35,7 @@ type Instances struct {
 }
 
 func NewInstances(
-	repo InstanceRepo, maps MapRepo, store MapStorage,
+	repo InstanceRepo, maps WorldRepo, store WorldStorage,
 	runtime ContainerRuntime, flavors []ServerFlavor,
 	audit *Audit, clock Clock, dataRoot, host string, log *slog.Logger,
 ) *Instances {
@@ -103,7 +103,7 @@ func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, n
 	if !ok {
 		return domain.ErrEditionMismatch
 	}
-	if err := flavor.WriteConfig(inst, i.dataDir(inst), names); err != nil {
+	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsFrom(names)); err != nil {
 		return err
 	}
 	if inst.State == domain.StateRunning {

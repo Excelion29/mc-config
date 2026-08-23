@@ -10,20 +10,20 @@ import (
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
-// MapRepo implementa app.MapRepo.
-type MapRepo struct{ db *sql.DB }
+// WorldRepo implementa app.WorldRepo.
+type WorldRepo struct{ db *sql.DB }
 
-const mapColumns = `id, name, raw_name, edition, version, file_name,
+const worldColumns = `id, name, raw_name, edition, version, file_name,
 	size_bytes, sha256, has_icon, uploaded_by, created_at`
 
-func (r *MapRepo) Create(ctx context.Context, m *domain.Map) (int64, error) {
+func (r *WorldRepo) Create(ctx context.Context, m *domain.World) (int64, error) {
 	var uploadedBy any
 	if m.UploadedBy > 0 {
 		uploadedBy = m.UploadedBy
 	}
 
 	res, err := r.db.ExecContext(ctx,
-		`INSERT INTO maps (name, raw_name, edition, version, file_name,
+		`INSERT INTO worlds (name, raw_name, edition, version, file_name,
 		                   size_bytes, sha256, has_icon, uploaded_by, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.Name, m.RawName, string(m.Edition), m.Version, m.FileName,
@@ -31,7 +31,7 @@ func (r *MapRepo) Create(ctx context.Context, m *domain.Map) (int64, error) {
 		m.CreatedAt.Format(time.RFC3339))
 	if err != nil {
 		if isUniqueViolation(err) {
-			return 0, domain.ErrDuplicateMap
+			return 0, domain.ErrDuplicateWorld
 		}
 		return 0, fmt.Errorf("insertando mapa: %w", err)
 	}
@@ -43,15 +43,15 @@ func (r *MapRepo) Create(ctx context.Context, m *domain.Map) (int64, error) {
 	return id, nil
 }
 
-func (r *MapRepo) ByID(ctx context.Context, id int64) (*domain.Map, error) {
-	return r.scanOne(ctx, `SELECT `+mapColumns+` FROM maps WHERE id = ?`, id)
+func (r *WorldRepo) ByID(ctx context.Context, id int64) (*domain.World, error) {
+	return r.scanOne(ctx, `SELECT `+worldColumns+` FROM worlds WHERE id = ?`, id)
 }
 
-func (r *MapRepo) BySHA(ctx context.Context, sha string) (*domain.Map, error) {
-	return r.scanOne(ctx, `SELECT `+mapColumns+` FROM maps WHERE sha256 = ?`, sha)
+func (r *WorldRepo) BySHA(ctx context.Context, sha string) (*domain.World, error) {
+	return r.scanOne(ctx, `SELECT `+worldColumns+` FROM worlds WHERE sha256 = ?`, sha)
 }
 
-func (r *MapRepo) List(ctx context.Context) ([]domain.Map, error) {
+func (r *WorldRepo) List(ctx context.Context) ([]domain.World, error) {
 	out, _, err := r.ListPage(ctx, -1, 0)
 	return out, err
 }
@@ -65,28 +65,28 @@ func (r *MapRepo) List(ctx context.Context) ([]domain.Map, error) {
 // Un limite <= 0 significa "sin limite": SQLite lo entiende como LIMIT -1. Asi
 // List sigue siendo un caso particular de esto y no hay dos consultas que
 // mantener sincronizadas.
-func (r *MapRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.Map, int, error) {
+func (r *WorldRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.World, int, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 
 	var total int
 	if err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM maps`).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("contando maps: %w", err)
+		`SELECT COUNT(*) FROM worlds`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("contando mundos: %w", err)
 	}
 
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+mapColumns+` FROM maps ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+		`SELECT `+worldColumns+` FROM worlds ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
 		limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("listando mapas: %w", err)
 	}
 	defer rows.Close()
 
-	var maps []domain.Map
+	var maps []domain.World
 	for rows.Next() {
-		m, err := scanMap(rows.Scan)
+		m, err := scanWorld(rows.Scan)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -98,28 +98,28 @@ func (r *MapRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.Map
 	return maps, total, nil
 }
 
-func (r *MapRepo) Delete(ctx context.Context, id int64) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM maps WHERE id = ?`, id)
+func (r *WorldRepo) Delete(ctx context.Context, id int64) error {
+	res, err := r.db.ExecContext(ctx, `DELETE FROM worlds WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("borrando mapa: %w", err)
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return domain.ErrMapNotFound
+		return domain.ErrWorldNotFound
 	}
 	return nil
 }
 
-func (r *MapRepo) scanOne(ctx context.Context, query string, args ...any) (*domain.Map, error) {
-	m, err := scanMap(r.db.QueryRowContext(ctx, query, args...).Scan)
+func (r *WorldRepo) scanOne(ctx context.Context, query string, args ...any) (*domain.World, error) {
+	m, err := scanWorld(r.db.QueryRowContext(ctx, query, args...).Scan)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, domain.ErrMapNotFound
+		return nil, domain.ErrWorldNotFound
 	}
 	return m, err
 }
 
-func scanMap(scan func(...any) error) (*domain.Map, error) {
+func scanWorld(scan func(...any) error) (*domain.World, error) {
 	var (
-		m          domain.Map
+		m          domain.World
 		edition    string
 		hasIcon    int
 		uploadedBy sql.NullInt64

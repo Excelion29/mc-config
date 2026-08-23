@@ -1,11 +1,12 @@
 {{define "contenido"}}
 <div class="cabecera-pagina">
   <div>
-    <h1>Biblioteca de mapas</h1>
+    <h1>Mundos</h1>
     <p class="sub">
-      El panel <strong>no descarga mapas de internet</strong>: t&uacute;
-      descargas el archivo y lo subes aqu&iacute;. A cambio, la edici&oacute;n y
-      la versi&oacute;n se detectan solas al subirlo.
+      Un <strong>mundo</strong> es lo que carga el servidor. Hoy se consiguen
+      importando un mapa: t&uacute; descargas el archivo y lo subes aqu&iacute;
+      &mdash;el panel <strong>no baja mapas de internet</strong>&mdash; y la
+      edici&oacute;n y la versi&oacute;n se detectan solas.
     </p>
   </div>
   {{if .User.Can "map.import"}}
@@ -14,7 +15,7 @@
 </div>
 
 <section class="tarjeta">
-  <h2>Mapas <span class="cuenta">{{.Pag.Info.Total}}</span></h2>
+  <h2>Mundos <span class="cuenta">{{.Pag.Info.Total}}</span></h2>
   {{if .Maps}}
   <ul class="mapas">
     {{$page := .}}
@@ -22,7 +23,7 @@
     <li class="mapa">
       <div class="miniatura">
         {{if .HasIcon}}
-        <img src="/maps/{{.ID}}/icon" alt="" loading="lazy">
+        <img src="/worlds/{{.ID}}/icon" alt="" loading="lazy">
         {{else}}
         <span class="sin-icono">sin<br>portada</span>
         {{end}}
@@ -40,7 +41,7 @@
       </div>
 
       {{if $page.User.Can "map.delete"}}
-      <form method="post" action="/maps/delete">
+      <form method="post" action="/worlds/delete">
         <input type="hidden" name="id" value="{{.ID}}">
         <button class="accion accion-peligro" title="Borrar"
                 aria-label="Borrar el mapa {{.Name}}">{{template "ico-borrar"}}</button>
@@ -52,10 +53,10 @@
   {{template "paginador" .Pag}}
   {{else}}
   <p class="vacio">
-    Todav&iacute;a no hay mapas.
+    Todav&iacute;a no hay mundos.
     {{if .User.Can "map.import"}}
-    <a href="#importar-mapa">Sube un <code>.mcworld</code></a> para empezar.
-    {{else}}Pide a un administrador que suba alguno.{{end}}
+    <a href="#importar-mapa">Importa un mapa</a> para empezar.
+    {{else}}Pide a un administrador que a&ntilde;ada alguno.{{end}}
   </p>
   {{end}}
 </section>
@@ -69,7 +70,7 @@
       <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
     </header>
 
-    <form method="post" action="/maps" enctype="multipart/form-data">
+    <form method="post" action="/worlds" enctype="multipart/form-data">
       <div class="modal-cuerpo">
         <label for="archivo">Archivo <code>.mcworld</code> o <code>.zip</code></label>
         <input id="archivo" name="archivo" type="file" accept=".mcworld,.zip" required>

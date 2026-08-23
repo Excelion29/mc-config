@@ -20,7 +20,7 @@ type InstanceRepo interface {
 	SetContainer(ctx context.Context, id int64, containerID string) error
 	MarkStarted(ctx context.Context, id int64, at time.Time) error
 	Delete(ctx context.Context, id int64) error
-	CountByMap(ctx context.Context, mapID int64) (int, error)
+	CountByWorld(ctx context.Context, worldID int64) (int, error)
 }
 
 // ContainerSpec describe el contenedor a crear. Lo rellena el ServerFlavor de
@@ -97,15 +97,12 @@ type ServerFlavor interface {
 	InstallWorld(archivePath, dataDir, levelName string) error
 
 	// WriteConfig genera los archivos de configuracion del servidor.
-	WriteConfig(inst *domain.Instance, dataDir string, allowlist []string) error
+	WriteConfig(inst *domain.Instance, dataDir string, allowlist []PlayerRef) error
 
 	// ReloadAllowlist aplica la lista de permitidos sin reiniciar (H-F0-7).
 	ReloadAllowlist(ctx context.Context, rt ContainerRuntime, containerID string) error
-	// WritePermissions escribe quien es operador DENTRO del juego.
-	//
-	// Recibe pares gamertag/XUID y no solo nombres, porque el archivo de
-	// Bedrock identifica por XUID: un op sin XUID no se puede expresar.
-	WritePermissions(dataDir string, ops []OpEntry) error
+	// WritePermissions escribe quien es administrador DENTRO del juego.
+	WritePermissions(dataDir string, ops []PlayerRef) error
 	// ReloadPermissions los aplica sin reiniciar.
 	ReloadPermissions(ctx context.Context, rt ContainerRuntime, containerID string) error
 
@@ -134,12 +131,20 @@ type WorldExtractor interface {
 	Extract(archivePath, destDir string) error
 }
 
-// OpEntry es un operador dentro del juego, tal como lo necesita el adaptador.
+// PlayerRef identifica a un jugador ante un servidor de juego.
 //
-// Vive aqui y no en domain porque es la forma que pide un archivo de
-// configuracion concreto, no un concepto del problema: un jugador del dominio
-// no sabe que existe permissions.json.
-type OpEntry struct {
-	XUID     string
-	Gamertag string
+// Vive aqui y no en domain porque es la forma que piden unos archivos de
+// configuracion concretos, no un concepto del problema: un jugador del dominio
+// no sabe que existen allowlist.json ni whitelist.json.
+//
+// Las dos ediciones identifican distinto y NO son intercambiables:
+//
+//	Bedrock  ID = XUID (numero de Xbox Live)  Name = gamertag
+//	Java     ID = UUID                        Name = nombre de Java
+//
+// Bedrock ademas solo usa el nombre en su allow-list, mientras que Java exige
+// el UUID. Por eso viajan los dos y cada adaptador toma lo suyo.
+type PlayerRef struct {
+	ID   string
+	Name string
 }

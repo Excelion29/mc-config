@@ -20,13 +20,13 @@ import (
 // Instala el mundo, escribe la configuracion y precrea el contenedor, pero NO
 // lo arranca: por D-02 solo puede haber uno encendido, y decidir cual es una
 // accion aparte.
-func (i *Instances) Create(ctx context.Context, actor *domain.User, name string, mapID int64, version string, allowlist []string, ip string) (*domain.Instance, error) {
+func (i *Instances) Create(ctx context.Context, actor *domain.User, name string, worldID int64, version string, allowlist []string, ip string) (*domain.Instance, error) {
 	if !actor.Can(domain.PermInstanceCreate) {
 		return nil, domain.ErrForbidden
 	}
 
 	name = strings.TrimSpace(name)
-	mp, err := i.maps.ByID(ctx, mapID)
+	mp, err := i.maps.ByID(ctx, worldID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +71,8 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 		Slug:      slug,
 		Edition:   mp.Edition,
 		Version:   version,
-		MapID:     mp.ID,
-		MapName:   mp.Name,
+		WorldID:     mp.ID,
+		WorldName:   mp.Name,
 		LevelName: slug,
 		Port:      flavor.DefaultPort(),
 		State:     domain.StateStopped,
@@ -93,7 +93,7 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 		limpiar()
 		return nil, err
 	}
-	if err := flavor.WriteConfig(inst, dir, allowlist); err != nil {
+	if err := flavor.WriteConfig(inst, dir, RefsFrom(allowlist)); err != nil {
 		limpiar()
 		return nil, err
 	}

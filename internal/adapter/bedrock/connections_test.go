@@ -80,12 +80,12 @@ func TestParseConnection(t *testing.T) {
 func TestWritePermissions(t *testing.T) {
 	dir := t.TempDir()
 
-	if err := WritePermissions(dir, []app.OpEntry{
-		{XUID: "2535413418839840", Gamertag: "Wronkow29"},
+	if err := WritePermissions(dir, []app.PlayerRef{
+		{ID: "2535413418839840", Name: "Wronkow29"},
 		// Sin XUID: dado de alta pero nunca ha entrado. No puede ser op
 		// todavia, y colarlo con el gamertag corromperia el archivo.
-		{XUID: "", Gamertag: "AmigoNuevo"},
-		{XUID: "  ", Gamertag: "SoloEspacios"},
+		{ID: "", Name: "AmigoNuevo"},
+		{ID: "  ", Name: "SoloEspacios"},
 	}); err != nil {
 		t.Fatal(err)
 	}

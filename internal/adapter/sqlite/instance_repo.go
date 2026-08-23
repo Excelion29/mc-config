@@ -13,23 +13,23 @@ import (
 // InstanceRepo implementa app.InstanceRepo.
 type InstanceRepo struct{ db *sql.DB }
 
-const instanceColumns = `i.id, i.name, i.slug, i.edition, i.version, i.map_id,
+const instanceColumns = `i.id, i.name, i.slug, i.edition, i.version, i.world_id,
 	i.level_name, i.container_id, i.port, i.state, i.memory_mb, i.cpus,
-	i.created_at, i.last_started, COALESCE(m.name, '')`
+	i.created_at, i.last_started, COALESCE(w.name, '')`
 
-const instanceFrom = `FROM instances i LEFT JOIN maps m ON m.id = i.map_id`
+const instanceFrom = `FROM instances i LEFT JOIN worlds w ON w.id = i.world_id`
 
 func (r *InstanceRepo) Create(ctx context.Context, i *domain.Instance) (int64, error) {
-	var mapID any
-	if i.MapID > 0 {
-		mapID = i.MapID
+	var worldID any
+	if i.WorldID > 0 {
+		worldID = i.WorldID
 	}
 
 	res, err := r.db.ExecContext(ctx,
-		`INSERT INTO instances (name, slug, edition, version, map_id, level_name,
+		`INSERT INTO instances (name, slug, edition, version, world_id, level_name,
 		                        container_id, port, state, memory_mb, cpus, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		i.Name, i.Slug, string(i.Edition), i.Version, mapID, i.LevelName,
+		i.Name, i.Slug, string(i.Edition), i.Version, worldID, i.LevelName,
 		i.ContainerID, i.Port, string(i.State), i.MemoryMB, i.CPUs,
 		i.CreatedAt.Format(time.RFC3339))
 	if err != nil {
@@ -126,12 +126,12 @@ func (r *InstanceRepo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// CountByMap se usa para avisar antes de borrar un mapa que alguna instancia
+// CountByWorld se usa para avisar antes de borrar un mapa que alguna instancia
 // esta usando.
-func (r *InstanceRepo) CountByMap(ctx context.Context, mapID int64) (int, error) {
+func (r *InstanceRepo) CountByWorld(ctx context.Context, worldID int64) (int, error) {
 	var n int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM instances WHERE map_id = ?`, mapID).Scan(&n)
+		`SELECT COUNT(*) FROM instances WHERE world_id = ?`, worldID).Scan(&n)
 	if err != nil {
 		return 0, fmt.Errorf("contando instancias del mapa: %w", err)
 	}
@@ -151,13 +151,13 @@ func scanInstance(scan func(...any) error) (*domain.Instance, error) {
 		i           domain.Instance
 		edition     string
 		state       string
-		mapID       sql.NullInt64
+		worldID       sql.NullInt64
 		createdAt   string
 		lastStarted sql.NullString
 	)
-	err := scan(&i.ID, &i.Name, &i.Slug, &edition, &i.Version, &mapID,
+	err := scan(&i.ID, &i.Name, &i.Slug, &edition, &i.Version, &worldID,
 		&i.LevelName, &i.ContainerID, &i.Port, &state, &i.MemoryMB, &i.CPUs,
-		&createdAt, &lastStarted, &i.MapName)
+		&createdAt, &lastStarted, &i.WorldName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err
@@ -167,8 +167,8 @@ func scanInstance(scan func(...any) error) (*domain.Instance, error) {
 
 	i.Edition = domain.Edition(edition)
 	i.State = domain.InstanceState(state)
-	if mapID.Valid {
-		i.MapID = mapID.Int64
+	if worldID.Valid {
+		i.WorldID = worldID.Int64
 	}
 	i.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
 	if lastStarted.Valid {

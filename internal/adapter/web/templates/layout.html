@@ -24,7 +24,7 @@
   <nav>
     <a href="/">Inicio</a>
     {{if .User.Can "server.view"}}<a href="/instances">Servidores</a>{{end}}
-    {{if .User.Can "server.view"}}<a href="/maps">Mapas</a>{{end}}
+    {{if .User.Can "server.view"}}<a href="/worlds">Mundos</a>{{end}}
     {{if .User.Can "player.manage"}}<a href="/players">Jugadores</a>{{end}}
     {{if .User.Can "user.manage"}}<a href="/users">Usuarios</a>{{end}}
     {{if .User.Can "role.manage"}}<a href="/roles">Roles</a>{{end}}

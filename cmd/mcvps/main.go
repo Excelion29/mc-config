@@ -71,7 +71,7 @@ type deps struct {
 	migrations func() (map[int]bool, error)
 	auth       *app.Auth
 	audit      *app.Audit
-	maps       *app.Maps
+	maps       *app.Worlds
 	instances  *app.Instances
 	players    *app.Players
 	// watcher aprende el XUID de cada jugador la primera vez que entra. Se
@@ -99,12 +99,12 @@ func build(log *slog.Logger) (*deps, error) {
 	}
 	log.Info("base de datos lista", "ruta", cfg.DBPath)
 
-	store, err := storage.New(cfg.MapsPath)
+	store, err := storage.New(cfg.WorldsPath)
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
-	log.Info("almacen de mapas listo", "ruta", cfg.MapsPath)
+	log.Info("almacen de mundos listo", "ruta", cfg.WorldsPath)
 
 	hasher := security.NewBcrypt()
 	tokens := security.NewTokenGenerator()
@@ -118,7 +118,7 @@ func build(log *slog.Logger) (*deps, error) {
 	)
 
 	inspector := mcworld.New()
-	maps := app.NewMaps(db.Maps(), store, inspector, audit, clock, cfg.MaxUpload, log)
+	maps := app.NewWorlds(db.Worlds(), store, inspector, audit, clock, cfg.MaxUpload, log)
 
 	// El runtime de contenedores puede no estar disponible al desarrollar. No
 	// se aborta el arranque por eso: el panel sigue sirviendo para gestionar
@@ -133,7 +133,7 @@ func build(log *slog.Logger) (*deps, error) {
 	}
 
 	instances := app.NewInstances(
-		db.Instances(), db.Maps(), store, runtime,
+		db.Instances(), db.Worlds(), store, runtime,
 		[]app.ServerFlavor{bedrock.New(inspector)},
 		audit, clock, cfg.InstancesPath, cfg.GameHost, log,
 	)

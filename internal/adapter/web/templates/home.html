@@ -22,11 +22,11 @@
   {{end}}
 
   {{if .User.Can "server.view"}}
-  <a class="atajo" href="/maps">
-    <span class="atajo-titulo">Mapas</span>
+  <a class="atajo" href="/worlds">
+    <span class="atajo-titulo">Mundos</span>
     <span class="atajo-texto">
-      {{if .User.Can "map.import"}}Sube un .mcworld y crea su servidor.
-      {{else}}Mira los mapas ya importados.{{end}}
+      {{if .User.Can "map.import"}}Importa un mapa o crea uno nuevo.
+      {{else}}Mira los mundos disponibles.{{end}}
     </span>
   </a>
   {{end}}
