@@ -1,0 +1,60 @@
+# MCVPS - panel web.
+#
+# Reglas heredadas de la documentacion:
+#   M-7  Este servicio NO declara "ports:". En esta maquina Docker se salta UFW
+#        (ver docs/07-hallazgos-seguridad.md), asi que publicar un puerto es
+#        publicarlo a internet. Nginx Proxy Manager llega por la red "proxy".
+#   M-3  Red propia, separada de la del cliente.
+#   M-1  Limites de memoria y CPU, porque compartimos maquina con produccion.
+#   D-09 La produccion del cliente tiene prioridad: ante la duda, gana el cliente.
+
+services:
+  panel:
+    build: .
+    image: mcvps-panel:latest
+    container_name: mcvps-panel
+    restart: unless-stopped
+
+    env_file: .env
+
+    # Sin "ports". A proposito. No lo anadas para "probar rapido".
+    networks:
+      - proxy            # para que NPM lo alcance
+      - mcvps_internal   # para lo que venga en F3
+
+    volumes:
+      - mcvps_datos:/data
+
+    # El panel solo escribe en /data; el resto del sistema de archivos puede ir
+    # en solo lectura. Si algun dia alguien logra ejecutar codigo aqui, no puede
+    # dejar nada instalado.
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    mem_limit: 512m
+    cpus: 0.5
+
+    healthcheck:
+      test: ["CMD", "/mcvps", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"   # sin esto los logs pueden llenar el disco, y si el
+        max-file: "3"     # disco se llena cae el MySQL del cliente (M-2)
+
+networks:
+  proxy:
+    external: true       # la crea Nginx Proxy Manager, ya existe
+  mcvps_internal:
+    driver: bridge
+
+volumes:
+  mcvps_datos:

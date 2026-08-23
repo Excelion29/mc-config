@@ -1,0 +1,99 @@
+{{define "contenido"}}
+<h1>Usuarios del panel</h1>
+<p class="sub">
+  Estas cuentas son para entrar <strong>al panel</strong>. No son jugadores de
+  Minecraft: esa es otra lista y llega en F4 (D-13).
+</p>
+
+<p class="aviso info">
+  Solo puedes gestionar cuentas <strong>por debajo de tu nivel</strong>. A los de
+  tu mismo rol no los tocas, y al superusuario no lo toca nadie. Tu nivel es
+  <strong>{{.User.RoleLevel}}</strong> ({{.User.RoleName}}).
+</p>
+
+<section class="tarjeta">
+  <h2>Cuentas</h2>
+  <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Nivel</th>
+          <th>Estado</th>
+          <th>Creado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{$page := .}}
+        {{range .Users}}
+        <tr>
+          <td>
+            {{.Email}}
+            {{if eq .ID $page.User.ID}}<span class="rol">t&uacute;</span>{{end}}
+          </td>
+          <td>
+            {{if $page.User.CanManage .}}
+            <form method="post" action="/users/role" class="inline-form">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <select name="role_id" onchange="this.form.submit()">
+                {{$current := .RoleID}}
+                {{range $page.Roles}}
+                <option value="{{.ID}}" {{if eq .ID $current}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+              </select>
+              <noscript><button class="enlace">Cambiar</button></noscript>
+            </form>
+            {{else}}
+            <span class="rol rol-{{.RoleCode}}">{{.RoleName}}</span>
+            {{end}}
+          </td>
+          <td class="apagado">{{.RoleLevel}}</td>
+          <td>{{if .Active}}Activo{{else}}<span class="apagado">Desactivado</span>{{end}}</td>
+          <td class="nowrap">{{.CreatedAt.Format "2006-01-02"}}</td>
+          <td>
+            {{if $page.User.CanManage .}}
+            <form method="post" action="/users/active" class="inline-form">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
+              <button class="enlace">{{if .Active}}Desactivar{{else}}Activar{{end}}</button>
+            </form>
+            {{else if eq .ID $page.User.ID}}
+            <span class="apagado">&mdash;</span>
+            {{else}}
+            <span class="apagado" title="Esta a tu mismo nivel o por encima">bloqueado</span>
+            {{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="tarjeta">
+  <h2>Crear usuario</h2>
+  <form method="post" action="/users">
+    <label for="new-email">Correo</label>
+    <input id="new-email" name="email" type="email" required autocomplete="off">
+
+    <label for="new-password">Contrase&ntilde;a</label>
+    <input id="new-password" name="password" type="password" required
+           minlength="8" autocomplete="new-password">
+
+    <label for="new-role">Rol</label>
+    <select id="new-role" name="role_id" required>
+      {{range .Roles}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+    </select>
+
+    <button type="submit">Crear usuario</button>
+  </form>
+
+  {{if .User.Can "role.manage"}}
+  <p class="ayuda">
+    Los permisos de cada rol se editan en <a href="/roles">Roles y permisos</a>.
+  </p>
+  {{end}}
+</section>
+{{end}}

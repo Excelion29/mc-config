@@ -1,0 +1,38 @@
+{{define "contenido"}}
+<h1>Registro de acciones</h1>
+<p class="sub">
+  Todo lo que ocurre en el panel queda anotado (D-08). Si alguien apaga un
+  servidor o cambia de mapa, aqu&iacute; se ve qui&eacute;n fue.
+</p>
+
+<section class="tarjeta">
+  {{if .Entries}}
+  <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha (UTC)</th>
+          <th>Usuario</th>
+          <th>Acci&oacute;n</th>
+          <th>Detalle</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Entries}}
+        <tr>
+          <td class="nowrap">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+          <td>{{.UserEmail}}</td>
+          <td><code>{{.Action}}</code></td>
+          <td>{{if .Detail}}{{.Detail}}{{else}}&mdash;{{end}}</td>
+          <td class="nowrap">{{if .IP}}{{.IP}}{{else}}&mdash;{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="vacio">Todav&iacute;a no hay acciones registradas.</p>
+  {{end}}
+</section>
+{{end}}

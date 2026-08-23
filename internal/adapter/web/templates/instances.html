@@ -1,0 +1,162 @@
+{{define "contenido"}}
+{{if .EnTransicion}}
+<div class="aviso info">
+  Hay un servidor arrancando o parando. Esta p&aacute;gina se actualiza sola cada
+  5 segundos.
+  <br>
+  <span class="ayuda">
+    La primera vez que se arranca una versi&oacute;n, la imagen descarga el
+    binario del servidor desde Mojang y eso puede tardar varios minutos.
+  </span>
+</div>
+{{end}}
+
+<h1>Servidores</h1>
+<p class="sub">
+  S&oacute;lo puede haber <strong>uno encendido a la vez</strong> (D-02).
+  Arrancar otro apaga el actual, y eso desconecta a quien est&eacute; jugando.
+</p>
+
+{{if .Confirm}}
+<section class="tarjeta aviso-confirmar">
+  <h2>&iquest;Cambiar de servidor?</h2>
+  <p>
+    Ahora mismo est&aacute; encendido <strong>{{.Confirm.Running.Name}}</strong>
+    {{if gt .Confirm.Players 0}}
+    con <strong>{{.Confirm.Players}} jugador{{if ne .Confirm.Players 1}}es{{end}} conectado{{if ne .Confirm.Players 1}}s{{end}}</strong>.
+    Se {{if ne .Confirm.Players 1}}les{{else}}le{{end}} desconectar&aacute;.
+    {{else}}
+    y no hay nadie conectado.
+    {{end}}
+  </p>
+  <p class="ayuda">
+    El servidor actual se apagar&aacute; de forma limpia antes de arrancar el
+    otro: el mundo se guarda entero, no se pierde nada de lo jugado.
+  </p>
+  <form method="post" action="/instances/start">
+    <input type="hidden" name="id" value="{{.Confirm.TargetID}}">
+    <input type="hidden" name="confirm" value="1">
+    <button type="submit">S&iacute;, cambiar de servidor</button>
+  </form>
+</section>
+{{end}}
+
+<section class="tarjeta">
+  <h2>Instancias ({{len .Instances}})</h2>
+  {{if .Instances}}
+  <ul class="mapas">
+    {{$page := .}}
+    {{range .Instances}}
+    <li class="mapa">
+      <div class="datos">
+        <strong>{{.Name}}</strong>
+        <div class="meta">
+          <span class="estado estado-{{.State}}">{{.State.Label}}</span>
+          <span class="rol rol-{{.Edition}}">{{.Edition.Label}}</span>
+          {{if .Version}}<code>{{.Version}}</code>{{end}}
+          {{if eq .State "running"}}
+          <span class="apagado">{{$page.Online}}/{{$page.MaxOnline}} jugando</span>
+          {{end}}
+        </div>
+        <div class="meta apagado">
+          mapa: {{if .MapName}}{{.MapName}}{{else}}&mdash;{{end}}
+          &middot; puerto {{.Port}}
+          &middot; {{.MemoryMB}} MiB
+        </div>
+      </div>
+
+      <div class="acciones">
+        {{if $page.User.Can "server.operate"}}
+          {{if .CanStart}}
+          <form method="post" action="/instances/start" class="inline-form">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <button class="enlace">Arrancar</button>
+          </form>
+          {{end}}
+          {{if .CanStop}}
+          <form method="post" action="/instances/stop" class="inline-form">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <button class="enlace">Detener</button>
+          </form>
+          {{end}}
+        {{end}}
+
+        {{if $page.User.Can "server.view"}}
+        <a class="enlace" href="/instances/{{.ID}}/logs" target="_blank">Logs</a>
+        {{end}}
+
+        {{if $page.User.Can "instance.delete"}}
+        <form method="post" action="/instances/delete" class="inline-form">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="enlace peligro">Borrar</button>
+        </form>
+        {{end}}
+      </div>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="vacio">Todav&iacute;a no hay servidores. Crea uno a partir de un mapa.</p>
+  {{end}}
+</section>
+
+{{if .User.Can "instance.create"}}
+<section class="tarjeta">
+  <h2>Crear servidor desde un mapa</h2>
+  {{if .Maps}}
+  <form method="post" action="/instances">
+    <label for="inst-map">Mapa</label>
+    <select id="inst-map" name="map_id" required>
+      {{range .Maps}}
+      <option value="{{.ID}}">{{.Name}} &mdash; {{.Edition.Label}} {{.Version}}</option>
+      {{end}}
+    </select>
+
+    <label for="inst-name">Nombre (opcional)</label>
+    <input id="inst-name" name="name" autocomplete="off"
+           placeholder="Si lo dejas vac&iacute;o, se usa el del mapa">
+
+    <label for="inst-version">Versi&oacute;n del servidor</label>
+    {{if .Versions}}
+    <select id="inst-version" name="version">
+      {{range .Versions}}
+      <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>{{.Label}}</option>
+      {{end}}
+      <option value="">Otra (escribirla abajo)</option>
+    </select>
+
+    <label for="inst-version-manual">Versi&oacute;n concreta (opcional)</label>
+    <input id="inst-version-manual" name="version_manual" autocomplete="off"
+           placeholder="1.21.21.01">
+    {{else}}
+    <input id="inst-version" name="version" autocomplete="off" value="LATEST">
+    {{end}}
+
+    <p class="ayuda">
+      <strong>No es la versi&oacute;n del mapa.</strong> El <code>level.dat</code>
+      dice con qu&eacute; versi&oacute;n se abri&oacute; el mundo por &uacute;ltima
+      vez, y eso es un <em>requisito m&iacute;nimo</em>, no un n&uacute;mero de
+      build que Mojang publique: pedirlo tal cual da error 404 al descargar.
+    </p>
+    <p class="ayuda">
+      Mojang <strong>s&oacute;lo publica la versi&oacute;n estable actual y la
+      preview</strong>, no un hist&oacute;rico. Por eso la lista es corta. Si
+      necesitas una antigua concreta, escr&iacute;bela en el campo de arriba:
+      funcionar&aacute; si Mojang a&uacute;n la sirve.
+    </p>
+
+    <p class="ayuda">
+      Se instala el mundo, se genera la configuraci&oacute;n y se prepara el
+      contenedor. <strong>No se arranca:</strong> eso es una acci&oacute;n
+      aparte, porque s&oacute;lo puede haber uno encendido.
+    </p>
+    <button type="submit">Crear servidor</button>
+  </form>
+  {{else}}
+  <p class="vacio">
+    Primero sube un mapa en <a href="/maps">la biblioteca</a>.
+  </p>
+  {{end}}
+</section>
+{{end}}
+{{end}}

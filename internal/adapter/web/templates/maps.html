@@ -1,0 +1,64 @@
+{{define "contenido"}}
+<h1>Biblioteca de mapas</h1>
+<p class="sub">
+  El panel <strong>no descarga mapas de internet</strong> (D-11): t&uacute;
+  descargas el archivo y lo subes aqu&iacute;. A cambio, del archivo se deduce
+  solo la edici&oacute;n y la versi&oacute;n.
+</p>
+
+{{if .User.Can "map.import"}}
+<section class="tarjeta">
+  <h2>Importar un mapa</h2>
+  <form method="post" action="/maps" enctype="multipart/form-data">
+    <label for="archivo">Archivo <code>.mcworld</code> o <code>.zip</code></label>
+    <input id="archivo" name="archivo" type="file" accept=".mcworld,.zip" required>
+    <p class="ayuda">M&aacute;ximo {{.MaxUpload}}. Se comprueba que sea un ZIP
+    v&aacute;lido, que contenga <code>level.dat</code> y que no intente escribir
+    fuera de su carpeta.</p>
+    <button type="submit">Importar</button>
+  </form>
+</section>
+{{end}}
+
+<section class="tarjeta">
+  <h2>Mapas ({{len .Maps}})</h2>
+  {{if .Maps}}
+  <ul class="mapas">
+    {{$page := .}}
+    {{range .Maps}}
+    <li class="mapa">
+      <div class="miniatura">
+        {{if .HasIcon}}
+        <img src="/maps/{{.ID}}/icon" alt="" loading="lazy">
+        {{else}}
+        <span class="sin-icono">sin<br>portada</span>
+        {{end}}
+      </div>
+
+      <div class="datos">
+        <strong>{{.Name}}</strong>
+        <div class="meta">
+          <span class="rol rol-{{.Edition}}">{{.Edition.Label}}</span>
+          {{if .Version}}<code>{{.Version}}</code>{{else}}<span class="apagado">version desconocida</span>{{end}}
+        </div>
+        <div class="meta apagado">
+          {{.FileName}} &middot; {{.CreatedAt.Format "2006-01-02"}}
+        </div>
+      </div>
+
+      {{if $page.User.Can "map.delete"}}
+      <form method="post" action="/maps/delete" class="inline-form">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <button class="enlace peligro">Borrar</button>
+      </form>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="vacio">
+    Todav&iacute;a no hay mapas. Sube un <code>.mcworld</code> para empezar.
+  </p>
+  {{end}}
+</section>
+{{end}}

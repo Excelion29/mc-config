@@ -1,0 +1,40 @@
+{{define "layout"}}<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · MCVPS</title>
+<link rel="stylesheet" href="/static/app.css">
+{{if .Refresh}}<meta http-equiv="refresh" content="{{.Refresh}}">{{end}}
+</head>
+<body>
+{{if .User}}
+<header class="barra">
+  <a class="marca" href="/">MCVPS</a>
+  <nav>
+    <a href="/">Inicio</a>
+    {{if .User.Can "server.view"}}<a href="/instances">Servidores</a>{{end}}
+    {{if .User.Can "server.view"}}<a href="/maps">Mapas</a>{{end}}
+    {{if .User.Can "user.manage"}}<a href="/users">Usuarios</a>{{end}}
+    {{if .User.Can "role.manage"}}<a href="/roles">Roles</a>{{end}}
+    {{if .User.Can "audit.view"}}<a href="/audit">Registro</a>{{end}}
+  </nav>
+  <div class="sesion">
+    <span class="email">{{.User.Email}}</span>
+    <span class="rol rol-{{.User.RoleCode}}">{{.User.RoleName}}</span>
+    <form method="post" action="/logout"><button class="enlace">Salir</button></form>
+  </div>
+</header>
+{{end}}
+
+<main>
+  {{if .Error}}<p class="aviso error">{{.Error}}</p>{{end}}
+  {{if .Info}}<p class="aviso info">{{.Info}}</p>{{end}}
+  {{template "contenido" .}}
+</main>
+
+<footer>
+  <span>MCVPS · panel de servidores Minecraft</span>
+</footer>
+</body>
+</html>{{end}}

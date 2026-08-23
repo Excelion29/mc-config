@@ -1,0 +1,34 @@
+{{define "contenido"}}
+<h1>Panel</h1>
+<p class="sub">Sesi&oacute;n iniciada como <strong>{{.User.Email}}</strong>.</p>
+
+<section class="tarjeta">
+  <h2>Lo que puedes hacer con el rol <em>{{.User.RoleName}}</em></h2>
+  <ul class="permisos">
+    <li class="{{if .User.Can "server.view"}}si{{else}}no{{end}}">Ver el estado de los servidores</li>
+    <li class="{{if .User.Can "server.operate"}}si{{else}}no{{end}}">Arrancar, parar y cambiar de mapa</li>
+    <li class="{{if .User.Can "map.import"}}si{{else}}no{{end}}">Importar mapas</li>
+    <li class="{{if .User.Can "map.delete"}}si{{else}}no{{end}}">Borrar mapas</li>
+    <li class="{{if .User.Can "instance.create"}}si{{else}}no{{end}}">Crear instancias</li>
+    <li class="{{if .User.Can "instance.delete"}}si{{else}}no{{end}}">Borrar instancias</li>
+    <li class="{{if .User.Can "player.manage"}}si{{else}}no{{end}}">Gestionar jugadores</li>
+    <li class="{{if .User.Can "user.manage"}}si{{else}}no{{end}}">Gestionar usuarios del panel</li>
+    <li class="{{if .User.Can "role.manage"}}si{{else}}no{{end}}">Gestionar roles y permisos</li>
+    <li class="{{if .User.Can "audit.view"}}si{{else}}no{{end}}">Ver el registro de acciones</li>
+  </ul>
+</section>
+
+<section class="tarjeta pendiente">
+  <h2>Todav&iacute;a no disponible</h2>
+  <p>
+    Esto es el esqueleto de la fase <strong>F1</strong>: autenticaci&oacute;n,
+    roles y registro de acciones. La gesti&oacute;n de mapas e instancias llega
+    en F2 y F3.
+  </p>
+  <ul class="siguiente">
+    <li><strong>F2</strong> — subir mapas y detectar edici&oacute;n y versi&oacute;n</li>
+    <li><strong>F3</strong> — crear instancias, arrancar y parar</li>
+    <li><strong>F4</strong> — lista maestra de jugadores</li>
+  </ul>
+</section>
+{{end}}

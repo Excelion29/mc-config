@@ -1,0 +1,127 @@
+{{define "contenido"}}
+<h1>Roles y permisos</h1>
+<p class="sub">
+  Los <strong>permisos</strong> los define el c&oacute;digo: existen porque hay
+  una funci&oacute;n que los comprueba. Los <strong>roles</strong> los defines
+  t&uacute;: decides qu&eacute; permisos agrupa cada uno y en qu&eacute; nivel
+  est&aacute;.
+</p>
+
+<p class="aviso info">
+  El <strong>nivel</strong> ordena la jerarqu&iacute;a: s&oacute;lo se gestiona
+  a quien est&aacute; estrictamente por debajo. Tu nivel es
+  <strong>{{.User.RoleLevel}}</strong>, as&iacute; que s&oacute;lo puedes editar
+  roles por debajo de &eacute;l.
+</p>
+
+{{range .Roles}}
+<section class="tarjeta">
+  <h2>
+    {{.Name}}
+    <code class="tenue">{{.Code}}</code>
+    {{if .System}}<span class="rol">sistema</span>{{end}}
+    <span class="rol">nivel {{.Level}}</span>
+    <span class="tenue">
+      · {{index $.UsersByRole .ID}} usuario{{if ne (index $.UsersByRole .ID) 1}}s{{end}}
+    </span>
+  </h2>
+
+  {{if .IsSuperuser}}
+  <p class="aviso info">
+    El superusuario tiene <strong>siempre</strong> todos los permisos, incluidos
+    los que se a&ntilde;adan en el futuro. No es editable, no se borra y nadie
+    puede gestionarlo: es la garant&iacute;a de que nunca queda un panel sin
+    nadie que pueda arreglarlo. S&oacute;lo puede existir <strong>uno</strong>.
+  </p>
+  <div class="permisos-grid">
+    {{range $.Groups}}
+    <fieldset disabled>
+      <legend>{{.Name}}</legend>
+      {{range .Permissions}}
+      <label class="check">
+        <input type="checkbox" checked disabled>
+        <span>{{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}</span>
+      </label>
+      {{end}}
+    </fieldset>
+    {{end}}
+  </div>
+
+  {{else if not ($.User.Role.Outranks .)}}
+  <p class="aviso info">
+    Este rol est&aacute; a tu mismo nivel o por encima ({{.Level}} frente a
+    {{$.User.RoleLevel}}). No puedes editarlo.
+  </p>
+
+  {{else}}
+  <form method="post" action="/roles/permissions">
+    <input type="hidden" name="id" value="{{.ID}}">
+    <div class="permisos-grid">
+      {{$role := .}}
+      {{range $.Groups}}
+      <fieldset>
+        <legend>{{.Name}}</legend>
+        {{range .Permissions}}
+        <label class="check">
+          <input type="checkbox" name="permissions" value="{{.Code}}"
+                 {{if $role.Can .Code}}checked{{end}}>
+          <span title="{{.Description}}">
+            {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
+          </span>
+        </label>
+        {{end}}
+      </fieldset>
+      {{end}}
+    </div>
+    <button type="submit">Guardar permisos</button>
+  </form>
+
+  {{if not .System}}
+  <form method="post" action="/roles/delete" class="borrar">
+    <input type="hidden" name="id" value="{{.ID}}">
+    <button class="enlace peligro">Borrar este rol</button>
+  </form>
+  {{end}}
+  {{end}}
+</section>
+{{end}}
+
+<section class="tarjeta">
+  <h2>Crear rol</h2>
+  <form method="post" action="/roles">
+    <label for="role-code">C&oacute;digo</label>
+    <input id="role-code" name="code" required pattern="[a-z0-9_\-]+"
+           placeholder="constructor" autocomplete="off">
+
+    <label for="role-name">Nombre visible</label>
+    <input id="role-name" name="name" placeholder="Constructor" autocomplete="off">
+
+    <label for="role-level">Nivel</label>
+    <input id="role-level" name="level" type="number" required
+           min="1" max="{{sub .User.RoleLevel 1}}" value="15">
+    <p class="ayuda">
+      Entre 1 y {{sub .User.RoleLevel 1}}. Un rol nuevo nace siempre por debajo
+      del tuyo: si naciera a tu nivel, crear&iacute;as gente a la que despu&eacute;s
+      no podr&iacute;as gestionar.
+    </p>
+
+    <div class="permisos-grid">
+      {{range .Groups}}
+      <fieldset>
+        <legend>{{.Name}}</legend>
+        {{range .Permissions}}
+        <label class="check">
+          <input type="checkbox" name="permissions" value="{{.Code}}">
+          <span title="{{.Description}}">
+            {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
+          </span>
+        </label>
+        {{end}}
+      </fieldset>
+      {{end}}
+    </div>
+
+    <button type="submit">Crear rol</button>
+  </form>
+</section>
+{{end}}

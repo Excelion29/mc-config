@@ -11,6 +11,12 @@ secrets/
 id_rsa*
 id_ed25519*
 
+# Datos de pruebas en local
+.local/
+*.db
+*.db-wal
+*.db-shm
+
 # Sistema / editores
 .DS_Store
 Thumbs.db
