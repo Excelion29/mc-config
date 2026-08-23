@@ -39,6 +39,19 @@
 {{end}}
 
 <main>
+  {{if .Disco}}
+  <p class="aviso {{if .Disco.Lleno}}error{{else}}info{{end}}">
+    El disco va al <strong>{{.Disco.Ocupado}}%</strong>, quedan
+    {{.Disco.LibreLegible}}.
+    {{if .Disco.Lleno}}
+    <strong>No se aceptan mapas nuevos</strong> hasta hacer sitio: si se llena
+    del todo dejan de escribir tambi&eacute;n los otros servicios de la
+    m&aacute;quina. Borra alg&uacute;n mapa o instancia que ya no uses.
+    {{else}}
+    Conviene ir borrando mapas o instancias que ya no uses.
+    {{end}}
+  </p>
+  {{end}}
   {{if .Error}}<p class="aviso error">{{.Error}}</p>{{end}}
   {{if .Info}}<p class="aviso info">{{.Info}}</p>{{end}}
   {{template "contenido" .}}
@@ -47,6 +60,11 @@
 <footer>
   <span>MCVPS · panel de servidores Minecraft</span>
 </footer>
+{{/*
+  Al final del cuerpo y con defer: la pagina se pinta y se puede usar antes de
+  que este archivo exista siquiera. Los formularios funcionan sin el.
+*/}}
+<script src="/static/js/parcial.js" defer></script>
 </body>
 </html>{{end}}
 

@@ -19,6 +19,11 @@ type PageData struct {
 	Error string
 	Info  string
 	Email string
+	// Disco se rellena solo cuando hay algo que decir. Va en PageData y no en
+	// la pantalla de mapas porque un disco lleno tumba el panel entero -y de
+	// paso lo del cliente que comparte la VPS-, asi que no puede depender de
+	// que alguien pase por la pantalla correcta.
+	Disco *app.DiskStatus
 	// Refresh, si no es cero, recarga la pagina cada N segundos. Se usa
 	// mientras algo esta en transicion: sin JavaScript, es la unica forma de
 	// que el estado se actualice solo (la CSP prohibe scripts en linea).
@@ -126,6 +131,53 @@ func newRenderer(fsys fs.FS) (*renderer, error) {
 		return nil, fmt.Errorf("no se encontro ninguna plantilla")
 	}
 	return r, nil
+}
+
+// pagina construye la PageData comun.
+//
+// Existe para que un dato que sale en TODAS las pantallas -el aviso de disco-
+// se resuelva en un sitio. Cuando cada handler la armaba a mano, anadir un
+// campo compartido significaba acordarse de siete sitios, y basta con olvidar
+// uno para que el aviso no aparezca justo en la pantalla desde la que alguien
+// esta llenando el disco.
+func (s *Server) pagina(r *http.Request, titulo, errMsg, infoMsg string) PageData {
+	pd := PageData{
+		Title: titulo,
+		User:  userFrom(r),
+		Error: errMsg,
+		Info:  infoMsg,
+	}
+
+	// Solo se rellena si hay algo que decir: por debajo del umbral, ni se
+	// menciona. Un aviso permanente deja de leerse.
+	if estado, err := s.maps.Disk(); err == nil && estado.Avisar() {
+		pd.Disco = &estado
+	}
+	return pd
+}
+
+// fragment escribe UNA plantilla suelta en vez de la pagina entera.
+//
+// Es la mitad servidor del intercambio de filas: el navegador pide una accion
+// y recibe de vuelta solo la fila afectada. La plantilla es LA MISMA que usa
+// el listado completo, asi que una fila recargada y una fila recién pintada no
+// pueden divergir; si se escribieran por separado, acabarian haciendolo.
+func (r *renderer) fragment(w http.ResponseWriter, page, name string, data any) error {
+	t, ok := r.pages[page]
+	if !ok {
+		return fmt.Errorf("plantilla desconocida: %s", page)
+	}
+
+	// A memoria primero, igual que render: si la plantilla falla a mitad no
+	// se puede retirar lo ya enviado, y el navegador insertaria medio HTML.
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, name, data); err != nil {
+		return fmt.Errorf("renderizando el fragmento %s: %w", name, err)
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 // render escribe la pagina. Se renderiza primero a memoria para no enviar una

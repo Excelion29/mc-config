@@ -23,7 +23,7 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.renderer.render(w, http.StatusOK, "players.html", playersPageData{
-		PageData: PageData{Title: "Jugadores", User: actor, Error: errMsg, Info: info},
+		PageData: s.pagina(r, "Jugadores", errMsg, info),
 		Players:  page.Players,
 		Pag:      paginador{Info: page.PageInfo, Base: rutaJugadores + "?"},
 	})
@@ -49,6 +49,46 @@ func (s *Server) addPlayer(w http.ResponseWriter, r *http.Request) {
 		p.Gamertag+" ya puede entrar a todos los servidores.")
 }
 
+// esParcial distingue una peticion que quiere solo el fragmento.
+//
+// La cabecera es la que manda HTMX, para que sustituirlo por el HTMX de verdad
+// no obligue a tocar nada del servidor.
+func esParcial(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
+}
+
+// responderFila devuelve la fila recién cambiada, ya con su estado nuevo.
+//
+// Se relee el jugador de la base en vez de construirlo con lo que se acaba de
+// enviar: lo que vale es lo que quedo guardado, no lo que el navegador creia
+// estar pidiendo.
+func (s *Server) responderFila(w http.ResponseWriter, r *http.Request, id int64) {
+	actor := userFrom(r)
+
+	p, err := s.players.ByID(r.Context(), actor, id)
+	if err != nil {
+		s.log.Error("no se pudo releer el jugador", "id", id, "error", err)
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+
+	s.ponerTotal(w, r, actor)
+	if err := s.renderer.fragment(w, "players.html", "fila-jugador", p); err != nil {
+		s.log.Error("no se pudo pintar la fila", "error", err)
+	}
+}
+
+// ponerTotal manda el total en una cabecera para que el contador del titulo se
+// actualice. Contar filas en el navegador daria un numero falso en cuanto haya
+// paginacion: en pantalla hay 25, en la lista 300.
+func (s *Server) ponerTotal(w http.ResponseWriter, r *http.Request, actor *domain.User) {
+	page, err := s.players.ListPage(r.Context(), actor, app.Paging{})
+	if err != nil {
+		return
+	}
+	w.Header().Set("X-Total", strconv.Itoa(page.Total))
+}
+
 func (s *Server) setPlayerActive(w http.ResponseWriter, r *http.Request) {
 	id, active, ok := s.playerForm(w, r, "active")
 	if !ok {
@@ -57,6 +97,11 @@ func (s *Server) setPlayerActive(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.players.SetActive(r.Context(), userFrom(r), id, active, clientIP(r)); err != nil {
 		s.redirectError(w, r, rutaJugadores, s.playerError(err))
+		return
+	}
+
+	if esParcial(r) {
+		s.responderFila(w, r, id)
 		return
 	}
 
@@ -77,6 +122,10 @@ func (s *Server) setPlayerOp(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, rutaJugadores, s.playerError(err))
 		return
 	}
+	if esParcial(r) {
+		s.responderFila(w, r, id)
+		return
+	}
 	s.redirectInfo(w, r, rutaJugadores, "Permisos de operador actualizados.")
 }
 
@@ -94,6 +143,13 @@ func (s *Server) deletePlayer(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.players.Delete(r.Context(), userFrom(r), id, clientIP(r)); err != nil {
 		s.redirectError(w, r, rutaJugadores, s.playerError(err))
+		return
+	}
+	if esParcial(r) {
+		// Cuerpo vacio: la fila se quita, no se sustituye. El total si viaja,
+		// porque el contador del titulo tiene que bajar.
+		s.ponerTotal(w, r, userFrom(r))
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	s.redirectInfo(w, r, rutaJugadores, "Jugador borrado de la lista.")

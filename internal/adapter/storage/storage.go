@@ -93,7 +93,13 @@ func (s *FileStore) TempFile() (*os.File, error) {
 
 // FreeSpace devuelve los bytes libres en el volumen del almacen.
 func (s *FileStore) FreeSpace() (uint64, error) {
-	return freeSpace(s.root)
+	libre, _, err := diskUsage(s.root)
+	return libre, err
+}
+
+// DiskUsage devuelve el espacio libre y la capacidad de donde viven los mapas.
+func (s *FileStore) DiskUsage() (libre, total uint64, err error) {
+	return diskUsage(s.root)
 }
 
 func copyFile(src, dst string) error {

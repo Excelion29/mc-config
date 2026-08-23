@@ -31,6 +31,10 @@ type MapStorage interface {
 	ReadIcon(sha string) ([]byte, error)
 	Delete(sha string) error
 	FreeSpace() (uint64, error)
+	// DiskUsage da libre y capacidad, para poder hablar en porcentaje. El
+	// espacio libre a secas no dice nada: 2 GB sobran en un disco de 20 y
+	// son una urgencia en uno de 500.
+	DiskUsage() (libre, total uint64, err error)
 }
 
 // MapInspector deduce que es un archivo subido.

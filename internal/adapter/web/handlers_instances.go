@@ -76,7 +76,7 @@ func (s *Server) showInstances(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	page := PageData{Title: "Servidores", User: actor, Error: errMsg, Info: info}
+	page := s.pagina(r, "Servidores", errMsg, info)
 	if transicion && confirm == nil {
 		page.Refresh = 5
 	}

@@ -104,7 +104,7 @@ func (s *Server) renderMaps(w http.ResponseWriter, r *http.Request, status int, 
 	}
 
 	s.renderer.render(w, status, "maps.html", mapsPageData{
-		PageData:  PageData{Title: "Mapas", User: actor, Error: errMsg, Info: infoMsg},
+		PageData:  s.pagina(r, "Mapas", errMsg, infoMsg),
 		Maps:      page.Maps,
 		MaxUpload: app.HumanSize(s.maps.MaxUpload()),
 		Pag:       paginador{Info: page.PageInfo, Base: "/maps?"},

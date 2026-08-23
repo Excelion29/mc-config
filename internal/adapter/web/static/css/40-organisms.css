@@ -194,3 +194,41 @@
 /* Dentro de un dialogo el boton ya esta en su pie: el margen superior que
    lleva por defecto solo abriria un hueco. */
 .modal-pie button { margin-top: 0; }
+
+/* --- Consola --------------------------------------------------------------
+   Salida del servidor, de solo lectura. Se parece a una terminal a proposito:
+   es lo que la gente reconoce como "esto lo escribe la maquina, no yo".
+
+   Fondo propio y no --color-superficie: aqui el negro no es tema, es el
+   lenguaje visual de una consola, y en modo claro tambien debe leerse como
+   tal. */
+
+.consola {
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  min-height: 20rem;
+  background: #0a0d0b;
+  color: #c8d6cc;
+  font-family: var(--fuente-mono);
+  font-size: var(--texto-sm);
+  line-height: 1.5;
+}
+
+.consola:focus-visible { outline: 2px solid var(--color-acento); outline-offset: -2px; }
+
+/* Sin ajuste de linea que parta las marcas de tiempo, pero sin cortar texto:
+   se desplaza en horizontal si hace falta. */
+.consola-linea { white-space: pre; }
+
+.consola-estado {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-normal);
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-versal);
+  margin-left: var(--espacio-2);
+}
+
+/* La consola pide mas ancho que un formulario: son lineas largas. */
+.modal-ancho { width: min(64rem, 100%); }

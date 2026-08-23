@@ -152,3 +152,69 @@ func (i *Instances) fail(ctx context.Context, inst *domain.Instance, cause error
 		i.log.Error("ademas fallo al guardar el estado", "error", err)
 	}
 }
+
+// Running devuelve la instancia encendida, o nil si no hay ninguna.
+//
+// Es interno del panel y no lleva actor: lo usa el vigilante de conexiones,
+// que no actua en nombre de nadie.
+func (i *Instances) Running(ctx context.Context) (*domain.Instance, error) {
+	list, err := i.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for k := range list {
+		if list[k].State == domain.StateRunning {
+			return &list[k], nil
+		}
+	}
+	return nil, nil
+}
+
+// RawLogs lee el log de una instancia sin comprobar permisos.
+//
+// Existe aparte de Logs porque los que llaman son distintos: Logs atiende a una
+// persona y por tanto exige permiso; esto lo usa el vigilante, que es el propio
+// panel mirando su servidor. Pedirle un actor obligaria a inventarse un usuario
+// falso, y un usuario falso con permisos es justo lo que no queremos tener.
+func (i *Instances) RawLogs(ctx context.Context, inst *domain.Instance, lines int) (string, error) {
+	if inst == nil || inst.ContainerID == "" {
+		return "", nil
+	}
+	return i.runtime.Logs(ctx, inst.ContainerID, lines)
+}
+
+// ApplyOps reescribe permissions.json de TODAS las instancias y lo recarga en
+// la que este encendida.
+//
+// Igual que la allow-list, los permissions.json son derivados: la verdad esta
+// en la base. No devuelve error a proposito -el alta ya esta guardada- y las
+// instancias paradas lo recogeran al arrancar.
+func (i *Instances) ApplyOps(ctx context.Context, jugadores []domain.Player) {
+	ops := OpsFrom(jugadores)
+
+	list, err := i.repo.List(ctx)
+	if err != nil {
+		i.log.Error("no se pudieron listar las instancias", "error", err)
+		return
+	}
+
+	for k := range list {
+		inst := &list[k]
+		flavor, ok := i.flavors[inst.Edition]
+		if !ok {
+			continue
+		}
+		if err := flavor.WritePermissions(i.dataDir(inst), ops); err != nil {
+			i.log.Warn("no se pudo escribir permissions.json",
+				"instancia", inst.Name, "error", err)
+			continue
+		}
+		if inst.State == domain.StateRunning {
+			if err := flavor.ReloadPermissions(ctx, i.runtime, inst.ContainerID); err != nil {
+				i.log.Warn("no se pudo recargar permissions.json",
+					"instancia", inst.Name, "error", err)
+			}
+		}
+		i.log.Info("operadores aplicados", "instancia", inst.Name, "ops", len(ops))
+	}
+}

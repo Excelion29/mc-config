@@ -13,7 +13,7 @@ import (
 // PlayerRepo implementa app.PlayerRepo.
 type PlayerRepo struct{ db *sql.DB }
 
-const playerColumns = `id, gamertag, java_name, note, is_op, active, created_at`
+const playerColumns = `id, gamertag, java_name, note, xuid, first_seen, is_op, active, created_at`
 
 func (r *PlayerRepo) Create(ctx context.Context, p *domain.Player) (int64, error) {
 	res, err := r.db.ExecContext(ctx,
@@ -149,8 +149,10 @@ func scanPlayer(scan func(...any) error) (*domain.Player, error) {
 		isOp      int
 		active    int
 		createdAt string
+		firstSeen sql.NullString
 	)
-	err := scan(&p.ID, &p.Gamertag, &p.JavaName, &p.Note, &isOp, &active, &createdAt)
+	err := scan(&p.ID, &p.Gamertag, &p.JavaName, &p.Note, &p.XUID, &firstSeen,
+		&isOp, &active, &createdAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err
@@ -161,5 +163,56 @@ func scanPlayer(scan func(...any) error) (*domain.Player, error) {
 	p.IsOp = isOp == 1
 	p.Active = active == 1
 	p.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+	if firstSeen.Valid {
+		if t, err := time.Parse(time.RFC3339, firstSeen.String); err == nil {
+			p.FirstSeen = &t
+		}
+	}
 	return &p, nil
+}
+
+// MarkSeen guarda el XUID la PRIMERA vez que se ve entrar a alguien.
+//
+// El WHERE exige xuid = '' a proposito: solo se escribe una vez. Un jugador
+// que entra veinte veces al dia no debe reescribir su fila veinte veces, y
+// mas importante, first_seen tiene que seguir siendo la primera y no la
+// ultima.
+//
+// Devuelve si de verdad se actualizo algo, para que quien llame sepa si hay
+// que regenerar permissions.json o no ha cambiado nada.
+func (r *PlayerRepo) MarkSeen(ctx context.Context, gamertag, xuid string, cuando time.Time) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE players SET xuid = ?, first_seen = ?
+		  WHERE gamertag = ? AND xuid = ''`,
+		xuid, cuando.Format(time.RFC3339), gamertag)
+	if err != nil {
+		return false, fmt.Errorf("guardando el xuid de %s: %w", gamertag, err)
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
+
+// Ops devuelve los jugadores que son operadores Y ademas se pueden identificar.
+//
+// El filtro por xuid distinto de vacio no es una optimizacion: permissions.json
+// no admite gamertags, asi que un op sin XUID no se puede expresar. Se queda
+// fuera hasta que entre por primera vez.
+func (r *PlayerRepo) Ops(ctx context.Context) ([]domain.Player, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+playerColumns+` FROM players
+		  WHERE is_op = 1 AND active = 1 AND xuid != '' ORDER BY gamertag`)
+	if err != nil {
+		return nil, fmt.Errorf("leyendo operadores: %w", err)
+	}
+	defer rows.Close()
+
+	var out []domain.Player
+	for rows.Next() {
+		p, err := scanPlayer(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *p)
+	}
+	return out, rows.Err()
 }

@@ -70,8 +70,14 @@ func (m *Maps) Import(ctx context.Context, actor *domain.User, src io.Reader, fi
 		return nil, domain.ErrFileTooBig
 	}
 
-	// Se exige margen para el archivo comprimido y para su extraccion en F3.
-	// Si el disco se llena, MySQL del cliente deja de escribir (M-2).
+	// Tope por PORCENTAJE (M-2): se corta antes de llenar el disco, porque no
+	// somos los unicos en esta maquina.
+	if err := m.checkDisk(); err != nil {
+		return nil, err
+	}
+
+	// Y ademas margen absoluto para el comprimido y su extraccion: en un disco
+	// muy grande el porcentaje puede ir holgado y aun asi no caber este mapa.
 	if free, err := m.store.FreeSpace(); err == nil {
 		needed := uint64(m.maxUpload) * 3
 		if free < needed {

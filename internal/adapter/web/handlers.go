@@ -99,7 +99,7 @@ func (s *Server) showAudit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.renderer.render(w, http.StatusOK, "audit.html", auditPageData{
-		PageData: PageData{Title: "Registro", User: u},
+		PageData: s.pagina(r, "Registro", "", ""),
 		Page:     page,
 		Actions:  app.AuditActions(),
 		Pag: paginador{

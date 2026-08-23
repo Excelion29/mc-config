@@ -202,3 +202,53 @@ func writeProperties(path string, values map[string]string) error {
 	}
 	return nil
 }
+
+// WritePermissions escribe permissions.json, que es como Bedrock decide quien
+// es operador dentro del juego:
+//
+//	[{"permission":"operator","xuid":"2535413418839840"}]
+//
+// Se escribe SIEMPRE, aunque no haya ops. Un archivo ausente y uno con lista
+// vacia significan lo mismo para el servidor, pero el archivo deja claro que
+// el panel lo gestiona y que no es que se haya perdido.
+//
+// Las entradas sin XUID se descartan en silencio: son jugadores dados de alta
+// que aun no han entrado nunca, y para el servidor no existen todavia. Quien
+// decide que no se ofrezca la opcion hasta entonces es la interfaz.
+func WritePermissions(dataDir string, ops []app.OpEntry) error {
+	type entry struct {
+		Permission string `json:"permission"`
+		XUID       string `json:"xuid"`
+	}
+
+	list := make([]entry, 0, len(ops))
+	for _, o := range ops {
+		if strings.TrimSpace(o.XUID) == "" {
+			continue
+		}
+		list = append(list, entry{Permission: "operator", XUID: o.XUID})
+	}
+
+	data, err := json.Marshal(list)
+	if err != nil {
+		return fmt.Errorf("generando permissions.json: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(dataDir, "permissions.json"), data, 0o644); err != nil {
+		return fmt.Errorf("escribiendo permissions.json: %w", err)
+	}
+	return nil
+}
+
+// WritePermissions cumple el puerto app.ServerFlavor.
+func (*Flavor) WritePermissions(dataDir string, ops []app.OpEntry) error {
+	return WritePermissions(dataDir, ops)
+}
+
+// ReloadPermissions aplica permissions.json sin reiniciar, por la misma via
+// que la allow-list.
+func (*Flavor) ReloadPermissions(ctx context.Context, rt app.ContainerRuntime, containerID string) error {
+	if containerID == "" {
+		return nil
+	}
+	return rt.SendStdin(ctx, containerID, "permission reload")
+}

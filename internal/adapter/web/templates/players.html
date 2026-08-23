@@ -13,7 +13,7 @@
 </div>
 
 <section class="tarjeta">
-  <h2>Permitidos <span class="cuenta">{{.Pag.Info.Total}}</span></h2>
+  <h2>Permitidos <span class="cuenta" data-total>{{.Pag.Info.Total}}</span></h2>
   {{if .Players}}
   <div class="tabla-scroll">
     <table>
@@ -26,46 +26,7 @@
         </tr>
       </thead>
       <tbody>
-        {{range .Players}}
-        <tr>
-          <td>
-            <strong class="dato">{{.Gamertag}}</strong>
-            {{if .IsOp}}<span class="etiqueta ok">operador</span>{{end}}
-          </td>
-          <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
-          <td>
-            {{if .Active}}<span class="etiqueta ok">activo</span>
-            {{else}}<span class="etiqueta aviso">bloqueado</span>{{end}}
-          </td>
-          <td>
-            <div class="acciones-fila">
-              <form method="post" action="/players/op">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <input type="hidden" name="is_op" value="{{if .IsOp}}0{{else}}1{{end}}">
-                <button class="accion accion-destacar{{if .IsOp}} activa{{end}}"
-                        title="{{if .IsOp}}Quitar operador{{else}}Hacer operador{{end}}"
-                        aria-label="{{if .IsOp}}Quitar operador a{{else}}Hacer operador a{{end}} {{.Gamertag}}">{{template "ico-op"}}</button>
-              </form>
-              <form method="post" action="/players/active">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
-                {{if .Active}}
-                <button class="accion accion-atencion" title="Bloquear"
-                        aria-label="Bloquear a {{.Gamertag}}">{{template "ico-bloquear"}}</button>
-                {{else}}
-                <button class="accion accion-positiva" title="Permitir"
-                        aria-label="Permitir a {{.Gamertag}}">{{template "ico-permitir"}}</button>
-                {{end}}
-              </form>
-              <form method="post" action="/players/delete">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <button class="accion accion-peligro" title="Borrar"
-                        aria-label="Borrar a {{.Gamertag}} de la lista">{{template "ico-borrar"}}</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        {{end}}
+        {{range .Players}}{{template "fila-jugador" .}}{{end}}
       </tbody>
     </table>
   </div>
@@ -102,13 +63,12 @@
         <input id="note" name="note" autocomplete="off"
                placeholder="Para acordarte de qui&eacute;n es">
 
-        <label class="check">
-          <input type="checkbox" name="is_op" value="1">
-          <span>Operador dentro del juego</span>
-        </label>
         <p class="ayuda">
-          Permisos de administrador <strong>en Minecraft</strong>, no en el
-          panel. Son cosas distintas.
+          <strong>&iquest;Y hacerle admin del juego?</strong> Eso se hace
+          despu&eacute;s, desde la lista. Minecraft identifica a sus
+          administradores por un n&uacute;mero de cuenta de Xbox que
+          <strong>no conocemos hasta que entra la primera vez</strong>, as&iacute;
+          que primero le das paso, entra, y entonces aparece la opci&oacute;n.
         </p>
       </div>
       <footer class="modal-pie">
@@ -118,4 +78,66 @@
     </form>
   </div>
 </div>
+{{end}}
+
+{{/*
+  La fila, aparte, porque se pinta desde DOS sitios: el listado completo y la
+  respuesta a una accion suelta. Que sea una sola plantilla es justamente el
+  punto -si hubiera dos, una fila recién cambiada y una recien cargada
+  acabarian enseñando cosas distintas-.
+
+  Los atributos hx-* son los de HTMX. Sin JavaScript el navegador ignora los
+  hx-* y usa el action/method de siempre.
+*/}}
+{{define "fila-jugador"}}
+        <tr>
+          <td>
+            <strong class="dato">{{.Gamertag}}</strong>
+            {{if and .IsOp .HaEntrado}}
+            <span class="etiqueta ok" title="Puede usar comandos dentro del juego">admin del juego</span>
+            {{end}}
+          </td>
+          <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
+          <td>
+            {{if not .Active}}<span class="etiqueta aviso">bloqueado</span>
+            {{else if .HaEntrado}}<span class="etiqueta ok">ha jugado</span>
+            {{else}}
+            <span class="etiqueta" title="Puede entrar, pero aun no lo ha hecho. Hasta entonces no se le puede hacer admin del juego.">
+              sin estrenar
+            </span>
+            {{end}}
+          </td>
+          <td>
+            <div class="acciones-fila">
+              {{if .HaEntrado}}
+              <form method="post" action="/players/op"
+                    hx-post="/players/op" hx-target="closest tr" hx-swap="outerHTML">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <input type="hidden" name="is_op" value="{{if .IsOp}}0{{else}}1{{end}}">
+                <button class="accion accion-destacar{{if .IsOp}} activa{{end}}"
+                        title="{{if .IsOp}}Quitar admin del juego{{else}}Hacer admin del juego{{end}}"
+                        aria-label="{{if .IsOp}}Quitar admin del juego a{{else}}Hacer admin del juego a{{end}} {{.Gamertag}}">{{template "ico-op"}}</button>
+              </form>
+              {{end}}
+              <form method="post" action="/players/active"
+                    hx-post="/players/active" hx-target="closest tr" hx-swap="outerHTML">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
+                {{if .Active}}
+                <button class="accion accion-atencion" title="Bloquear"
+                        aria-label="Bloquear a {{.Gamertag}}">{{template "ico-bloquear"}}</button>
+                {{else}}
+                <button class="accion accion-positiva" title="Permitir"
+                        aria-label="Permitir a {{.Gamertag}}">{{template "ico-permitir"}}</button>
+                {{end}}
+              </form>
+              <form method="post" action="/players/delete"
+                    hx-post="/players/delete" hx-target="closest tr" hx-swap="delete">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="accion accion-peligro" title="Borrar"
+                        aria-label="Borrar a {{.Gamertag}} de la lista">{{template "ico-borrar"}}</button>
+              </form>
+            </div>
+          </td>
+        </tr>
 {{end}}

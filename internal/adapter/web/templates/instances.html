@@ -87,7 +87,7 @@
         <button class="enlace">Detener</button>
       </form>
       {{end}}
-      <a class="enlace" href="/instances/{{.Current.ID}}/logs" target="_blank">Logs</a>
+      <a class="enlace" href="#logs-{{.Current.ID}}">Consola</a>
     </div>
 
     {{else}}
@@ -142,8 +142,8 @@
                   </form>
                   {{end}}
                 {{end}}
-                <a class="accion" href="/instances/{{.ID}}/logs" target="_blank"
-                   title="Ver logs" aria-label="Ver los logs de {{.Name}}">{{template "ico-logs"}}</a>
+                <a class="accion" href="#logs-{{.ID}}"
+                   title="Ver la consola" aria-label="Ver la consola de {{.Name}}">{{template "ico-logs"}}</a>
                 {{if $page.User.Can "instance.delete"}}
                 <form method="post" action="/instances/delete">
                   <input type="hidden" name="id" value="{{.ID}}">
@@ -243,6 +243,41 @@
       </p>
     </div>
     {{end}}
+  </div>
+</div>
+{{end}}
+
+{{/*
+  Consola por instancia. El contenido llega por Server-Sent Events cuando el
+  dialogo se abre; con la URL apuntando a otro sitio, el flujo se corta y el
+  servidor deja de mandar lineas que nadie mira.
+
+  Sin JavaScript el enlace de abajo lleva a la pagina de siempre.
+*/}}
+{{$page := .}}
+{{range .Instances}}
+<div class="modal" id="logs-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja modal-ancho" role="dialog" aria-labelledby="titulo-logs-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-logs-{{.ID}}">
+        Consola &mdash; {{.Name}}
+        <span class="consola-estado apagado">sin conectar</span>
+      </h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <div class="consola" data-stream="/instances/{{.ID}}/logs/stream"
+         role="log" aria-live="polite" aria-label="Salida del servidor {{.Name}}"
+         tabindex="0"></div>
+
+    <footer class="modal-pie">
+      <span class="apagado">
+        Solo lectura. Se actualiza sola mientras est&eacute; abierta.
+      </span>
+      <a class="enlace" href="/instances/{{.ID}}/logs" target="_blank">Abrir aparte</a>
+      <a class="enlace" href="#">Cerrar</a>
+    </footer>
   </div>
 </div>
 {{end}}

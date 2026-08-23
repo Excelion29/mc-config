@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/Excelion29/mc-config/internal/domain"
 )
@@ -18,4 +19,9 @@ type PlayerRepo interface {
 	SetActive(ctx context.Context, id int64, active bool) error
 	SetOp(ctx context.Context, id int64, isOp bool) error
 	Delete(ctx context.Context, id int64) error
+	// MarkSeen guarda el XUID la primera vez que se ve entrar a alguien.
+	// Devuelve si de verdad cambio algo.
+	MarkSeen(ctx context.Context, gamertag, xuid string, cuando time.Time) (bool, error)
+	// Ops devuelve los operadores IDENTIFICABLES, es decir con XUID.
+	Ops(ctx context.Context) ([]domain.Player, error)
 }

@@ -31,6 +31,16 @@ func (p *Players) List(ctx context.Context, actor *domain.User) ([]domain.Player
 	return p.repo.List(ctx)
 }
 
+// ByID devuelve un jugador suelto. Lo usa la web para repintar una fila
+// despues de cambiarla, releyendo lo que quedo guardado en vez de fiarse de lo
+// que venia en la peticion.
+func (p *Players) ByID(ctx context.Context, actor *domain.User, id int64) (*domain.Player, error) {
+	if !actor.Can(domain.PermPlayerManage) {
+		return nil, domain.ErrForbidden
+	}
+	return p.repo.ByID(ctx, id)
+}
+
 // ActiveGamertags lo usa Instances al crear una instancia nueva, para que nazca
 // ya con la lista puesta en vez de vacia.
 func (p *Players) ActiveGamertags(ctx context.Context) ([]string, error) {

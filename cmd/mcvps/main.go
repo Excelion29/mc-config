@@ -74,6 +74,10 @@ type deps struct {
 	maps       *app.Maps
 	instances  *app.Instances
 	players    *app.Players
+	// watcher aprende el XUID de cada jugador la primera vez que entra. Se
+	// arma aqui, con el resto, para que la raiz de composicion siga siendo el
+	// unico sitio donde se eligen implementaciones concretas.
+	watcher *app.ConnectionWatcher
 }
 
 // build cablea todo. Acepta log nil para los comandos que no deben ensuciar la
@@ -135,6 +139,7 @@ func build(log *slog.Logger) (*deps, error) {
 	)
 
 	players := app.NewPlayers(db.Players(), instances, audit, clock, log)
+	watcher := app.NewConnectionWatcher(db.Players(), instances, bedrock.New(inspector), log)
 
 	// Ciclo cerrado a proposito: Players necesita Instances para propagar la
 	// lista, e Instances necesita la lista al arrancar. Se inyecta despues de
@@ -150,6 +155,7 @@ func build(log *slog.Logger) (*deps, error) {
 		maps:       maps,
 		instances:  instances,
 		players:    players,
+		watcher:    watcher,
 	}, nil
 }
 
@@ -175,6 +181,13 @@ func run(log *slog.Logger) error {
 	} else if n > 0 {
 		log.Info("sesiones caducadas eliminadas", "cantidad", n)
 	}
+
+	// --- Vigilante de conexiones -------------------------------------------
+	//
+	// Aprende el XUID de cada jugador la primera vez que entra, que es lo
+	// unico que permite darle operador despues (ver 0008_xuid_de_jugadores).
+	// Se cancela solo cuando se apaga el panel.
+	go d.watcher.Run(ctx)
 
 	// --- Adaptador HTTP ----------------------------------------------------
 	handler, err := web.NewServer(auth, audit, d.maps, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)

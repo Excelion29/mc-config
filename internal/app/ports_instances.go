@@ -101,6 +101,13 @@ type ServerFlavor interface {
 
 	// ReloadAllowlist aplica la lista de permitidos sin reiniciar (H-F0-7).
 	ReloadAllowlist(ctx context.Context, rt ContainerRuntime, containerID string) error
+	// WritePermissions escribe quien es operador DENTRO del juego.
+	//
+	// Recibe pares gamertag/XUID y no solo nombres, porque el archivo de
+	// Bedrock identifica por XUID: un op sin XUID no se puede expresar.
+	WritePermissions(dataDir string, ops []OpEntry) error
+	// ReloadPermissions los aplica sin reiniciar.
+	ReloadPermissions(ctx context.Context, rt ContainerRuntime, containerID string) error
 
 	// AvailableVersions lista las versiones instalables.
 	//
@@ -125,4 +132,14 @@ type VersionOption struct {
 // WorldExtractor extrae el contenido de un archivo de mundo.
 type WorldExtractor interface {
 	Extract(archivePath, destDir string) error
+}
+
+// OpEntry es un operador dentro del juego, tal como lo necesita el adaptador.
+//
+// Vive aqui y no en domain porque es la forma que pide un archivo de
+// configuracion concreto, no un concepto del problema: un jugador del dominio
+// no sabe que existe permissions.json.
+type OpEntry struct {
+	XUID     string
+	Gamertag string
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
-//go:embed templates/*.html static/css/*.css
+//go:embed templates/*.html static/css/*.css static/js/*.js
 var assets embed.FS
 
 const cookieName = "mcvps_session"
@@ -94,6 +94,10 @@ func (s *Server) Routes() http.Handler {
 			g.Get("/maps/{id}/icon", s.mapIcon)
 			g.Get("/instances", s.showInstances)
 			g.Get("/instances/{id}/logs", s.instanceLogs)
+			// Flujo en vivo para la consola. Se queda abierto mientras el
+			// dialogo este abierto, por eso NO puede compartir el tiempo
+			// limite de escritura del resto de rutas.
+			g.Get("/instances/{id}/logs/stream", s.streamLogs)
 		})
 
 		private.Group(func(g chi.Router) {

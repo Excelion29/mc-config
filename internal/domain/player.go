@@ -17,11 +17,37 @@ type Player struct {
 	// JavaName se rellenara en el hito 2. La identidad de Java es distinta:
 	// usuario y contrasena de AuthMe, no gamertag (ver D-04).
 	JavaName string
-	Note     string
+	Note string
+	// XUID es el identificador de Xbox Live. Ya existe antes de que nos
+	// conozca -lo tiene desde que creo su cuenta- pero el panel no lo sabe
+	// hasta que entra por primera vez y el servidor lo escribe en su log.
+	//
+	// Hace falta porque permissions.json identifica a los operadores por XUID
+	// y NO acepta gamertags.
+	XUID string
+	// FirstSeen es cuando se le vio entrar por primera vez. Nil = nunca.
+	FirstSeen *time.Time
 	// IsOp da permisos de administrador DENTRO del juego, no en el panel.
+	//
+	// Solo surte efecto si ademas hay XUID: hasta entonces el servidor no
+	// sabe a quien se refiere. Por eso la interfaz no ofrece la opcion antes
+	// de la primera conexion, en vez de dejar marcar algo que no haria nada.
 	IsOp      bool
 	Active    bool
 	CreatedAt time.Time
+}
+
+// HaEntrado indica si se le ha visto conectarse alguna vez.
+//
+// Es la frontera del alta en dos fases: antes solo se le puede permitir o
+// bloquear el paso; despues ya se le puede gestionar de verdad.
+func (p *Player) HaEntrado() bool {
+	return p != nil && p.XUID != ""
+}
+
+// PuedeSerOp: dar operador exige saber quien es exactamente.
+func (p *Player) PuedeSerOp() bool {
+	return p.HaEntrado()
 }
 
 // NormalizeGamertag limpia espacios sobrantes pero CONSERVA las mayusculas.
