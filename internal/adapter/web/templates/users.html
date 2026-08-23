@@ -2,18 +2,15 @@
 <h1>Usuarios del panel</h1>
 <p class="sub">
   Estas cuentas son para entrar <strong>al panel</strong>. No son jugadores de
-  Minecraft: esa es otra lista y llega en F4 (D-13).
+  Minecraft: esa es {{if .User.Can "player.manage"}}<a href="/players">otra
+  lista</a>{{else}}otra lista{{end}}.
 </p>
 
-<p class="aviso info">
-  Solo puedes gestionar cuentas <strong>por debajo de tu nivel</strong>. A los de
-  tu mismo rol no los tocas, y al superusuario no lo toca nadie. Tu nivel es
-  <strong>{{.User.RoleLevel}}</strong> ({{.User.RoleName}}).
-</p>
-
-<section class="tarjeta">
-  <h2>Cuentas</h2>
-  <div class="tabla-scroll">
+<div class="tabs">
+  <input type="radio" name="tab-usuarios" id="tab-cuentas" checked>
+  <label for="tab-cuentas">Cuentas <span class="cuenta">{{len .Users}}</span></label>
+  <div class="panel">
+    <div class="tabla-scroll">
     <table>
       <thead>
         <tr>
@@ -69,12 +66,18 @@
         {{end}}
       </tbody>
     </table>
+    </div>
+    <p class="ayuda">
+      Solo puedes gestionar cuentas <strong>por debajo de tu nivel</strong>. A
+      los de tu mismo rol no los tocas, y al superusuario no lo toca nadie. Tu
+      nivel es <strong>{{.User.RoleLevel}}</strong> ({{.User.RoleName}}).
+    </p>
   </div>
-</section>
 
-<section class="tarjeta">
-  <h2>Crear usuario</h2>
-  <form method="post" action="/users">
+  <input type="radio" name="tab-usuarios" id="tab-usuarios-alta">
+  <label for="tab-usuarios-alta">Crear usuario</label>
+  <div class="panel">
+  <form method="post" action="/users" class="formulario">
     <label for="new-email">Correo</label>
     <input id="new-email" name="email" type="email" required autocomplete="off">
 
@@ -95,5 +98,6 @@
     Los permisos de cada rol se editan en <a href="/roles">Roles y permisos</a>.
   </p>
   {{end}}
-</section>
+  </div>
+</div>
 {{end}}

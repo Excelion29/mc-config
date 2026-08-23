@@ -6,22 +6,10 @@
   solo la edici&oacute;n y la versi&oacute;n.
 </p>
 
-{{if .User.Can "map.import"}}
-<section class="tarjeta">
-  <h2>Importar un mapa</h2>
-  <form method="post" action="/maps" enctype="multipart/form-data">
-    <label for="archivo">Archivo <code>.mcworld</code> o <code>.zip</code></label>
-    <input id="archivo" name="archivo" type="file" accept=".mcworld,.zip" required>
-    <p class="ayuda">M&aacute;ximo {{.MaxUpload}}. Se comprueba que sea un ZIP
-    v&aacute;lido, que contenga <code>level.dat</code> y que no intente escribir
-    fuera de su carpeta.</p>
-    <button type="submit">Importar</button>
-  </form>
-</section>
-{{end}}
-
-<section class="tarjeta">
-  <h2>Mapas ({{len .Maps}})</h2>
+<div class="tabs">
+  <input type="radio" name="tab-mapas" id="tab-biblioteca" checked>
+  <label for="tab-biblioteca">Biblioteca <span class="cuenta">{{len .Maps}}</span></label>
+  <div class="panel">
   {{if .Maps}}
   <ul class="mapas">
     {{$page := .}}
@@ -57,8 +45,28 @@
   </ul>
   {{else}}
   <p class="vacio">
-    Todav&iacute;a no hay mapas. Sube un <code>.mcworld</code> para empezar.
+    Todav&iacute;a no hay mapas.
+    {{if .User.Can "map.import"}}Usa la pesta&ntilde;a <em>Importar</em> para
+    subir un <code>.mcworld</code>.{{else}}Pide a un administrador que suba
+    alguno.{{end}}
   </p>
   {{end}}
-</section>
+  </div>
+
+  {{if .User.Can "map.import"}}
+  <input type="radio" name="tab-mapas" id="tab-importar">
+  <label for="tab-importar">Importar</label>
+  <div class="panel">
+  <form method="post" action="/maps" enctype="multipart/form-data" class="formulario">
+    <label for="archivo">Archivo <code>.mcworld</code> o <code>.zip</code></label>
+    <input id="archivo" name="archivo" type="file" accept=".mcworld,.zip" required>
+    <p class="ayuda">M&aacute;ximo {{.MaxUpload}}. Se comprueba que sea un ZIP
+    v&aacute;lido, que contenga <code>level.dat</code> y que no intente escribir
+    fuera de su carpeta.</p>
+    <button type="submit">Importar</button>
+  </form>
+  </div>
+  {{end}}
+</div>
+
 {{end}}

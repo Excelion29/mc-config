@@ -174,14 +174,6 @@ legend { font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; col
 .info  { background: var(--info-fondo);  border-color: var(--info-borde);  color: var(--info-texto); }
 
 /* Listas */
-.permisos, .siguiente { list-style: none; padding: 0; margin: 0; }
-.permisos li { padding: .3rem 0 .3rem 1.6rem; position: relative; }
-.permisos li::before { position: absolute; left: 0; font-weight: 700; }
-.permisos .si::before { content: "✓"; color: var(--acento); }
-.permisos .no::before { content: "✕"; color: var(--texto-tenue); }
-.permisos .no { color: var(--texto-tenue); }
-.siguiente li { padding: .2rem 0; color: var(--texto-tenue); }
-.pendiente { border-style: dashed; }
 .ayuda { margin-top: 1.25rem; font-size: .85rem; color: var(--texto-tenue); }
 .ayuda li { padding-left: 0; }
 .ayuda li::before { content: none; }
@@ -248,3 +240,246 @@ footer {
   color: var(--texto-tenue);
   border-top: 1px solid var(--borde);
 }
+
+/* ---------------------------------------------------------------------------
+   Atajos de la pantalla de inicio.
+   Solo se pintan los concedidos, asi que la rejilla se encoge sola segun el
+   rol: un espectador ve dos tarjetas, no diez con ocho tachadas.
+--------------------------------------------------------------------------- */
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .9rem;
+  margin: 1.2rem 0;
+}
+
+.atajo {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: 1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  text-decoration: none;
+  color: inherit;
+}
+
+.atajo:hover, .atajo:focus-visible {
+  border-color: var(--acento);
+}
+
+.atajo-titulo { font-weight: 600; }
+.atajo-texto  { color: var(--texto-tenue); font-size: .9rem; }
+
+.pie-nota { color: var(--texto-tenue); font-size: .9rem; }
+
+/* ---------------------------------------------------------------------------
+   Pestanas sin JavaScript.
+   Un radio oculto por pestana; el panel visible es el que sigue a la etiqueta
+   marcada. Se apoya en "order" de flexbox para que todas las etiquetas queden
+   arriba y los paneles debajo, aunque en el HTML vayan intercalados.
+
+   Sin JS a proposito: el panel no carga ni un script, asi que cambiar de
+   pestana no puede fallar ni depender de que algo termine de descargarse.
+   Los radios siguen siendo enfocables, de modo que las flechas del teclado
+   cambian de pestana como en cualquier grupo de opciones.
+--------------------------------------------------------------------------- */
+
+.tabs { display: flex; flex-wrap: wrap; margin-top: 1.2rem; }
+
+.tabs > input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tabs > label {
+  order: 1;
+  padding: .55rem 1.1rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--texto-tenue);
+  border-bottom: 2px solid var(--borde);
+  white-space: nowrap;
+}
+
+/* Rellena el resto de la fila para que la linea inferior no se corte. */
+.tabs::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  border-bottom: 2px solid var(--borde);
+}
+
+.tabs > label:hover { color: var(--texto); }
+
+.tabs > input:checked + label {
+  color: var(--acento);
+  border-bottom-color: var(--acento);
+}
+
+.tabs > input:focus-visible + label {
+  outline: 2px solid var(--acento);
+  outline-offset: -2px;
+  border-radius: var(--radio) var(--radio) 0 0;
+}
+
+.tabs > .panel {
+  order: 2;
+  width: 100%;
+  display: none;
+  padding-top: 1.2rem;
+}
+
+.tabs > input:checked + label + .panel { display: block; }
+
+/* Cuenta al lado del nombre de la pestana: "Permitidos 12". */
+.tabs > label .cuenta {
+  display: inline-block;
+  margin-left: .4rem;
+  padding: 0 .4rem;
+  border-radius: 999px;
+  background: var(--borde);
+  color: var(--texto-tenue);
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.tabs > input:checked + label .cuenta {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+/* ---------------------------------------------------------------------------
+   Tablas que no estiran la pagina.
+   El contenedor tiene altura maxima y desplaza SU PROPIO contenido: veinte
+   jugadores ocupan lo mismo en pantalla que tres. La cabecera se queda fija
+   para no perder de vista que columna es cual al desplazar.
+--------------------------------------------------------------------------- */
+
+.tabla-scroll {
+  max-height: 58vh;
+  overflow: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.tabla-scroll table { margin: 0; border: 0; }
+
+.tabla-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--superficie);
+  box-shadow: inset 0 -1px 0 var(--borde);
+}
+
+/* Etiquetas: un dato corto que se lee de un vistazo. */
+.etiqueta {
+  display: inline-block;
+  padding: .1rem .5rem;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--texto-tenue);
+  white-space: nowrap;
+}
+
+.etiqueta.ok      { border-color: var(--acento); color: var(--acento); }
+.etiqueta.aviso   { border-color: var(--error-borde); color: var(--error-texto); }
+
+.derecha { text-align: right; }
+
+/* Los formularios no necesitan todo el ancho: una columna comoda de leer. */
+.formulario { max-width: 30rem; }
+
+/* ---------------------------------------------------------------------------
+   Dialogos sin JavaScript, con :target.
+   El dialogo esta en el HTML pero oculto; un enlace a "#rol-3" lo muestra y
+   uno a "#" lo cierra. Como es la URL la que manda, el boton "atras" del
+   navegador cierra el dialogo, que es justo lo que la gente espera.
+--------------------------------------------------------------------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal:target { display: flex; }
+
+.modal-fondo {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+}
+
+.modal-caja {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(46rem, 100%);
+  /* El dialogo nunca pasa de la pantalla: si los permisos no caben, se
+     desplaza SU cuerpo, no la pagina de detras. */
+  max-height: 86vh;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+
+.modal-cabecera,
+.modal-pie {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .9rem 1.2rem;
+  flex: 0 0 auto;
+}
+
+.modal-cabecera { border-bottom: 1px solid var(--borde); }
+.modal-cabecera h2 { margin: 0; font-size: 1.05rem; }
+
+.modal-cerrar {
+  margin-left: auto;
+  font-size: 1.4rem;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--texto-tenue);
+}
+
+.modal-cerrar:hover { color: var(--texto); }
+
+.modal-cuerpo {
+  padding: 1.2rem;
+  overflow: auto;
+  flex: 1 1 auto;
+}
+
+.modal-pie {
+  border-top: 1px solid var(--borde);
+  justify-content: flex-end;
+}
+
+/* La biblioteca tampoco estira la pagina: se desplaza dentro de su caja. */
+.mapas {
+  max-height: 58vh;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Detalle plegable: contexto que importa cuando algo falla, pero que no tiene
+   por que ocupar sitio el resto del tiempo. */
+.detalle { margin: .6rem 0; }
+.detalle summary { cursor: pointer; color: var(--texto-tenue); font-size: .9rem; }
+.detalle summary:hover { color: var(--texto); }
+.detalle[open] summary { margin-bottom: .3rem; }

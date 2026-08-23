@@ -41,8 +41,10 @@
 </section>
 {{end}}
 
-<section class="tarjeta">
-  <h2>Instancias ({{len .Instances}})</h2>
+<div class="tabs">
+  <input type="radio" name="tab-servidores" id="tab-inst-lista" checked>
+  <label for="tab-inst-lista">Servidores <span class="cuenta">{{len .Instances}}</span></label>
+  <div class="panel">
   {{if .Instances}}
   <ul class="mapas">
     {{$page := .}}
@@ -96,15 +98,21 @@
     {{end}}
   </ul>
   {{else}}
-  <p class="vacio">Todav&iacute;a no hay servidores. Crea uno a partir de un mapa.</p>
+  <p class="vacio">
+    Todav&iacute;a no hay servidores.
+    {{if .User.Can "instance.create"}}Crea uno desde la pesta&ntilde;a
+    <em>Crear servidor</em>.{{else}}Pide a un administrador que cree
+    alguno.{{end}}
+  </p>
   {{end}}
-</section>
+  </div>
 
-{{if .User.Can "instance.create"}}
-<section class="tarjeta">
-  <h2>Crear servidor desde un mapa</h2>
+  {{if .User.Can "instance.create"}}
+  <input type="radio" name="tab-servidores" id="tab-inst-alta">
+  <label for="tab-inst-alta">Crear servidor</label>
+  <div class="panel">
   {{if .Maps}}
-  <form method="post" action="/instances">
+  <form method="post" action="/instances" class="formulario">
     <label for="inst-map">Mapa</label>
     <select id="inst-map" name="map_id" required>
       {{range .Maps}}
@@ -132,18 +140,22 @@
     <input id="inst-version" name="version" autocomplete="off" value="LATEST">
     {{end}}
 
-    <p class="ayuda">
-      <strong>No es la versi&oacute;n del mapa.</strong> El <code>level.dat</code>
-      dice con qu&eacute; versi&oacute;n se abri&oacute; el mundo por &uacute;ltima
-      vez, y eso es un <em>requisito m&iacute;nimo</em>, no un n&uacute;mero de
-      build que Mojang publique: pedirlo tal cual da error 404 al descargar.
-    </p>
-    <p class="ayuda">
-      Mojang <strong>s&oacute;lo publica la versi&oacute;n estable actual y la
-      preview</strong>, no un hist&oacute;rico. Por eso la lista es corta. Si
-      necesitas una antigua concreta, escr&iacute;bela en el campo de arriba:
-      funcionar&aacute; si Mojang a&uacute;n la sirve.
-    </p>
+    <details class="detalle">
+      <summary>&iquest;Por qu&eacute; la lista de versiones es tan corta?</summary>
+      <p class="ayuda">
+        <strong>No es la versi&oacute;n del mapa.</strong> El
+        <code>level.dat</code> dice con qu&eacute; versi&oacute;n se abri&oacute;
+        el mundo por &uacute;ltima vez, y eso es un <em>requisito
+        m&iacute;nimo</em>, no un n&uacute;mero de build que Mojang publique:
+        pedirlo tal cual da error 404 al descargar.
+      </p>
+      <p class="ayuda">
+        Mojang <strong>s&oacute;lo publica la versi&oacute;n estable actual y la
+        preview</strong>, no un hist&oacute;rico. Si necesitas una antigua
+        concreta, escr&iacute;bela a mano: funcionar&aacute; si Mojang
+        a&uacute;n la sirve.
+      </p>
+    </details>
 
     <p class="ayuda">
       Se instala el mundo, se genera la configuraci&oacute;n y se prepara el
@@ -157,6 +169,7 @@
     Primero sube un mapa en <a href="/maps">la biblioteca</a>.
   </p>
   {{end}}
-</section>
-{{end}}
+  </div>
+  {{end}}
+</div>
 {{end}}

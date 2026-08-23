@@ -1,34 +1,67 @@
 {{define "contenido"}}
 <h1>Panel</h1>
-<p class="sub">Sesi&oacute;n iniciada como <strong>{{.User.Email}}</strong>.</p>
+<p class="sub">
+  Hola, <strong>{{.User.Email}}</strong>. Esto es todo lo que puedes hacer.
+</p>
 
-<section class="tarjeta">
-  <h2>Lo que puedes hacer con el rol <em>{{.User.RoleName}}</em></h2>
-  <ul class="permisos">
-    <li class="{{if .User.Can "server.view"}}si{{else}}no{{end}}">Ver el estado de los servidores</li>
-    <li class="{{if .User.Can "server.operate"}}si{{else}}no{{end}}">Arrancar, parar y cambiar de mapa</li>
-    <li class="{{if .User.Can "map.import"}}si{{else}}no{{end}}">Importar mapas</li>
-    <li class="{{if .User.Can "map.delete"}}si{{else}}no{{end}}">Borrar mapas</li>
-    <li class="{{if .User.Can "instance.create"}}si{{else}}no{{end}}">Crear instancias</li>
-    <li class="{{if .User.Can "instance.delete"}}si{{else}}no{{end}}">Borrar instancias</li>
-    <li class="{{if .User.Can "player.manage"}}si{{else}}no{{end}}">Gestionar jugadores</li>
-    <li class="{{if .User.Can "user.manage"}}si{{else}}no{{end}}">Gestionar usuarios del panel</li>
-    <li class="{{if .User.Can "role.manage"}}si{{else}}no{{end}}">Gestionar roles y permisos</li>
-    <li class="{{if .User.Can "audit.view"}}si{{else}}no{{end}}">Ver el registro de acciones</li>
-  </ul>
-</section>
+{{/*
+  Solo se listan las acciones CONCEDIDAS. Antes aparecian las diez con una
+  marca de si/no, y eso le dibujaba a cualquiera el mapa completo de la
+  aplicacion: quien no puede gestionar roles tampoco deberia enterarse de que
+  existen. Lo que no puedes hacer, no se menciona.
+*/}}
+<div class="rejilla">
+  {{if .User.Can "server.view"}}
+  <a class="atajo" href="/instances">
+    <span class="atajo-titulo">Servidores</span>
+    <span class="atajo-texto">
+      {{if .User.Can "server.operate"}}Arranca, para y cambia de mapa.
+      {{else}}Consulta que hay encendido y quien esta jugando.{{end}}
+    </span>
+  </a>
+  {{end}}
 
-<section class="tarjeta pendiente">
-  <h2>Todav&iacute;a no disponible</h2>
-  <p>
-    Esto es el esqueleto de la fase <strong>F1</strong>: autenticaci&oacute;n,
-    roles y registro de acciones. La gesti&oacute;n de mapas e instancias llega
-    en F2 y F3.
-  </p>
-  <ul class="siguiente">
-    <li><strong>F2</strong> — subir mapas y detectar edici&oacute;n y versi&oacute;n</li>
-    <li><strong>F3</strong> — crear instancias, arrancar y parar</li>
-    <li><strong>F4</strong> — lista maestra de jugadores</li>
-  </ul>
-</section>
+  {{if .User.Can "server.view"}}
+  <a class="atajo" href="/maps">
+    <span class="atajo-titulo">Mapas</span>
+    <span class="atajo-texto">
+      {{if .User.Can "map.import"}}Sube un .mcworld y crea su servidor.
+      {{else}}Mira los mapas ya importados.{{end}}
+    </span>
+  </a>
+  {{end}}
+
+  {{if .User.Can "player.manage"}}
+  <a class="atajo" href="/players">
+    <span class="atajo-titulo">Jugadores</span>
+    <span class="atajo-texto">Decide quien puede entrar a los servidores.</span>
+  </a>
+  {{end}}
+
+  {{if .User.Can "user.manage"}}
+  <a class="atajo" href="/users">
+    <span class="atajo-titulo">Usuarios</span>
+    <span class="atajo-texto">Cuentas de este panel y su rol.</span>
+  </a>
+  {{end}}
+
+  {{if .User.Can "role.manage"}}
+  <a class="atajo" href="/roles">
+    <span class="atajo-titulo">Roles</span>
+    <span class="atajo-texto">Que puede hacer cada tipo de cuenta.</span>
+  </a>
+  {{end}}
+
+  {{if .User.Can "audit.view"}}
+  <a class="atajo" href="/audit">
+    <span class="atajo-titulo">Registro</span>
+    <span class="atajo-texto">Quien hizo que, y cuando.</span>
+  </a>
+  {{end}}
+</div>
+
+<p class="pie-nota">
+  Tu rol es <span class="etiqueta">{{.User.RoleName}}</span>. Si necesitas algo
+  que no aparece aqui, pideselo a quien administre el panel.
+</p>
 {{end}}

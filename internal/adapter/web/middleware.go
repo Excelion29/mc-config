@@ -50,6 +50,17 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 	})
 }
 
+// notFound responde como si la ruta no existiera. Es la respuesta tanto para
+// una URL inventada como para una seccion que el usuario no puede ver: desde
+// fuera no se distinguen, que es justo lo que se busca.
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	s.renderer.render(w, http.StatusNotFound, "error.html", PageData{
+		Title: "No encontrado",
+		User:  userFrom(r),
+		Error: "Esa pagina no existe.",
+	})
+}
+
 // requirePermission exige un permiso concreto (RBAC).
 //
 // Se pide el permiso, no el rol: asi crear un rol nuevo desde el panel no
@@ -64,11 +75,11 @@ func (s *Server) requirePermission(perm domain.Permission) func(http.Handler) ht
 				return
 			}
 			if !u.Can(perm) {
-				s.renderer.render(w, http.StatusForbidden, "error.html", PageData{
-					Title: "Sin permiso",
-					User:  u,
-					Error: "No tienes permiso para ver esta seccion.",
-				})
+				// 404 y no 403, a proposito: "no tienes permiso" CONFIRMA que
+				// el recurso existe. Quien no puede usar una seccion tampoco
+				// deberia poder deducir que esta ahi. La respuesta es
+				// indistinguible de la de una ruta inventada.
+				s.notFound(w, r)
 				return
 			}
 			next.ServeHTTP(w, r)

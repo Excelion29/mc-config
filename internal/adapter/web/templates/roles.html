@@ -3,125 +3,160 @@
 <p class="sub">
   Los <strong>permisos</strong> los define el c&oacute;digo: existen porque hay
   una funci&oacute;n que los comprueba. Los <strong>roles</strong> los defines
-  t&uacute;: decides qu&eacute; permisos agrupa cada uno y en qu&eacute; nivel
-  est&aacute;.
+  t&uacute;. El <strong>nivel</strong> ordena la jerarqu&iacute;a: s&oacute;lo
+  se gestiona a quien est&aacute; estrictamente por debajo. El tuyo es
+  <strong>{{.User.RoleLevel}}</strong>.
 </p>
 
-<p class="aviso info">
-  El <strong>nivel</strong> ordena la jerarqu&iacute;a: s&oacute;lo se gestiona
-  a quien est&aacute; estrictamente por debajo. Tu nivel es
-  <strong>{{.User.RoleLevel}}</strong>, as&iacute; que s&oacute;lo puedes editar
-  roles por debajo de &eacute;l.
-</p>
-
-{{range .Roles}}
-<section class="tarjeta">
-  <h2>
-    {{.Name}}
-    <code class="tenue">{{.Code}}</code>
-    {{if .System}}<span class="rol">sistema</span>{{end}}
-    <span class="rol">nivel {{.Level}}</span>
-    <span class="tenue">
-      · {{index $.UsersByRole .ID}} usuario{{if ne (index $.UsersByRole .ID) 1}}s{{end}}
-    </span>
-  </h2>
-
-  {{if .IsSuperuser}}
-  <p class="aviso info">
-    El superusuario tiene <strong>siempre</strong> todos los permisos, incluidos
-    los que se a&ntilde;adan en el futuro. No es editable, no se borra y nadie
-    puede gestionarlo: es la garant&iacute;a de que nunca queda un panel sin
-    nadie que pueda arreglarlo. S&oacute;lo puede existir <strong>uno</strong>.
-  </p>
-  <div class="permisos-grid">
-    {{range $.Groups}}
-    <fieldset disabled>
-      <legend>{{.Name}}</legend>
-      {{range .Permissions}}
-      <label class="check">
-        <input type="checkbox" checked disabled>
-        <span>{{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}</span>
-      </label>
-      {{end}}
-    </fieldset>
-    {{end}}
+{{/*
+  Antes cada rol era una tarjeta con la rejilla entera de permisos desplegada.
+  Con cuatro roles ya eran cuarenta casillas en pantalla y la pagina crecia sin
+  limite segun cuantos roles hubiera. Ahora la vista es una tabla -un rol por
+  fila, se abarca de un vistazo- y los permisos se editan en un dialogo que se
+  abre sobre ella, sin cambiar de pagina ni perder el sitio.
+*/}}
+<div class="tabs">
+  <input type="radio" name="tab-roles" id="tab-roles-lista" checked>
+  <label for="tab-roles-lista">Roles <span class="cuenta">{{len .Roles}}</span></label>
+  <div class="panel">
+    <div class="tabla-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Nivel</th>
+            <th>Permisos</th>
+            <th>Usuarios</th>
+            <th class="derecha">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Roles}}
+          <tr>
+            <td>
+              <strong>{{.Name}}</strong>
+              <code class="tenue">{{.Code}}</code>
+              {{if .System}}<span class="etiqueta">sistema</span>{{end}}
+            </td>
+            <td>{{.Level}}</td>
+            <td>
+              {{if .IsSuperuser}}<span class="etiqueta ok">todos</span>
+              {{else}}{{len .Permissions}}{{end}}
+            </td>
+            <td>{{index $.UsersByRole .ID}}</td>
+            <td class="derecha">
+              {{if .IsSuperuser}}
+              <span class="apagado" title="El superusuario no es editable">&mdash;</span>
+              {{else if not ($.User.Role.Outranks .)}}
+              <span class="apagado" title="Esta a tu mismo nivel o por encima">bloqueado</span>
+              {{else}}
+              <a class="enlace" href="#rol-{{.ID}}">Editar permisos</a>
+              {{if not .System}}
+              <form method="post" action="/roles/delete" class="inline-form">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="enlace peligro">Borrar</button>
+              </form>
+              {{end}}
+              {{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    <p class="ayuda">
+      El superusuario tiene <strong>siempre</strong> todos los permisos,
+      incluidos los que se a&ntilde;adan en el futuro. No es editable, no se
+      borra y nadie puede gestionarlo: es la garant&iacute;a de que nunca queda
+      un panel sin nadie que pueda arreglarlo.
+    </p>
   </div>
 
-  {{else if not ($.User.Role.Outranks .)}}
-  <p class="aviso info">
-    Este rol est&aacute; a tu mismo nivel o por encima ({{.Level}} frente a
-    {{$.User.RoleLevel}}). No puedes editarlo.
-  </p>
+  <input type="radio" name="tab-roles" id="tab-roles-alta">
+  <label for="tab-roles-alta">Crear rol</label>
+  <div class="panel">
+    <form method="post" action="/roles">
+      <div class="formulario">
+        <label for="role-code">C&oacute;digo</label>
+        <input id="role-code" name="code" required pattern="[a-z0-9_\-]+"
+               placeholder="constructor" autocomplete="off">
 
-  {{else}}
-  <form method="post" action="/roles/permissions">
-    <input type="hidden" name="id" value="{{.ID}}">
-    <div class="permisos-grid">
-      {{$role := .}}
-      {{range $.Groups}}
-      <fieldset>
-        <legend>{{.Name}}</legend>
-        {{range .Permissions}}
-        <label class="check">
-          <input type="checkbox" name="permissions" value="{{.Code}}"
-                 {{if $role.Can .Code}}checked{{end}}>
-          <span title="{{.Description}}">
-            {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
-          </span>
-        </label>
+        <label for="role-name">Nombre visible</label>
+        <input id="role-name" name="name" placeholder="Constructor" autocomplete="off">
+
+        <label for="role-level">Nivel</label>
+        <input id="role-level" name="level" type="number" required
+               min="1" max="{{sub .User.RoleLevel 1}}" value="15">
+        <p class="ayuda">
+          Entre 1 y {{sub .User.RoleLevel 1}}. Un rol nuevo nace siempre por
+          debajo del tuyo: si naciera a tu nivel, crear&iacute;as gente a la que
+          despu&eacute;s no podr&iacute;as gestionar.
+        </p>
+      </div>
+
+      <div class="permisos-grid">
+        {{range .Groups}}
+        <fieldset>
+          <legend>{{.Name}}</legend>
+          {{range .Permissions}}
+          <label class="check">
+            <input type="checkbox" name="permissions" value="{{.Code}}">
+            <span title="{{.Description}}">
+              {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
+            </span>
+          </label>
+          {{end}}
+        </fieldset>
         {{end}}
-      </fieldset>
-      {{end}}
-    </div>
-    <button type="submit">Guardar permisos</button>
-  </form>
+      </div>
 
-  {{if not .System}}
-  <form method="post" action="/roles/delete" class="borrar">
-    <input type="hidden" name="id" value="{{.ID}}">
-    <button class="enlace peligro">Borrar este rol</button>
-  </form>
-  {{end}}
-  {{end}}
-</section>
+      <button type="submit">Crear rol</button>
+    </form>
+  </div>
+</div>
+
+{{/* Dialogos de edicion: ocultos hasta que la URL apunta a uno (:target). */}}
+{{range .Roles}}
+{{if and (not .IsSuperuser) ($.User.Role.Outranks .)}}
+<div class="modal" id="rol-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-rol-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-rol-{{.ID}}">
+        {{.Name}} <code class="tenue">{{.Code}}</code>
+        <span class="etiqueta">nivel {{.Level}}</span>
+      </h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/roles/permissions">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <div class="modal-cuerpo">
+        <div class="permisos-grid">
+          {{$role := .}}
+          {{range $.Groups}}
+          <fieldset>
+            <legend>{{.Name}}</legend>
+            {{range .Permissions}}
+            <label class="check">
+              <input type="checkbox" name="permissions" value="{{.Code}}"
+                     {{if $role.Can .Code}}checked{{end}}>
+              <span title="{{.Description}}">
+                {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
+              </span>
+            </label>
+            {{end}}
+          </fieldset>
+          {{end}}
+        </div>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Guardar permisos</button>
+      </footer>
+    </form>
+  </div>
+</div>
 {{end}}
-
-<section class="tarjeta">
-  <h2>Crear rol</h2>
-  <form method="post" action="/roles">
-    <label for="role-code">C&oacute;digo</label>
-    <input id="role-code" name="code" required pattern="[a-z0-9_\-]+"
-           placeholder="constructor" autocomplete="off">
-
-    <label for="role-name">Nombre visible</label>
-    <input id="role-name" name="name" placeholder="Constructor" autocomplete="off">
-
-    <label for="role-level">Nivel</label>
-    <input id="role-level" name="level" type="number" required
-           min="1" max="{{sub .User.RoleLevel 1}}" value="15">
-    <p class="ayuda">
-      Entre 1 y {{sub .User.RoleLevel 1}}. Un rol nuevo nace siempre por debajo
-      del tuyo: si naciera a tu nivel, crear&iacute;as gente a la que despu&eacute;s
-      no podr&iacute;as gestionar.
-    </p>
-
-    <div class="permisos-grid">
-      {{range .Groups}}
-      <fieldset>
-        <legend>{{.Name}}</legend>
-        {{range .Permissions}}
-        <label class="check">
-          <input type="checkbox" name="permissions" value="{{.Code}}">
-          <span title="{{.Description}}">
-            {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
-          </span>
-        </label>
-        {{end}}
-      </fieldset>
-      {{end}}
-    </div>
-
-    <button type="submit">Crear rol</button>
-  </form>
-</section>
+{{end}}
 {{end}}
