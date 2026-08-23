@@ -62,6 +62,11 @@ jobs:
 
             docker compose up -d --build panel
 
+            # Sin esto, cada despliegue deja huerfana la imagen anterior y el
+            # disco se llena. Si el disco se llena, MySQL del otro proyecto
+            # deja de escribir y cae con nosotros (M-2).
+            docker image prune -f
+
             # Esperar a que el healthcheck confirme que arranco. Sin esto, el
             # despliegue se da por bueno aunque el panel este reiniciandose en
             # bucle por un fallo de configuracion.
