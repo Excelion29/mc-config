@@ -219,7 +219,7 @@ func (r *Runtime) Status(ctx context.Context, id string) (app.ContainerStatus, e
 // Hace falta para recargar la allow-list sin reiniciar (H-F0-7), lo que obliga
 // a matizar M-4: el proxy de Docker no puede prohibir exec del todo; debe
 // permitirlo acotado a send-command y solo sobre contenedores de MCVPS.
-func (r *Runtime) Exec(ctx context.Context, id string, cmd []string) (string, error) {
+func (r *Runtime) Exec(ctx context.Context, id string, cmd []string, user string) (string, error) {
 	var created struct {
 		ID string `json:"Id"`
 	}
@@ -227,6 +227,9 @@ func (r *Runtime) Exec(ctx context.Context, id string, cmd []string) (string, er
 		"Cmd":          cmd,
 		"AttachStdout": true,
 		"AttachStderr": true,
+	}
+	if user != "" {
+		req["User"] = user
 	}
 	if err := r.c.doJSON(ctx, http.MethodPost, "/containers/"+id+"/exec", nil, req, &created); err != nil {
 		return "", fmt.Errorf("preparando la orden %v: %w", cmd, err)

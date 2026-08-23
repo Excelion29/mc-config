@@ -65,7 +65,12 @@ type ContainerRuntime interface {
 	StopAndWait(ctx context.Context, id string, timeout time.Duration) error
 	Remove(ctx context.Context, id string) error
 	Status(ctx context.Context, id string) (ContainerStatus, error)
-	Exec(ctx context.Context, id string, cmd []string) (string, error)
+	// Exec ejecuta una orden dentro del contenedor.
+	//
+	// user importa: send-command localiza el proceso del servidor recorriendo
+	// /proc/*/exe, y leer eso exige ser el mismo usuario que lo lanzo o root.
+	// Sin indicarlo, falla con "failed to search for bedrock server process".
+	Exec(ctx context.Context, id string, cmd []string, user string) (string, error)
 	Logs(ctx context.Context, id string, tail int) (string, error)
 }
 

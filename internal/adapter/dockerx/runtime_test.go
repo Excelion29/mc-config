@@ -87,7 +87,7 @@ func TestCicloDeVidaDelContenedor(t *testing.T) {
 		t.Errorf("los logs no traen la salida esperada: %q", logs)
 	}
 
-	out, err := rt.Exec(ctx, id, []string{"echo", "hola-exec"})
+	out, err := rt.Exec(ctx, id, []string{"echo", "hola-exec"}, "root")
 	if err != nil {
 		t.Fatalf("Exec: %v", err)
 	}

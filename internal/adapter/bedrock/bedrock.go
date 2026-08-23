@@ -140,7 +140,11 @@ func (*Flavor) ReloadAllowlist(ctx context.Context, rt app.ContainerRuntime, con
 	if containerID == "" {
 		return nil
 	}
-	_, err := rt.Exec(ctx, containerID, []string{"send-command", "allowlist", "reload"})
+	// Como root: send-command busca el proceso del servidor en /proc, y el
+	// contenedor corre como el usuario dueno de /data (65532 en nuestro caso).
+	// Un exec con otro usuario no puede leer /proc/N/exe y falla con
+	// "failed to search for bedrock server process".
+	_, err := rt.Exec(ctx, containerID, []string{"send-command", "allowlist", "reload"}, "root")
 	return err
 }
 
