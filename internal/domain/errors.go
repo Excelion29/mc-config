@@ -55,4 +55,9 @@ var (
 	ErrEmptyInstanceName = errors.New("el nombre de la instancia es obligatorio")
 	ErrInstanceBusy      = errors.New("la instancia esta arrancando o parando; espera a que termine")
 	ErrInstanceRunning   = errors.New("detén la instancia antes de borrarla")
+
+	// Lista maestra de jugadores (F4).
+	ErrPlayerNotFound  = errors.New("el jugador no existe")
+	ErrDuplicatePlayer = errors.New("ese gamertag ya esta en la lista")
+	ErrEmptyGamertag   = errors.New("el gamertag es obligatorio")
 )

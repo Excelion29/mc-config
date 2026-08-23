@@ -71,6 +71,14 @@ type ContainerRuntime interface {
 	// /proc/*/exe, y leer eso exige ser el mismo usuario que lo lanzo o root.
 	// Sin indicarlo, falla con "failed to search for bedrock server process".
 	Exec(ctx context.Context, id string, cmd []string, user string) (string, error)
+
+	// SendStdin escribe una orden en la entrada estandar del contenedor.
+	//
+	// Es la via fiable para hablar con el servidor: `exec send-command` busca
+	// el proceso recorriendo /proc y comparando el nombre del binario, que
+	// lleva la version pegada, asi que falla. stdin es donde el servidor lee
+	// sus ordenes de todos modos.
+	SendStdin(ctx context.Context, id, input string) error
 	Logs(ctx context.Context, id string, tail int) (string, error)
 }
 

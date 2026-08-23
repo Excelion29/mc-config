@@ -27,6 +27,10 @@ import (
 // Client habla con el motor de Docker.
 type Client struct {
 	http *http.Client
+	// dial abre una conexion cruda con el motor. Hace falta para /attach, que
+	// no es HTTP normal: Docker responde 101 y a partir de ahi la conexion
+	// pasa a ser un flujo de bytes hacia la entrada estandar del contenedor.
+	dial func(context.Context) (net.Conn, error)
 	// base es el prefijo de las URL. Con socket unix o named pipe el host es
 	// ficticio, porque la conexion ya esta dirigida por el dialer.
 	base string
@@ -52,21 +56,33 @@ func New(host string) (*Client, error) {
 	transport := &http.Transport{}
 	base := "http://docker"
 
+	var dial func(context.Context) (net.Conn, error)
+
 	switch scheme {
 	case "unix":
-		transport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		dial = func(ctx context.Context) (net.Conn, error) {
 			var d net.Dialer
 			return d.DialContext(ctx, "unix", addr)
 		}
 	case "npipe":
-		transport.DialContext = dialPipe(addr)
+		pipe := dialPipe(addr)
+		dial = func(ctx context.Context) (net.Conn, error) { return pipe(ctx, "", "") }
 	case "tcp", "http":
 		base = "http://" + addr
+		dial = func(ctx context.Context) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, "tcp", addr)
+		}
 	default:
 		return nil, fmt.Errorf("esquema no soportado: %q", scheme)
 	}
 
+	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+		return dial(ctx)
+	}
+
 	return &Client{
+		dial: dial,
 		// Sin timeout global: hay peticiones largas por naturaleza, como
 		// descargar la imagen o esperar a que un contenedor se detenga. El
 		// plazo lo pone el contexto de cada llamada.

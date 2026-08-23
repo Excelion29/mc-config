@@ -29,6 +29,7 @@ type Server struct {
 	audit    *app.Audit
 	maps      *app.Maps
 	instances *app.Instances
+	players   *app.Players
 	renderer *renderer
 	log      *slog.Logger
 
@@ -43,6 +44,7 @@ func NewServer(
 	audit *app.Audit,
 	maps *app.Maps,
 	instances *app.Instances,
+	players *app.Players,
 	log *slog.Logger,
 	secureCookies bool,
 	sessionTTL time.Duration,
@@ -52,7 +54,8 @@ func NewServer(
 		return nil, err
 	}
 	return &Server{
-		auth: auth, audit: audit, maps: maps, instances: instances, renderer: r, log: log,
+		auth: auth, audit: audit, maps: maps, instances: instances, players: players,
+		renderer: r, log: log,
 		secureCookies: secureCookies, sessionTTL: sessionTTL,
 	}, nil
 }
@@ -117,6 +120,15 @@ func (s *Server) Routes() http.Handler {
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermMapDelete))
 			g.Post("/maps/delete", s.deleteMap)
+		})
+
+		private.Group(func(g chi.Router) {
+			g.Use(s.requirePermission(domain.PermPlayerManage))
+			g.Get("/players", s.showPlayers)
+			g.Post("/players", s.addPlayer)
+			g.Post("/players/active", s.setPlayerActive)
+			g.Post("/players/op", s.setPlayerOp)
+			g.Post("/players/delete", s.deletePlayer)
 		})
 
 		private.Group(func(g chi.Router) {

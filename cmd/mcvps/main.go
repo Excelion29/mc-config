@@ -73,6 +73,7 @@ type deps struct {
 	audit      *app.Audit
 	maps       *app.Maps
 	instances  *app.Instances
+	players    *app.Players
 }
 
 // build cablea todo. Acepta log nil para los comandos que no deben ensuciar la
@@ -133,6 +134,13 @@ func build(log *slog.Logger) (*deps, error) {
 		audit, clock, cfg.InstancesPath, cfg.GameHost, log,
 	)
 
+	players := app.NewPlayers(db.Players(), instances, audit, clock, log)
+
+	// Ciclo cerrado a proposito: Players necesita Instances para propagar la
+	// lista, e Instances necesita la lista al arrancar. Se inyecta despues de
+	// construir ambos, en vez de acoplarlos entre si.
+	instances.SetAllowlistSource(players.ActiveGamertags)
+
 	return &deps{
 		cfg:        cfg,
 		close:      db.Close,
@@ -141,6 +149,7 @@ func build(log *slog.Logger) (*deps, error) {
 		audit:      audit,
 		maps:       maps,
 		instances:  instances,
+		players:    players,
 	}, nil
 }
 
@@ -168,7 +177,7 @@ func run(log *slog.Logger) error {
 	}
 
 	// --- Adaptador HTTP ----------------------------------------------------
-	handler, err := web.NewServer(auth, audit, d.maps, d.instances, log, cfg.SecureCookies, cfg.SessionTTL)
+	handler, err := web.NewServer(auth, audit, d.maps, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
 	if err != nil {
 		return err
 	}

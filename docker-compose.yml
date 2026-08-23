@@ -79,8 +79,10 @@ services:
       CONTAINERS: 1   # crear, arrancar, parar, inspeccionar, logs
       IMAGES: 1       # descargar la imagen del servidor
       POST: 1         # sin esto todo seria de solo lectura
-      EXEC: 1         # recargar la allow-list sin reiniciar
       PING: 1
+      # EXEC ya NO hace falta: la recarga de la allow-list se envia por la
+      # entrada estandar del contenedor (/attach), no ejecutando ordenes
+      # dentro. Una capacidad menos concedida al panel.
       # Todo lo demas queda denegado por defecto.
 
     volumes:

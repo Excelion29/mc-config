@@ -1,0 +1,94 @@
+{{define "contenido"}}
+<h1>Jugadores</h1>
+<p class="sub">
+  Una sola lista para <strong>todos</strong> los servidores (D-13). Das de alta a
+  alguien una vez y entra en todos los mapas, presentes y futuros, sin reiniciar
+  nada.
+</p>
+
+<p class="aviso info">
+  Estos son jugadores de Minecraft, <strong>no usuarios del panel</strong>. Son
+  dos identidades distintas: tu amigo no necesita cuenta aqu&iacute; para jugar.
+</p>
+
+<section class="tarjeta">
+  <h2>Permitidos ({{len .Players}})</h2>
+  {{if .Players}}
+  <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Gamertag</th>
+          <th>Nota</th>
+          <th>Operador</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Players}}
+        <tr>
+          <td><strong>{{.Gamertag}}</strong></td>
+          <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
+          <td>
+            <form method="post" action="/players/op" class="inline-form">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <input type="hidden" name="is_op" value="{{if .IsOp}}0{{else}}1{{end}}">
+              <button class="enlace">{{if .IsOp}}S&iacute;{{else}}No{{end}}</button>
+            </form>
+          </td>
+          <td>{{if .Active}}Activo{{else}}<span class="apagado">Bloqueado</span>{{end}}</td>
+          <td>
+            <form method="post" action="/players/active" class="inline-form">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
+              <button class="enlace">{{if .Active}}Bloquear{{else}}Permitir{{end}}</button>
+            </form>
+            <form method="post" action="/players/delete" class="inline-form">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <button class="enlace peligro">Borrar</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="vacio">
+    La lista est&aacute; vac&iacute;a, y en Bedrock eso <strong>bloquea a
+    todos</strong>, incluido t&uacute;. A&ntilde;&aacute;dete abajo para poder
+    entrar.
+  </p>
+  {{end}}
+</section>
+
+<section class="tarjeta">
+  <h2>A&ntilde;adir jugador</h2>
+  <form method="post" action="/players">
+    <label for="gamertag">Gamertag de Xbox</label>
+    <input id="gamertag" name="gamertag" required autocomplete="off"
+           placeholder="Wronkow29">
+    <p class="ayuda">
+      Tal cual aparece en Minecraft, <strong>respetando may&uacute;sculas y
+      espacios</strong>. Bedrock lo compara exacto: una letra distinta y la
+      persona no entra, sin que nada explique por qu&eacute;.
+    </p>
+
+    <label for="note">Nota (opcional)</label>
+    <input id="note" name="note" autocomplete="off"
+           placeholder="Para acordarte de qui&eacute;n es">
+
+    <label class="check">
+      <input type="checkbox" name="is_op" value="1">
+      <span>Operador dentro del juego</span>
+    </label>
+    <p class="ayuda">
+      Permisos de administrador <strong>en Minecraft</strong>, no en el panel.
+      Son cosas distintas.
+    </p>
+
+    <button type="submit">A&ntilde;adir</button>
+  </form>
+</section>
+{{end}}

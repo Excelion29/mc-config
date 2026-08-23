@@ -131,21 +131,20 @@ func WriteAllowlist(dataDir string, names []string) error {
 	return nil
 }
 
-// ReloadAllowlist recarga la lista sin reiniciar el servidor.
+// ReloadAllowlist recarga la lista sin reiniciar el servidor (H-F0-7).
 //
-// Requiere `exec` sobre el contenedor, lo que obliga a matizar M-4: el proxy de
-// Docker no puede prohibir exec del todo. Debe permitirlo acotado a
-// send-command y solo sobre contenedores de MCVPS, nunca sobre los del cliente.
+// Se escribe la orden en la entrada estandar del contenedor. La via de
+// `exec send-command` se descarto tras fallar en la VPS: busca el proceso del
+// servidor recorriendo /proc y comparando el nombre del binario, que en realidad
+// se llama `bedrock_server-1.26.44.3` -con la version pegada- asi que no lo
+// encuentra nunca.
+//
+// Esto ademas relaja M-4: el proxy de Docker ya no necesita permitir EXEC.
 func (*Flavor) ReloadAllowlist(ctx context.Context, rt app.ContainerRuntime, containerID string) error {
 	if containerID == "" {
 		return nil
 	}
-	// Como root: send-command busca el proceso del servidor en /proc, y el
-	// contenedor corre como el usuario dueno de /data (65532 en nuestro caso).
-	// Un exec con otro usuario no puede leer /proc/N/exe y falla con
-	// "failed to search for bedrock server process".
-	_, err := rt.Exec(ctx, containerID, []string{"send-command", "allowlist", "reload"}, "root")
-	return err
+	return rt.SendStdin(ctx, containerID, "allowlist reload")
 }
 
 // Players consulta el servidor con un ping de RakNet.

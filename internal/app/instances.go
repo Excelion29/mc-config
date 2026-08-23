@@ -29,6 +29,9 @@ type Instances struct {
 	// host es donde se consulta el ping. En el contenedor no vale "localhost":
 	// el servidor de Minecraft corre en OTRO contenedor.
 	host string
+	// allowlist devuelve los gamertags de la lista maestra (D-13). Se inyecta
+	// despues de construir, porque Players necesita a Instances y al reves.
+	allowlist func(context.Context) ([]string, error)
 	// stopTimeout es lo que se espera a un apagado limpio antes de forzar.
 	// Medido en F0: ~2 s con el mundo vacio, pero un mundo jugado tarda mas.
 	stopTimeout time.Duration
@@ -51,6 +54,11 @@ func NewInstances(
 	}
 }
 
+// SetAllowlistSource cierra el ciclo entre Players e Instances.
+func (i *Instances) SetAllowlistSource(f func(context.Context) ([]string, error)) {
+	i.allowlist = f
+}
+
 // NeedsConfirmation se devuelve cuando arrancar una instancia obliga a apagar
 // otra que tiene gente jugando (D-02 + D-08).
 //
@@ -70,6 +78,12 @@ func (i *Instances) List(ctx context.Context, actor *domain.User) ([]domain.Inst
 	if !actor.Can(domain.PermServerView) {
 		return nil, domain.ErrForbidden
 	}
+	return i.repo.List(ctx)
+}
+
+// All lista sin comprobar permisos. Es de uso interno: lo llama la propagacion
+// de la lista maestra, que ya verifico el permiso de quien la origino.
+func (i *Instances) All(ctx context.Context) ([]domain.Instance, error) {
 	return i.repo.List(ctx)
 }
 
@@ -258,6 +272,19 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 
 	if err := i.repo.SetState(ctx, inst.ID, domain.StateStarting); err != nil {
 		return err
+	}
+
+	// La lista de permitidos se regenera en cada arranque desde la maestra:
+	// una instancia parada pudo perderse altas o bajas mientras no corria.
+	if i.allowlist != nil {
+		if names, err := i.allowlist(ctx); err == nil {
+			if flavor, ok := i.flavors[inst.Edition]; ok {
+				if err := flavor.WriteConfig(inst, i.dataDir(inst), names); err != nil {
+					i.log.Warn("no se pudo escribir la lista de permitidos",
+						"instancia", inst.Name, "error", err)
+				}
+			}
+		}
 	}
 
 	if err := i.ensureContainer(ctx, inst); err != nil {

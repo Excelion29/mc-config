@@ -53,6 +53,11 @@ type instancesPageData struct {
 	Confirm   *confirmSwitch
 }
 
+type playersPageData struct {
+	PageData
+	Players []domain.Player
+}
+
 type rolesPageData struct {
 	PageData
 	Roles  []domain.Role

@@ -30,6 +30,12 @@ const (
 	ActionInstanceStarted Action = "instance_started"
 	ActionInstanceStopped Action = "instance_stopped"
 	ActionInstanceDeleted Action = "instance_deleted"
+
+	ActionPlayerAdded    Action = "player_added"
+	ActionPlayerRemoved  Action = "player_removed"
+	ActionPlayerEnabled  Action = "player_enabled"
+	ActionPlayerDisabled Action = "player_disabled"
+	ActionPlayerOp       Action = "player_op_changed"
 )
 
 // LogEntry es una accion ya ocurrida.
