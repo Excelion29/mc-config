@@ -1,0 +1,84 @@
+name: Desplegar en la VPS
+
+# Solo main: cada push a esta rama llega al servidor.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Un despliegue a la vez. Sin esto, dos pushes seguidos pueden lanzar dos
+# `docker compose up` simultaneos sobre la misma carpeta.
+concurrency:
+  group: despliegue-vps
+  cancel-in-progress: false
+
+jobs:
+  verificar:
+    name: Compilar y probar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # Sin submodulos a proposito: la documentacion es un repositorio
+        # privado y el despliegue no la necesita.
+        with:
+          submodules: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Pruebas
+        # Las que hablan con Docker se saltan solas si no hay motor disponible.
+        run: go test ./...
+
+      - name: Compilar como en produccion
+        run: CGO_ENABLED=0 GOOS=linux go build -trimpath -o /dev/null ./cmd/mcvps
+
+  desplegar:
+    name: Desplegar
+    needs: verificar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conectar por SSH y actualizar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # La primera vez descarga la imagen base de Go y puede tardar.
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            cd /opt/games/mcvps
+
+            # --recurse-submodules NO: el submodulo de documentacion es privado
+            # y la VPS no tiene por que tener acceso a el.
+            git fetch --prune origin main
+            git reset --hard origin/main
+
+            docker compose up -d --build panel
+
+            # Esperar a que el healthcheck confirme que arranco. Sin esto, el
+            # despliegue se da por bueno aunque el panel este reiniciandose en
+            # bucle por un fallo de configuracion.
+            for i in $(seq 1 30); do
+              estado=$(docker inspect -f '{{.State.Health.Status}}' mcvps-panel 2>/dev/null || echo "sin-healthcheck")
+              if [ "$estado" = "healthy" ]; then
+                echo "El panel responde correctamente."
+                exit 0
+              fi
+              if [ "$estado" = "unhealthy" ]; then
+                echo "El panel arranco pero no responde. Ultimas lineas:"
+                docker logs --tail 40 mcvps-panel
+                exit 1
+              fi
+              sleep 5
+            done
+
+            echo "El panel no llego a estar sano en el plazo previsto."
+            docker logs --tail 40 mcvps-panel
+            exit 1

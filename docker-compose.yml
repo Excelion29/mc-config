@@ -1,12 +1,20 @@
-# MCVPS - panel web.
+# MCVPS - despliegue.
 #
-# Reglas heredadas de la documentacion:
-#   M-7  Este servicio NO declara "ports:". En esta maquina Docker se salta UFW
-#        (ver docs/07-hallazgos-seguridad.md), asi que publicar un puerto es
-#        publicarlo a internet. Nginx Proxy Manager llega por la red "proxy".
-#   M-3  Red propia, separada de la del cliente.
-#   M-1  Limites de memoria y CPU, porque compartimos maquina con produccion.
-#   D-09 La produccion del cliente tiene prioridad: ante la duda, gana el cliente.
+# Reglas que NO son opcionales:
+#
+#   M-7  El panel no declara "ports:". En esta maquina, publicar un puerto en
+#        Docker puede saltarse UFW por completo: el trafico se traduce por DNAT
+#        y pasa por la cadena FORWARD, donde las reglas de UFW ni se evaluan.
+#        Un `ports:` "para probar" deja el panel abierto a internet aunque el
+#        firewall diga lo contrario. Nginx Proxy Manager llega por la red proxy.
+#
+#   M-4  El panel NO ve el socket de Docker. Habla con un proxy que solo expone
+#        los endpoints necesarios. El socket equivale a root sobre toda la
+#        maquina, incluidos los contenedores de otros proyectos.
+#
+#   M-3  Red propia, separada de la de cualquier otro proyecto.
+#   M-1  Limites de memoria y CPU: no somos los unicos en esta maquina.
+#   M-2  Rotacion de logs: si el disco se llena, cae todo lo demas.
 
 services:
   panel:
@@ -16,39 +24,76 @@ services:
     restart: unless-stopped
 
     env_file: .env
+    environment:
+      # El panel habla con el proxy, nunca con el socket.
+      MCVPS_DOCKER_HOST: tcp://mcvps-docker-proxy:2375
 
     # Sin "ports". A proposito. No lo anadas para "probar rapido".
     networks:
-      - proxy            # para que NPM lo alcance
-      - mcvps_internal   # para lo que venga en F3
+      - proxy            # para que el reverse proxy lo alcance
+      - mcvps_internal   # para hablar con el proxy de Docker
 
     volumes:
       - mcvps_datos:/data
+      # Las instancias van a una ruta del host y no a un volumen con nombre
+      # porque el contenedor de Minecraft monta esa MISMA ruta. Docker resuelve
+      # los binds contra el sistema de archivos del host, no contra el del panel:
+      # si esto fuera un volumen, el panel escribiria el mundo en un sitio y el
+      # servidor lo buscaria en otro.
+      - /opt/games/mcvps/instances:/opt/games/mcvps/instances
 
-    # El panel solo escribe en /data; el resto del sistema de archivos puede ir
-    # en solo lectura. Si algun dia alguien logra ejecutar codigo aqui, no puede
-    # dejar nada instalado.
     read_only: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
 
     mem_limit: 512m
     cpus: 0.5
+
+    depends_on:
+      - docker-proxy
 
     healthcheck:
       test: ["CMD", "/mcvps", "-healthcheck"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 10s
 
     logging:
       driver: json-file
-      options:
-        max-size: "10m"   # sin esto los logs pueden llenar el disco, y si el
-        max-file: "3"     # disco se llena cae el MySQL del cliente (M-2)
+      options: {max-size: "10m", max-file: "3"}
+
+  # Intermediario entre el panel y Docker (M-4).
+  #
+  # Filtra por PREFIJO DE RUTA de la API, no por contenedor: con CONTAINERS=1 el
+  # panel puede operar sobre cualquier contenedor de la maquina, no solo los
+  # suyos. Reduce mucho la superficie -sin volumenes, redes, build ni swarm-
+  # pero NO aisla de los demas proyectos. Es la limitacion real de esta pieza y
+  # conviene tenerla presente.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: mcvps-docker-proxy
+    restart: unless-stopped
+
+    environment:
+      CONTAINERS: 1   # crear, arrancar, parar, inspeccionar, logs
+      IMAGES: 1       # descargar la imagen del servidor
+      POST: 1         # sin esto todo seria de solo lectura
+      EXEC: 1         # recargar la allow-list sin reiniciar
+      PING: 1
+      # Todo lo demas queda denegado por defecto.
+
+    volumes:
+      # Solo lectura: el proxy no necesita escribir en el socket, solo hablarlo.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - mcvps_internal   # NO en la red proxy: no debe ser alcanzable desde NPM
+
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options: {max-size: "5m", max-file: "2"}
 
 networks:
   proxy:
