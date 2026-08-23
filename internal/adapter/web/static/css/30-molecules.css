@@ -1,0 +1,165 @@
+/* =============================================================================
+   MOLECULAS - dos o tres atomos que solo tienen sentido juntos.
+
+   Una molecula define la RELACION entre sus piezas -que va al lado de que, con
+   cuanto aire- pero no vuelve a definir las piezas. Si aqui aparece un color,
+   casi siempre significa que faltaba un atomo.
+============================================================================= */
+
+/* --- Formulario en linea -------------------------------------------------
+   Varias acciones seguidas en una celda de tabla. Cada una es su propio
+   formulario porque cada una hace algo distinto; van en linea para que se lean
+   como una sola fila de opciones. */
+
+.inline-form, .sesion form { display: inline; }
+.inline-form select { width: auto; padding: .2rem var(--espacio-1); font-size: var(--texto-sm); }
+
+/* Cambio de rol desde la propia fila: select y boton pegados. */
+.fila-rol { display: inline-flex; align-items: center; gap: var(--espacio-1); }
+.fila-rol select { margin: 0; }
+
+/* --- Grupo de acciones ---------------------------------------------------- */
+
+.acciones {
+  display: flex;
+  gap: var(--espacio-3);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* --- Meta ----------------------------------------------------------------
+   Etiquetas y datos sueltos bajo un nombre. */
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: .82rem;
+  margin-top: .15rem;
+  flex-wrap: wrap;
+}
+
+/* --- Casilla con texto ---------------------------------------------------- */
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-base);
+  color: var(--color-texto);
+}
+
+.check input { width: auto; margin-top: var(--espacio-1); }
+
+/* --- Aviso ---------------------------------------------------------------- */
+
+.aviso {
+  padding: .7rem .9rem;
+  border-radius: var(--radio);
+  border: var(--borde-fino) solid;
+  margin: 0 0 var(--espacio-5);
+}
+
+.error { background: var(--color-peligro-fondo); border-color: var(--color-peligro-borde); color: var(--color-peligro-texto); }
+.info  { background: var(--color-aviso-fondo);   border-color: var(--color-aviso-borde);   color: var(--color-aviso-texto); }
+
+/* --- Detalle plegable ----------------------------------------------------
+   Contexto que importa cuando algo falla, pero que no tiene por que ocupar
+   sitio el resto del tiempo. */
+
+.detalle { margin: .6rem 0; }
+.detalle summary { cursor: pointer; color: var(--color-texto-tenue); font-size: var(--texto-sm); }
+.detalle summary:hover { color: var(--color-texto); }
+.detalle[open] summary { margin-bottom: var(--espacio-1); }
+
+/* --- Esqueleto ------------------------------------------------------------
+   Varios huesos apilados. Se usa SOLO cuando el dato aun no existe, nunca
+   como adorno: un esqueleto donde en realidad hay un cero enganaria mas que
+   informar. */
+
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin: .9rem 0;
+}
+
+/* --- Filtros -------------------------------------------------------------- */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+  margin: var(--espacio-5) 0;
+  padding: .9rem;
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.filtros .campo { display: flex; flex-direction: column; gap: var(--espacio-1); }
+.filtros .campo label { font-size: var(--texto-sm); color: var(--color-texto-tenue); margin: 0; }
+.filtros .campo input,
+.filtros .campo select { margin: 0; }
+.filtros .campo:first-child { flex: 1 1 14rem; }
+
+.campo-acciones { flex-direction: row; align-items: center; gap: var(--espacio-3); }
+
+/* --- Paginador -----------------------------------------------------------
+   El rango a un lado, los saltos al otro. */
+
+.paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding-top: .8rem;
+  font-size: var(--texto-sm);
+}
+
+.paginador-botones { display: flex; align-items: center; gap: .9rem; }
+
+/* --- Miniatura de mapa ---------------------------------------------------- */
+
+.miniatura {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 48px;
+  border-radius: var(--radio-sm);
+  overflow: hidden;
+  background: var(--color-fondo);
+  border: var(--borde-fino) solid var(--color-borde);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.miniatura img { width: 100%; height: 100%; object-fit: cover; }
+
+.sin-icono {
+  font-size: .6rem;
+  text-align: center;
+  color: var(--color-texto-tenue);
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-versal);
+}
+
+.datos { flex: 1; min-width: 0; }
+.datos strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Acciones de una fila ------------------------------------------------
+   Cada accion es su propio formulario, porque cada una hace algo distinto.
+   Se agrupan aqui para que se lean como una sola fila de opciones y queden
+   alineadas de una fila a otra. */
+
+.acciones-fila {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .1rem;
+}
+
+.acciones-fila form { display: inline-flex; }

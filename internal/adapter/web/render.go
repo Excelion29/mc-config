@@ -45,7 +45,10 @@ type auditPageData struct {
 
 type usersPageData struct {
 	PageData
-	Users []domain.User
+	// Users son vistas y no domain.User: ver views.go.
+	Users []userView
+	// Roles se queda como tipo de dominio porque aqui solo alimenta un
+	// desplegable de id y nombre; no se decide nada con el.
 	Roles []domain.Role
 	Pag   paginador
 }
@@ -80,10 +83,11 @@ type playersPageData struct {
 
 type rolesPageData struct {
 	PageData
-	Roles  []domain.Role
-	Groups []permissionGroup
-	// UsersByRole permite avisar de cuanta gente quedaria sin rol al borrarlo.
-	UsersByRole map[int64]int
+	Roles []roleView
+	// Permisos da, por rol, el conjunto marcado. Lo necesita el dialogo de
+	// edicion y no la tabla, por eso viaja aparte de roleView.
+	Permisos map[int64]map[domain.Permission]bool
+	Groups   []permissionGroup
 }
 
 // funcs son las pocas ayudas que necesitan las plantillas. Se mantiene corto a

@@ -40,9 +40,10 @@
       </div>
 
       {{if $page.User.Can "map.delete"}}
-      <form method="post" action="/maps/delete" class="inline-form">
+      <form method="post" action="/maps/delete">
         <input type="hidden" name="id" value="{{.ID}}">
-        <button class="enlace peligro">Borrar</button>
+        <button class="accion accion-peligro" title="Borrar"
+                aria-label="Borrar el mapa {{.Name}}">{{template "ico-borrar"}}</button>
       </form>
       {{end}}
     </li>

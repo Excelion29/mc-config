@@ -43,24 +43,28 @@
             </td>
             <td>{{.Level}}</td>
             <td>
-              {{if .IsSuperuser}}<span class="etiqueta ok">todos</span>
-              {{else}}{{len .Permissions}}{{end}}
+              {{if .TodosLosPermisos}}<span class="etiqueta ok">todos</span>
+              {{else}}{{.Permisos}}{{end}}
             </td>
-            <td>{{index $.UsersByRole .ID}}</td>
-            <td class="derecha">
-              {{if .IsSuperuser}}
-              <span class="apagado" title="El superusuario no es editable">&mdash;</span>
-              {{else if not ($.User.Role.Outranks .)}}
-              <span class="apagado" title="Esta a tu mismo nivel o por encima">bloqueado</span>
-              {{else}}
-              <a class="enlace" href="#rol-{{.ID}}">Editar permisos</a>
-              {{if not .System}}
-              <form method="post" action="/roles/delete" class="inline-form">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <button class="enlace peligro">Borrar</button>
-              </form>
-              {{end}}
-              {{end}}
+            <td>{{.Usuarios}}</td>
+            <td>
+              <div class="acciones-fila">
+                {{if .TodosLosPermisos}}
+                <span class="apagado" title="El superusuario no es editable">&mdash;</span>
+                {{else if not .Editable}}
+                <span class="apagado" title="Esta a tu mismo nivel o por encima">bloqueado</span>
+                {{else}}
+                <a class="accion" href="#rol-{{.ID}}" title="Editar permisos"
+                   aria-label="Editar los permisos de {{.Name}}">{{template "ico-editar"}}</a>
+                {{if .Borrable}}
+                <form method="post" action="/roles/delete">
+                  <input type="hidden" name="id" value="{{.ID}}">
+                  <button class="accion accion-peligro" title="Borrar"
+                          aria-label="Borrar el rol {{.Name}}">{{template "ico-borrar"}}</button>
+                </form>
+                {{end}}
+                {{end}}
+              </div>
             </td>
           </tr>
           {{end}}
@@ -128,7 +132,11 @@
 
 {{/* Dialogos de edicion: ocultos hasta que la URL apunta a uno (:target). */}}
 {{range .Roles}}
-{{if and (not .IsSuperuser) ($.User.Role.Outranks .)}}
+{{/*
+  Misma condicion que el boton de la tabla, y ahora es LA misma: antes estaba
+  escrita dos veces y nada obligaba a que coincidieran.
+*/}}
+{{if .Editable}}
 <div class="modal" id="rol-{{.ID}}">
   <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
   <div class="modal-caja" role="dialog" aria-labelledby="titulo-rol-{{.ID}}">
@@ -144,14 +152,14 @@
       <input type="hidden" name="id" value="{{.ID}}">
       <div class="modal-cuerpo">
         <div class="permisos-grid">
-          {{$role := .}}
+          {{$permisos := index $.Permisos .ID}}
           {{range $.Groups}}
           <fieldset>
             <legend>{{.Name}}</legend>
             {{range .Permissions}}
             <label class="check">
               <input type="checkbox" name="permissions" value="{{.Code}}"
-                     {{if $role.Can .Code}}checked{{end}}>
+                     {{if index $permisos .Code}}checked{{end}}>
               <span title="{{.Description}}">
                 {{.Label}}{{if .Destructive}} <span class="destructivo">destructivo</span>{{end}}
               </span>

@@ -106,7 +106,7 @@ func (s *Server) renderUsers(w http.ResponseWriter, r *http.Request, status int,
 
 	s.renderer.render(w, status, "users.html", usersPageData{
 		PageData: PageData{Title: "Usuarios", User: actor, Error: errMsg, Info: infoMsg},
-		Users:    page.Users,
+		Users:    nuevaVistaUsuarios(actor, page.Users),
 		Roles:    roles,
 		Pag:      paginador{Info: page.PageInfo, Base: "/users?"},
 	})

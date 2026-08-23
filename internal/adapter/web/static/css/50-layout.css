@@ -1,0 +1,106 @@
+/* =============================================================================
+   LAYOUT - donde se colocan los organismos.
+
+   Esta capa solo reparte espacio: anchos, columnas y huecos. No pinta nada.
+   Si aqui apareciera un color seria senal de que un organismo se ha quedado a
+   medio hacer.
+============================================================================= */
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--ancho-contenido);
+  margin: 0 auto;
+  padding: var(--espacio-6) var(--espacio-4);
+}
+
+/* --- Cabecera de pagina --------------------------------------------------
+   Titulo y explicacion a la izquierda, la accion principal a la derecha. */
+
+.cabecera-pagina {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+  flex-wrap: wrap;
+}
+
+.cabecera-pagina > div { flex: 1 1 20rem; }
+.cabecera-pagina h1 { margin-bottom: .2rem; }
+
+/* --- Pantalla partida ----------------------------------------------------
+   La lista a un lado y lo que esta pasando ahora al otro. En pantallas
+   estrechas el destacado sube al principio: es lo primero que alguien quiere
+   saber al abrir la pagina. */
+
+.split {
+  display: grid;
+  gap: var(--espacio-4);
+  grid-template-columns: 1fr;
+  margin-top: var(--espacio-5);
+}
+
+@media (min-width: 62rem) {
+  .split {
+    grid-template-columns: minmax(0, 1fr) var(--ancho-panel);
+    align-items: stretch;
+  }
+  .split > .tarjeta   { order: 1; }
+  .split > .destacado { order: 2; }
+}
+
+/* Las dos mitades comparten altura, y ademas una altura minima: con la lista
+   vacia quedaban dos recuadros de tamanos distintos sin que la diferencia
+   significara nada. */
+.split > .tarjeta,
+.split > .destacado {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--alto-minimo-columna);
+  margin: 0;
+}
+
+/* El texto de "nada encendido" se centra en su mitad en vez de quedar pegado
+   arriba dejando un hueco debajo. */
+.destacado > .ayuda:last-child { margin-top: auto; margin-bottom: auto; }
+
+/* --- Rejilla de atajos ---------------------------------------------------
+   Solo se pintan los concedidos, asi que se encoge sola segun el rol: un
+   espectador ve dos tarjetas, no diez con ocho tachadas. */
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .9rem;
+  margin: var(--espacio-5) 0;
+}
+
+.atajo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  padding: var(--espacio-4);
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  text-decoration: none;
+  color: inherit;
+}
+
+.atajo:hover, .atajo:focus-visible { border-color: var(--color-acento); }
+
+.atajo-titulo { font-weight: var(--peso-fuerte); }
+.atajo-texto  { color: var(--color-texto-tenue); font-size: .9rem; }
+
+.pie-nota { color: var(--color-texto-tenue); font-size: .9rem; }
+
+/* --- Formularios ---------------------------------------------------------
+   Una columna comoda de leer. Un campo de texto de mil pixeles de ancho no
+   ayuda a nadie a escribir un correo. */
+
+.formulario { max-width: var(--ancho-formulario); }
+
+/* El login es una sola tarjeta centrada, y su boton ocupa todo el ancho: es
+   la unica accion de la pantalla, y dejarlo pequeno a la izquierda abria un
+   hueco a su derecha que no significaba nada. */
+.login { max-width: 380px; margin: var(--espacio-7) auto; }
+.login button { width: 100%; margin-top: var(--espacio-1); }

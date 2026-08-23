@@ -29,7 +29,7 @@
         {{range .Players}}
         <tr>
           <td>
-            <strong>{{.Gamertag}}</strong>
+            <strong class="dato">{{.Gamertag}}</strong>
             {{if .IsOp}}<span class="etiqueta ok">operador</span>{{end}}
           </td>
           <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
@@ -37,21 +37,32 @@
             {{if .Active}}<span class="etiqueta ok">activo</span>
             {{else}}<span class="etiqueta aviso">bloqueado</span>{{end}}
           </td>
-          <td class="derecha">
-            <form method="post" action="/players/op" class="inline-form">
-              <input type="hidden" name="id" value="{{.ID}}">
-              <input type="hidden" name="is_op" value="{{if .IsOp}}0{{else}}1{{end}}">
-              <button class="enlace">{{if .IsOp}}Quitar op{{else}}Hacer op{{end}}</button>
-            </form>
-            <form method="post" action="/players/active" class="inline-form">
-              <input type="hidden" name="id" value="{{.ID}}">
-              <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
-              <button class="enlace">{{if .Active}}Bloquear{{else}}Permitir{{end}}</button>
-            </form>
-            <form method="post" action="/players/delete" class="inline-form">
-              <input type="hidden" name="id" value="{{.ID}}">
-              <button class="enlace peligro">Borrar</button>
-            </form>
+          <td>
+            <div class="acciones-fila">
+              <form method="post" action="/players/op">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <input type="hidden" name="is_op" value="{{if .IsOp}}0{{else}}1{{end}}">
+                <button class="accion accion-destacar{{if .IsOp}} activa{{end}}"
+                        title="{{if .IsOp}}Quitar operador{{else}}Hacer operador{{end}}"
+                        aria-label="{{if .IsOp}}Quitar operador a{{else}}Hacer operador a{{end}} {{.Gamertag}}">{{template "ico-op"}}</button>
+              </form>
+              <form method="post" action="/players/active">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
+                {{if .Active}}
+                <button class="accion accion-atencion" title="Bloquear"
+                        aria-label="Bloquear a {{.Gamertag}}">{{template "ico-bloquear"}}</button>
+                {{else}}
+                <button class="accion accion-positiva" title="Permitir"
+                        aria-label="Permitir a {{.Gamertag}}">{{template "ico-permitir"}}</button>
+                {{end}}
+              </form>
+              <form method="post" action="/players/delete">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="accion accion-peligro" title="Borrar"
+                        aria-label="Borrar a {{.Gamertag}} de la lista">{{template "ico-borrar"}}</button>
+              </form>
+            </div>
           </td>
         </tr>
         {{end}}

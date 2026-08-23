@@ -1,0 +1,107 @@
+/* =============================================================================
+   BASE - como se ve un elemento HTML antes de que nadie le ponga una clase.
+
+   Solo selectores de etiqueta. La idea es que escribir <table> o <label> en
+   una plantilla nueva ya salga bien, sin recordar que clase tocaba.
+============================================================================= */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--fuente);
+  font-size: 15px;
+  line-height: var(--interlineado);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+h1 { font-size: var(--texto-xl); margin: 0 0 var(--espacio-1); }
+h2 { font-size: var(--texto-lg); margin: 0 0 var(--espacio-3); }
+
+a { color: var(--color-acento); }
+
+code {
+  font-family: var(--fuente-mono);
+  font-size: .85em;
+}
+
+/* --- Formularios --------------------------------------------------------- */
+
+label {
+  display: block;
+  font-size: var(--texto-sm);
+  margin: var(--espacio-3) 0 var(--espacio-1);
+  color: var(--color-texto-tenue);
+}
+
+input, select {
+  width: 100%;
+  padding: .55rem .7rem;
+  font: inherit;
+  color: var(--color-texto);
+  background: var(--color-fondo);
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+input:focus, select:focus {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 1px;
+}
+
+input[type="file"] { padding: var(--espacio-1); }
+
+fieldset {
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: .6rem .8rem .8rem;
+  margin: 0;
+}
+
+fieldset[disabled] { opacity: .65; }
+
+legend {
+  font-size: var(--texto-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-versal);
+  color: var(--color-texto-tenue);
+  padding: 0 var(--espacio-1);
+}
+
+/* --- Tablas -------------------------------------------------------------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--texto-base);
+}
+
+th, td {
+  text-align: left;
+  padding: var(--espacio-2) .6rem;
+  border-bottom: var(--borde-fino) solid var(--color-borde);
+}
+
+th {
+  color: var(--color-texto-tenue);
+  font-weight: var(--peso-fuerte);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+tbody tr:last-child td { border-bottom: 0; }
+
+/* --- Pie ----------------------------------------------------------------- */
+
+footer {
+  padding: var(--espacio-4);
+  text-align: center;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-tenue);
+  border-top: var(--borde-fino) solid var(--color-borde);
+}

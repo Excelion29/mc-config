@@ -124,28 +124,34 @@
             </td>
             <td class="apagado">{{if .MapName}}{{.MapName}}{{else}}&mdash;{{end}}</td>
             <td><span class="estado estado-{{.State}}">{{.State.Label}}</span></td>
-            <td class="derecha">
-              {{if $page.User.Can "server.operate"}}
-                {{if .CanStart}}
-                <form method="post" action="/instances/start" class="inline-form">
+            <td>
+              <div class="acciones-fila">
+                {{if $page.User.Can "server.operate"}}
+                  {{if .CanStart}}
+                  <form method="post" action="/instances/start">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <button class="accion accion-positiva" title="Arrancar"
+                            aria-label="Arrancar {{.Name}}">{{template "ico-arrancar"}}</button>
+                  </form>
+                  {{end}}
+                  {{if .CanStop}}
+                  <form method="post" action="/instances/stop">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <button class="accion accion-atencion" title="Detener"
+                            aria-label="Detener {{.Name}}">{{template "ico-detener"}}</button>
+                  </form>
+                  {{end}}
+                {{end}}
+                <a class="accion" href="/instances/{{.ID}}/logs" target="_blank"
+                   title="Ver logs" aria-label="Ver los logs de {{.Name}}">{{template "ico-logs"}}</a>
+                {{if $page.User.Can "instance.delete"}}
+                <form method="post" action="/instances/delete">
                   <input type="hidden" name="id" value="{{.ID}}">
-                  <button class="enlace">Arrancar</button>
+                  <button class="accion accion-peligro" title="Borrar"
+                          aria-label="Borrar {{.Name}}">{{template "ico-borrar"}}</button>
                 </form>
                 {{end}}
-                {{if .CanStop}}
-                <form method="post" action="/instances/stop" class="inline-form">
-                  <input type="hidden" name="id" value="{{.ID}}">
-                  <button class="enlace">Detener</button>
-                </form>
-                {{end}}
-              {{end}}
-              <a class="enlace" href="/instances/{{.ID}}/logs" target="_blank">Logs</a>
-              {{if $page.User.Can "instance.delete"}}
-              <form method="post" action="/instances/delete" class="inline-form">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <button class="enlace peligro">Borrar</button>
-              </form>
-              {{end}}
+              </div>
             </td>
           </tr>
           {{end}}

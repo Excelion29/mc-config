@@ -99,10 +99,10 @@ func (s *Server) renderRoles(w http.ResponseWriter, r *http.Request, status int,
 	}
 
 	s.renderer.render(w, status, "roles.html", rolesPageData{
-		PageData:    PageData{Title: "Roles", User: actor, Error: errMsg, Info: infoMsg},
-		Roles:       roles,
-		Groups:      groupPermissions(),
-		UsersByRole: counts,
+		PageData: PageData{Title: "Roles", User: actor, Error: errMsg, Info: infoMsg},
+		Roles:    nuevaVistaRoles(actor, roles, counts),
+		Permisos: permisosPorRol(roles),
+		Groups:   groupPermissions(),
 	})
 }
 

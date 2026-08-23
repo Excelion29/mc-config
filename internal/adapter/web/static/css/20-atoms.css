@@ -1,0 +1,208 @@
+/* =============================================================================
+   ATOMOS - piezas que no se pueden partir mas y no dependen de nadie.
+
+   Un atomo no sabe donde va a vivir: no lleva margenes de posicion ni supone
+   que tiene un hermano al lado. Colocarlo es trabajo de quien lo usa. Por eso
+   se pueden mover de pantalla sin arrastrar sorpresas.
+============================================================================= */
+
+/* --- Boton ---------------------------------------------------------------
+   Dos formas del mismo atomo: <button> es la accion que envia algo, .boton es
+   un enlace que se ve igual. Se declaran juntos para que no se separen
+   visualmente con el tiempo. */
+
+button, .boton {
+  display: inline-block;
+  padding: .55rem 1.1rem;
+  font: inherit;
+  font-weight: var(--peso-fuerte);
+  color: var(--color-acento-texto);
+  background: var(--color-acento);
+  border: 0;
+  border-radius: var(--radio);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button { margin-top: var(--espacio-5); }
+
+button:hover, .boton:hover { filter: brightness(1.08); }
+
+/* Accion secundaria: parece un enlace pero puede ser un <button> dentro de un
+   formulario. Es lo correcto para "Detener" o "Borrar": son envios, no
+   navegacion, y un <a> ahi mentiria sobre lo que va a pasar. */
+.enlace {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-texto-tenue);
+  font-weight: var(--peso-normal);
+  text-decoration: underline;
+}
+
+.enlace:hover { color: var(--color-texto); filter: none; }
+
+.peligro { color: var(--color-peligro-texto); }
+
+/* --- Etiqueta ------------------------------------------------------------
+   Un dato corto que se lee de un vistazo: un estado, un rol, una edicion. */
+
+.etiqueta, .rol, .estado {
+  display: inline-block;
+  padding: .15rem var(--espacio-2);
+  border-radius: var(--radio-pildora);
+  border: var(--borde-fino) solid var(--color-borde);
+  background: transparent;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-fuerte);
+  color: var(--color-texto-tenue);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.rol, .estado {
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-versal);
+  font-weight: var(--peso-normal);
+}
+
+.etiqueta.ok    { border-color: var(--color-acento); color: var(--color-acento); }
+.etiqueta.aviso { border-color: var(--color-peligro-borde); color: var(--color-peligro-texto); }
+
+.rol-admin,
+.rol-superuser  { border-color: var(--color-acento); color: var(--color-acento); }
+.rol-bedrock    { border-color: var(--color-bedrock); color: var(--color-bedrock); }
+.rol-java       { border-color: var(--color-java); color: var(--color-java); }
+
+.estado-running  { border-color: var(--color-acento); color: var(--color-acento); }
+.estado-failed   { border-color: var(--color-peligro-borde); color: var(--color-peligro-texto); }
+.estado-starting,
+.estado-stopping { border-color: var(--color-aviso-borde); color: var(--color-aviso-texto); }
+
+.destructivo {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--color-peligro-texto);
+  border: var(--borde-fino) solid var(--color-peligro-borde);
+  border-radius: var(--radio-pildora);
+  padding: 0 .35rem;
+}
+
+/* --- Cuenta --------------------------------------------------------------
+   El numero que acompana a un titulo: "Permitidos 12". Va relleno y no
+   perfilado para que se distinga de las etiquetas de estado, que son otra
+   cosa aunque tengan la misma forma. */
+
+.cuenta {
+  display: inline-block;
+  margin-left: var(--espacio-1);
+  padding: 0 .45rem;
+  border-radius: var(--radio-pildora);
+  background: var(--color-acento);
+  color: var(--color-acento-texto);
+  font-size: .78rem;
+  font-weight: var(--peso-maximo);
+  vertical-align: middle;
+}
+
+/* --- Texto ---------------------------------------------------------------- */
+
+.sub    { color: var(--color-texto-tenue); margin: 0 0 var(--espacio-5); }
+.apagado { color: var(--color-texto-tenue); }
+.tenue  { color: var(--color-texto-tenue); font-weight: var(--peso-normal); font-size: var(--texto-sm); }
+.vacio  { color: var(--color-texto-tenue); margin: 0; }
+.nowrap { white-space: nowrap; }
+.derecha { text-align: right; }
+
+.ayuda {
+  margin-top: var(--espacio-5);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-tenue);
+}
+
+.ayuda li { padding-left: 0; }
+.ayuda li::before { content: none; }
+
+/* --- Hueso ---------------------------------------------------------------
+   La barra gris de un esqueleto de carga. */
+
+.hueso {
+  height: .9rem;
+  width: 60%;
+  border-radius: var(--radio-pildora);
+  background: linear-gradient(90deg,
+    var(--color-borde) 25%, var(--color-fondo) 50%, var(--color-borde) 75%);
+  background-size: 200% 100%;
+  animation: brillo var(--duracion-brillo) ease-in-out infinite;
+}
+
+.hueso-ancho { height: 1.5rem; width: 85%; }
+
+@keyframes brillo {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Quien haya pedido menos movimiento ve la forma, no el barrido. */
+@media (prefers-reduced-motion: reduce) {
+  .hueso { animation: none; background: var(--color-borde); }
+}
+
+/* --- Icono ---------------------------------------------------------------
+   Tamano unico y color heredado. Ningun SVG de la plantilla define su propio
+   color: lo pone el boton que lo contiene, asi que el mismo dibujo sirve para
+   una accion neutra y para una destructiva. */
+
+.icono {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- Accion de icono -----------------------------------------------------
+   Un boton sin marco ni fondo: en una tabla, cinco recuadros por fila pesan
+   mas que las propias filas. El color lo dice todo y solo aparece el fondo al
+   pasar por encima, para confirmar donde se va a pulsar.
+
+   SIEMPRE con aria-label: sin texto visible, esa etiqueta es el unico nombre
+   que tiene el boton. */
+
+.accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radio-sm);
+  color: var(--color-texto-tenue);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.accion:hover { background: var(--color-fondo); filter: none; }
+
+.accion:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: -2px;
+}
+
+/* Intencion: el color distingue de un vistazo lo que hace cada uno sin
+   obligar a leer. Arrancar y borrar no pueden parecerse. */
+.accion-positiva { color: var(--color-acento); }
+.accion-atencion { color: var(--color-atencion); }
+.accion-peligro  { color: var(--color-peligro-texto); }
+.accion-destacar { color: var(--color-destacar); }
+
+/* La estrella de operador va rellena cuando lo es y hueca cuando no: el
+   color solo no basta si alguien no lo distingue. */
+.accion-destacar.activa .icono { fill: currentColor; }

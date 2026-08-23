@@ -19,7 +19,7 @@ import (
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
-//go:embed templates/*.html static/*
+//go:embed templates/*.html static/css/*.css
 var assets embed.FS
 
 const cookieName = "mcvps_session"

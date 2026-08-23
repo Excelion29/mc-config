@@ -1,0 +1,196 @@
+/* =============================================================================
+   ORGANISMOS - secciones completas y reconocibles de la interfaz.
+
+   Un organismo se puede senalar y nombrar: "la barra", "el dialogo", "la
+   tarjeta". Componen moleculas y atomos, y son lo maximo que llega a saber el
+   CSS sobre una pantalla concreta: nada de aqui deberia llamarse
+   ".pantalla-de-jugadores".
+============================================================================= */
+
+/* --- Barra superior ------------------------------------------------------- */
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-5);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie);
+  border-bottom: var(--borde-fino) solid var(--color-borde);
+  flex-wrap: wrap;
+}
+
+.marca { font-weight: var(--peso-maximo); text-decoration: none; letter-spacing: var(--espaciado-versal); }
+.barra nav { display: flex; gap: var(--espacio-4); }
+.barra nav a { color: var(--color-texto-tenue); text-decoration: none; }
+.barra nav a:hover { color: var(--color-texto); }
+
+.sesion { margin-left: auto; display: flex; align-items: center; gap: var(--espacio-3); }
+.email { color: var(--color-texto-tenue); font-size: var(--texto-sm); }
+
+/* --- Tarjeta -------------------------------------------------------------- */
+
+.tarjeta {
+  background: var(--color-superficie);
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: var(--espacio-5);
+  margin-bottom: var(--espacio-5);
+}
+
+.aviso-confirmar { border-color: var(--color-aviso-borde); border-width: 2px; }
+
+/* --- Tabla contenida -----------------------------------------------------
+   Altura maxima y desplazamiento PROPIO: veinte filas ocupan lo mismo en
+   pantalla que tres. La cabecera se queda fija para no perder de vista que
+   columna es cual al desplazar. */
+
+.tabla-scroll {
+  max-height: var(--alto-lista);
+  overflow: auto;
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.tabla-scroll table { margin: 0; border: 0; }
+
+.tabla-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--capa-cabecera-tabla);
+  background: var(--color-superficie);
+  box-shadow: inset 0 -1px 0 var(--color-borde);
+}
+
+/* La fila que corresponde al panel destacado, para no perder el hilo entre
+   los dos lados de la pantalla. */
+.fila-activa > td { background: var(--color-aviso-fondo); }
+
+/* --- Lista de mapas ------------------------------------------------------- */
+
+.mapas {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: var(--alto-lista);
+  overflow: auto;
+}
+
+.mapa {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  padding: .7rem 0;
+  border-bottom: var(--borde-fino) solid var(--color-borde);
+}
+
+.mapa:last-child { border-bottom: 0; }
+
+/* --- Panel destacado -----------------------------------------------------
+   Lo que esta pasando ahora mismo, aparte de la lista. */
+
+.destacado {
+  padding: 1.1rem;
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.destacado h2 { margin: var(--espacio-1) 0 var(--espacio-2); font-size: 1.15rem; }
+
+.destacado-etiqueta {
+  font-size: .75rem;
+  font-weight: var(--peso-maximo);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+.destacado-dato { font-size: var(--texto-dato); margin: .6rem 0 var(--espacio-1); }
+.destacado-dato .apagado { font-size: .95rem; }
+
+/* --- Rejilla de permisos -------------------------------------------------- */
+
+.permisos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--espacio-3);
+  margin-top: var(--espacio-2);
+}
+
+.borrar { margin-top: var(--espacio-3); }
+
+/* --- Dialogo -------------------------------------------------------------
+   Sin JavaScript, con :target. El dialogo esta en el HTML pero oculto; un
+   enlace a "#rol-3" lo muestra y uno a "#" lo cierra. Como manda la URL, el
+   boton "atras" del navegador lo cierra, que es lo que la gente espera. */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--capa-dialogo);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espacio-4);
+}
+
+.modal:target { display: flex; }
+
+.modal-fondo {
+  position: absolute;
+  inset: 0;
+  background: var(--velo);
+}
+
+.modal-caja {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--ancho-dialogo), 100%);
+  /* Nunca pasa de la pantalla: si el contenido no cabe, se desplaza SU cuerpo
+     y no la pagina de detras. */
+  max-height: var(--alto-dialogo);
+  background: var(--color-superficie);
+  border: var(--borde-fino) solid var(--color-borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-dialogo);
+}
+
+.modal-estrecho { width: min(var(--ancho-dialogo-estrecho), 100%); }
+
+.modal-cabecera,
+.modal-pie {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: .9rem var(--espacio-5);
+  flex: 0 0 auto;
+}
+
+.modal-cabecera { border-bottom: var(--borde-fino) solid var(--color-borde); }
+.modal-cabecera h2 { margin: 0; font-size: var(--texto-lg); }
+
+.modal-cerrar {
+  margin-left: auto;
+  font-size: 1.4rem;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--color-texto-tenue);
+}
+
+.modal-cerrar:hover { color: var(--color-texto); }
+
+.modal-cuerpo {
+  padding: var(--espacio-5);
+  overflow: auto;
+  flex: 1 1 auto;
+}
+
+.modal-pie {
+  border-top: var(--borde-fino) solid var(--color-borde);
+  justify-content: flex-end;
+}
+
+/* Dentro de un dialogo el boton ya esta en su pie: el margen superior que
+   lleva por defecto solo abriria un hueco. */
+.modal-pie button { margin-top: 0; }

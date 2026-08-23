@@ -7,18 +7,6 @@ import (
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
-// PlayerRepo persiste la lista maestra de jugadores (D-13).
-type PlayerRepo interface {
-	Create(ctx context.Context, p *domain.Player) (int64, error)
-	ByID(ctx context.Context, id int64) (*domain.Player, error)
-	List(ctx context.Context) ([]domain.Player, error)
-	ListPage(ctx context.Context, limit, offset int) ([]domain.Player, int, error)
-	ActiveGamertags(ctx context.Context) ([]string, error)
-	SetActive(ctx context.Context, id int64, active bool) error
-	SetOp(ctx context.Context, id int64, isOp bool) error
-	Delete(ctx context.Context, id int64) error
-}
-
 // Players resuelve los casos de uso de la lista maestra (F4).
 //
 // La idea de D-13: la verdad vive en la base, y los allowlist.json de cada

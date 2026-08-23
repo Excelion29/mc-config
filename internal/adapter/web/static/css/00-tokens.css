@@ -1,0 +1,145 @@
+/* =============================================================================
+   TOKENS - las decisiones de diseno, en un solo sitio.
+
+   Aqui no hay ni un selector de componente: solo valores con nombre. La regla
+   es que ninguna capa de abajo escriba un color, un espacio o un tamano
+   literal. Si algo esta a "13px" en vez de a un token, o el token falta o la
+   decision no estaba tomada; en ambos casos conviene enterarse.
+
+   Los nombres dicen PARA QUE sirve el valor, no como se ve: "--color-peligro"
+   y no "--rojo". El dia que el peligro deje de ser rojo, el nombre sigue
+   siendo cierto y no hay que renombrar nada.
+============================================================================= */
+
+:root {
+  /* --- Color -----------------------------------------------------------
+     Oscuro DE FABRICA, no como variante. Esto administra servidores de juego
+     y se mira de noche; el claro es el caso raro y va en su propio bloque
+     mas abajo.
+
+     Los grises llevan una pizca de verde para que el fondo y el acento no
+     parezcan dos temas pegados, pero muy poca: en cuanto se nota, deja de
+     ser un gris y compite con la informacion. */
+  --color-fondo: #0b0e0c;
+  --color-superficie: #131714;
+  --color-borde: #232a25;
+  --color-texto: #dfe7e0;
+  --color-texto-tenue: #7d8a80;
+
+  /* Verde fosforo: el unico color que aparece en algo que se pulsa. */
+  --color-acento: #5ee68a;
+  --color-acento-texto: #0b0e0c;
+
+  --color-peligro-fondo: #2a1414;
+  --color-peligro-borde: #5c2a2a;
+  --color-peligro-texto: #ff6b6b;
+
+  /* Atencion: ni error ni exito. Bloquear o parar algo en marcha se deshace,
+     asi que no merece el rojo, pero tampoco puede pasar desapercibido. */
+  --color-atencion: #ffc44d;
+  --color-destacar: #ffd966;
+
+  /* El informativo tira a cian y no a verde: si compartiera tono con el
+     acento, un aviso pareceria algo que se puede pulsar. */
+  --color-aviso-fondo: #0f1c22;
+  --color-aviso-borde: #24485a;
+  --color-aviso-texto: #7fc4dd;
+
+  /* Ediciones de Minecraft. Son identidad del dominio, no decoracion. */
+  --color-bedrock: #5ee68a;
+  --color-java: #ffc44d;
+
+  /* --- Espacio ---------------------------------------------------------
+     Escala corta a proposito. Con veinte pasos disponibles nadie elige el
+     mismo dos veces y el ritmo de la pagina se pierde. */
+  --espacio-1: .25rem;
+  --espacio-2: .5rem;
+  --espacio-3: .75rem;
+  --espacio-4: 1rem;
+  --espacio-5: 1.25rem;
+  --espacio-6: 2rem;
+  --espacio-7: 3rem;
+
+  /* --- Tipografia ------------------------------------------------------ */
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fuente-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --texto-xs: .7rem;    /* etiquetas en versal */
+  --texto-sm: .8rem;
+  --texto-base: .88rem;
+  --texto-md: 1rem;
+  --texto-lg: 1.05rem;  /* titulo de tarjeta */
+  --texto-xl: 1.5rem;   /* titulo de pagina */
+  --texto-dato: 1.6rem; /* la cifra que se lee de un vistazo */
+
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-fuerte: 600;
+  --peso-maximo: 700;
+
+  --interlineado: 1.55;
+  --espaciado-versal: .5px;
+
+  /* --- Forma ----------------------------------------------------------- */
+  --radio: 8px;
+  --radio-sm: 6px;
+  --radio-pildora: 999px;
+  --borde-fino: 1px;
+
+  /* --- Elevacion ------------------------------------------------------- */
+  --sombra-dialogo: 0 12px 32px rgba(0, 0, 0, .25);
+  --velo: rgba(0, 0, 0, .55);
+
+  /* --- Capas -----------------------------------------------------------
+     Numeradas aqui para que nadie tenga que buscar "cual es el z-index mas
+     alto que hay" y sumarle uno. */
+  --capa-cabecera-tabla: 1;
+  --capa-dialogo: 50;
+
+  /* --- Medidas ---------------------------------------------------------- */
+  --ancho-contenido: 1280px;
+  --ancho-formulario: 30rem;
+  --ancho-dialogo: 46rem;
+  --ancho-dialogo-estrecho: 30rem;
+  --ancho-panel: 19rem;
+  --alto-lista: 58vh;
+  --alto-dialogo: 86vh;
+  --alto-minimo-columna: 12rem;
+
+  /* --- Movimiento ------------------------------------------------------- */
+  --duracion-brillo: 1.4s;
+}
+
+/* Modo claro: SOLO se redefinen tokens.
+   Ninguna capa de abajo vuelve a mencionar el tema, asi que un componente
+   nuevo funciona en los dos sin escribir una linea extra.
+
+   El verde fosforo sobre blanco no se lee, asi que aqui el acento baja a un
+   verde oscuro. Es el mismo token y el mismo significado: cambia el valor,
+   no la regla. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-fondo: #f4f6f4;
+    --color-superficie: #ffffff;
+    --color-borde: #d9e0da;
+    --color-texto: #141815;
+    --color-texto-tenue: #5a655d;
+
+    --color-acento: #1a7f42;
+    --color-acento-texto: #ffffff;
+
+    --color-peligro-fondo: #fdecec;
+    --color-peligro-borde: #e5a3a3;
+    --color-peligro-texto: #a32020;
+
+    --color-atencion: #a9702a;
+    --color-destacar: #b8892c;
+
+    --color-aviso-fondo: #eaf4f8;
+    --color-aviso-borde: #a8cddd;
+    --color-aviso-texto: #1b5268;
+
+    --color-bedrock: #1a7f42;
+    --color-java: #a9702a;
+  }
+}
