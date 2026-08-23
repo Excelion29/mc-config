@@ -3,6 +3,8 @@ package web
 import (
 	"errors"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/Excelion29/mc-config/internal/app"
 	"github.com/Excelion29/mc-config/internal/domain"
@@ -74,7 +76,18 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 func (s *Server) showAudit(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r)
 
-	entries, err := s.audit.Latest(r.Context(), 100)
+	// Los filtros viajan en la URL, no en una sesion: asi una busqueda se
+	// puede compartir o guardar en marcadores, y el boton "atras" deshace el
+	// filtro en vez de dejar la pantalla en un estado que nadie pidio.
+	q := r.URL.Query()
+	pagina, _ := strconv.Atoi(q.Get("p"))
+
+	page, err := s.audit.Search(r.Context(), u, app.AuditFilter{
+		Text:   q.Get("q"),
+		Action: domain.Action(q.Get("accion")),
+		Page:   pagina,
+		Size:   25,
+	})
 	if err != nil {
 		s.log.Error("no se pudo leer el registro", "error", err)
 		s.renderer.render(w, http.StatusInternalServerError, "error.html", PageData{
@@ -87,6 +100,17 @@ func (s *Server) showAudit(w http.ResponseWriter, r *http.Request) {
 
 	s.renderer.render(w, http.StatusOK, "audit.html", auditPageData{
 		PageData: PageData{Title: "Registro", User: u},
-		Entries:  entries,
+		Page:     page,
+		Actions:  app.AuditActions(),
+		Pag: paginador{
+			Info: page.PageInfo,
+			// Los filtros van dentro de la base para que pasar de pagina no
+			// los pierda. url.Values los escapa: un correo con "&" o un
+			// detalle con espacios romperian la URL a mano.
+			Base: "/audit?" + url.Values{
+				"q":      {page.Filter.Text},
+				"accion": {string(page.Filter.Action)},
+			}.Encode() + "&",
+		},
 	})
 }

@@ -1,15 +1,20 @@
 {{define "contenido"}}
-<h1>Biblioteca de mapas</h1>
-<p class="sub">
-  El panel <strong>no descarga mapas de internet</strong> (D-11): t&uacute;
-  descargas el archivo y lo subes aqu&iacute;. A cambio, del archivo se deduce
-  solo la edici&oacute;n y la versi&oacute;n.
-</p>
+<div class="cabecera-pagina">
+  <div>
+    <h1>Biblioteca de mapas</h1>
+    <p class="sub">
+      El panel <strong>no descarga mapas de internet</strong>: t&uacute;
+      descargas el archivo y lo subes aqu&iacute;. A cambio, la edici&oacute;n y
+      la versi&oacute;n se detectan solas al subirlo.
+    </p>
+  </div>
+  {{if .User.Can "map.import"}}
+  <a class="boton" href="#importar-mapa">Importar mapa</a>
+  {{end}}
+</div>
 
-<div class="tabs">
-  <input type="radio" name="tab-mapas" id="tab-biblioteca" checked>
-  <label for="tab-biblioteca">Biblioteca <span class="cuenta">{{len .Maps}}</span></label>
-  <div class="panel">
+<section class="tarjeta">
+  <h2>Mapas <span class="cuenta">{{.Pag.Info.Total}}</span></h2>
   {{if .Maps}}
   <ul class="mapas">
     {{$page := .}}
@@ -26,7 +31,7 @@
       <div class="datos">
         <strong>{{.Name}}</strong>
         <div class="meta">
-          <span class="rol rol-{{.Edition}}">{{.Edition.Label}}</span>
+          <span class="etiqueta">{{.Edition.Label}}</span>
           {{if .Version}}<code>{{.Version}}</code>{{else}}<span class="apagado">version desconocida</span>{{end}}
         </div>
         <div class="meta apagado">
@@ -43,30 +48,42 @@
     </li>
     {{end}}
   </ul>
+  {{template "paginador" .Pag}}
   {{else}}
   <p class="vacio">
     Todav&iacute;a no hay mapas.
-    {{if .User.Can "map.import"}}Usa la pesta&ntilde;a <em>Importar</em> para
-    subir un <code>.mcworld</code>.{{else}}Pide a un administrador que suba
-    alguno.{{end}}
+    {{if .User.Can "map.import"}}
+    <a href="#importar-mapa">Sube un <code>.mcworld</code></a> para empezar.
+    {{else}}Pide a un administrador que suba alguno.{{end}}
   </p>
   {{end}}
-  </div>
+</section>
 
-  {{if .User.Can "map.import"}}
-  <input type="radio" name="tab-mapas" id="tab-importar">
-  <label for="tab-importar">Importar</label>
-  <div class="panel">
-  <form method="post" action="/maps" enctype="multipart/form-data" class="formulario">
-    <label for="archivo">Archivo <code>.mcworld</code> o <code>.zip</code></label>
-    <input id="archivo" name="archivo" type="file" accept=".mcworld,.zip" required>
-    <p class="ayuda">M&aacute;ximo {{.MaxUpload}}. Se comprueba que sea un ZIP
-    v&aacute;lido, que contenga <code>level.dat</code> y que no intente escribir
-    fuera de su carpeta.</p>
-    <button type="submit">Importar</button>
-  </form>
+{{if .User.Can "map.import"}}
+<div class="modal" id="importar-mapa">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja modal-estrecho" role="dialog" aria-labelledby="titulo-importar">
+    <header class="modal-cabecera">
+      <h2 id="titulo-importar">Importar un mapa</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/maps" enctype="multipart/form-data">
+      <div class="modal-cuerpo">
+        <label for="archivo">Archivo <code>.mcworld</code> o <code>.zip</code></label>
+        <input id="archivo" name="archivo" type="file" accept=".mcworld,.zip" required>
+        <p class="ayuda">
+          M&aacute;ximo {{.MaxUpload}}. Se comprueba que sea un ZIP v&aacute;lido,
+          que contenga <code>level.dat</code> y que no intente escribir fuera de
+          su carpeta.
+        </p>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Importar</button>
+      </footer>
+    </form>
   </div>
-  {{end}}
 </div>
-
+{{end}}
 {{end}}

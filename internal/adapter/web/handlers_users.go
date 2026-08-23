@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Excelion29/mc-config/internal/app"
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
@@ -91,7 +92,8 @@ func (s *Server) setUserRole(w http.ResponseWriter, r *http.Request) {
 func (s *Server) renderUsers(w http.ResponseWriter, r *http.Request, status int, errMsg, infoMsg string) {
 	actor := userFrom(r)
 
-	users, err := s.auth.ListUsers(r.Context(), actor)
+	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
+	page, err := s.auth.ListUsersPage(r.Context(), actor, app.Paging{Page: pagina})
 	if err != nil {
 		s.renderFailure(w, actor, "Usuarios", "No se pudo leer la lista de usuarios.", err)
 		return
@@ -104,8 +106,9 @@ func (s *Server) renderUsers(w http.ResponseWriter, r *http.Request, status int,
 
 	s.renderer.render(w, status, "users.html", usersPageData{
 		PageData: PageData{Title: "Usuarios", User: actor, Error: errMsg, Info: infoMsg},
-		Users:    users,
+		Users:    page.Users,
 		Roles:    roles,
+		Pag:      paginador{Info: page.PageInfo, Base: "/users?"},
 	})
 }
 

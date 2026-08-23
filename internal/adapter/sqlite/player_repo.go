@@ -45,10 +45,35 @@ func (r *PlayerRepo) ByID(ctx context.Context, id int64) (*domain.Player, error)
 }
 
 func (r *PlayerRepo) List(ctx context.Context) ([]domain.Player, error) {
+	out, _, err := r.ListPage(ctx, -1, 0)
+	return out, err
+}
+
+// ListPage devuelve una pagina y cuantas filas hay en total.
+//
+// El total viaja junto a las filas porque quien pinta el paginador lo
+// necesita, y pedirlo en otra llamada abriria la puerta a que las dos
+// consultas vieran estados distintos de la tabla.
+//
+// Un limite <= 0 significa "sin limite": SQLite lo entiende como LIMIT -1. Asi
+// List sigue siendo un caso particular de esto y no hay dos consultas que
+// mantener sincronizadas.
+func (r *PlayerRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.Player, int, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+
+	var total int
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM players`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("contando players: %w", err)
+	}
+
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+playerColumns+` FROM players ORDER BY active DESC, gamertag ASC`)
+		`SELECT `+playerColumns+` FROM players ORDER BY active DESC, gamertag ASC LIMIT ? OFFSET ?`,
+		limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("listando jugadores: %w", err)
+		return nil, 0, fmt.Errorf("listando jugadores: %w", err)
 	}
 	defer rows.Close()
 
@@ -56,11 +81,11 @@ func (r *PlayerRepo) List(ctx context.Context) ([]domain.Player, error) {
 	for rows.Next() {
 		p, err := scanPlayer(rows.Scan)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		out = append(out, *p)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 // ActiveGamertags es lo que acaba dentro de allowlist.json.

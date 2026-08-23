@@ -25,27 +25,46 @@ type PageData struct {
 	Refresh int
 }
 
+// paginador es lo que consume la plantilla compartida del mismo nombre.
+//
+// Base es la URL hasta el parametro de pagina, ya con los filtros dentro y
+// terminada en "?" o "&". Se arma en el handler y no en el HTML porque
+// concatenar URLs con condicionales dentro de una plantilla es justo como se
+// pierde un filtro al pasar de pagina.
+type paginador struct {
+	Info app.PageInfo
+	Base string
+}
+
 type auditPageData struct {
 	PageData
-	Entries []domain.LogEntry
+	Page    app.AuditPage
+	Actions []domain.Action
+	Pag     paginador
 }
 
 type usersPageData struct {
 	PageData
 	Users []domain.User
 	Roles []domain.Role
+	Pag   paginador
 }
 
 type mapsPageData struct {
 	PageData
 	Maps      []domain.Map
 	MaxUpload string
+	Pag       paginador
 }
 
 type instancesPageData struct {
 	PageData
 	EnTransicion bool
 	Instances    []domain.Instance
+	// Current es la instancia encendida, o la que esta arrancando o parando.
+	// Solo puede haber una (D-02), asi que no es una fila mas de la tabla:
+	// es LA informacion de la pantalla y se presenta aparte.
+	Current *domain.Instance
 	Maps      []domain.Map
 	Online    int
 	MaxOnline int
@@ -56,6 +75,7 @@ type instancesPageData struct {
 type playersPageData struct {
 	PageData
 	Players []domain.Player
+	Pag     paginador
 }
 
 type rolesPageData struct {

@@ -12,6 +12,7 @@ type PlayerRepo interface {
 	Create(ctx context.Context, p *domain.Player) (int64, error)
 	ByID(ctx context.Context, id int64) (*domain.Player, error)
 	List(ctx context.Context) ([]domain.Player, error)
+	ListPage(ctx context.Context, limit, offset int) ([]domain.Player, int, error)
 	ActiveGamertags(ctx context.Context) ([]string, error)
 	SetActive(ctx context.Context, id int64, active bool) error
 	SetOp(ctx context.Context, id int64, isOp bool) error

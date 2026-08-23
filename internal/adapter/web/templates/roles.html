@@ -1,12 +1,17 @@
 {{define "contenido"}}
-<h1>Roles y permisos</h1>
-<p class="sub">
-  Los <strong>permisos</strong> los define el c&oacute;digo: existen porque hay
-  una funci&oacute;n que los comprueba. Los <strong>roles</strong> los defines
-  t&uacute;. El <strong>nivel</strong> ordena la jerarqu&iacute;a: s&oacute;lo
-  se gestiona a quien est&aacute; estrictamente por debajo. El tuyo es
-  <strong>{{.User.RoleLevel}}</strong>.
-</p>
+<div class="cabecera-pagina">
+  <div>
+    <h1>Roles y permisos</h1>
+    <p class="sub">
+      Los <strong>permisos</strong> los define el c&oacute;digo: existen porque
+      hay una funci&oacute;n que los comprueba. Los <strong>roles</strong> los
+      defines t&uacute;. El <strong>nivel</strong> ordena la jerarqu&iacute;a:
+      s&oacute;lo se gestiona a quien est&aacute; estrictamente por debajo. El
+      tuyo es <strong>{{.User.RoleLevel}}</strong>.
+    </p>
+  </div>
+  <a class="boton" href="#crear-rol">Crear rol</a>
+</div>
 
 {{/*
   Antes cada rol era una tarjeta con la rejilla entera de permisos desplegada.
@@ -15,10 +20,8 @@
   fila, se abarca de un vistazo- y los permisos se editan en un dialogo que se
   abre sobre ella, sin cambiar de pagina ni perder el sitio.
 */}}
-<div class="tabs">
-  <input type="radio" name="tab-roles" id="tab-roles-lista" checked>
-  <label for="tab-roles-lista">Roles <span class="cuenta">{{len .Roles}}</span></label>
-  <div class="panel">
+<section class="tarjeta">
+  <h2>Roles <span class="cuenta">{{len .Roles}}</span></h2>
     <div class="tabla-scroll">
       <table>
         <thead>
@@ -70,13 +73,17 @@
       borra y nadie puede gestionarlo: es la garant&iacute;a de que nunca queda
       un panel sin nadie que pueda arreglarlo.
     </p>
-  </div>
+</section>
 
-  <input type="radio" name="tab-roles" id="tab-roles-alta">
-  <label for="tab-roles-alta">Crear rol</label>
-  <div class="panel">
+<div class="modal" id="crear-rol">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-crear-rol">
+    <header class="modal-cabecera">
+      <h2 id="titulo-crear-rol">Crear rol</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
     <form method="post" action="/roles">
-      <div class="formulario">
+      <div class="modal-cuerpo">
         <label for="role-code">C&oacute;digo</label>
         <input id="role-code" name="code" required pattern="[a-z0-9_\-]+"
                placeholder="constructor" autocomplete="off">
@@ -110,7 +117,11 @@
         {{end}}
       </div>
 
-      <button type="submit">Crear rol</button>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Crear rol</button>
+      </footer>
     </form>
   </div>
 </div>

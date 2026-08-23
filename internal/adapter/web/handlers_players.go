@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Excelion29/mc-config/internal/app"
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
@@ -14,7 +15,8 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 	info, errMsg := s.takeFlash(w, r)
 
-	list, err := s.players.List(r.Context(), actor)
+	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
+	page, err := s.players.ListPage(r.Context(), actor, app.Paging{Page: pagina})
 	if err != nil {
 		s.renderFailure(w, actor, "Jugadores", "No se pudo leer la lista de jugadores.", err)
 		return
@@ -22,7 +24,8 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 
 	s.renderer.render(w, http.StatusOK, "players.html", playersPageData{
 		PageData: PageData{Title: "Jugadores", User: actor, Error: errMsg, Info: info},
-		Players:  list,
+		Players:  page.Players,
+		Pag:      paginador{Info: page.PageInfo, Base: rutaJugadores + "?"},
 	})
 }
 

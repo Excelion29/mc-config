@@ -61,11 +61,18 @@ func (s *Server) showInstances(w http.ResponseWriter, r *http.Request) {
 
 	// Arrancar puede tardar minutos la primera vez, porque la imagen descarga
 	// el binario del servidor. Mientras tanto la pagina se refresca sola.
+	// De paso se localiza la instancia que ocupa el turno. Como solo puede
+	// haber una encendida, una que este arrancando o parando tambien cuenta:
+	// es la que tiene el puerto y la que le importa a quien mira la pantalla.
 	transicion := false
-	for _, inst := range list {
+	var current *domain.Instance
+	for i := range list {
+		inst := &list[i]
 		if inst.State.Busy() {
 			transicion = true
-			break
+		}
+		if current == nil && (inst.State == domain.StateRunning || inst.State.Busy()) {
+			current = inst
 		}
 	}
 
@@ -78,6 +85,7 @@ func (s *Server) showInstances(w http.ResponseWriter, r *http.Request) {
 		PageData:     page,
 		EnTransicion: transicion,
 		Instances:    list,
+		Current:      current,
 		Maps:         maps,
 		Online:       online,
 		MaxOnline:    max,

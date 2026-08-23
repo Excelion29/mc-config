@@ -1,12 +1,44 @@
 {{define "contenido"}}
 <h1>Registro de acciones</h1>
 <p class="sub">
-  Todo lo que ocurre en el panel queda anotado (D-08). Si alguien apaga un
+  Todo lo que ocurre en el panel queda anotado. Si alguien apaga un
   servidor o cambia de mapa, aqu&iacute; se ve qui&eacute;n fue.
 </p>
 
+{{$f := .Page.Filter}}
+
+{{/*
+  El filtro es un formulario GET: lo que buscas acaba en la URL, asi que la
+  busqueda se puede compartir o guardar, y "atras" la deshace. Con POST
+  tendria que inventarme estado de sesion para lograr lo mismo.
+*/}}
+<form method="get" action="/audit" class="filtros">
+  <div class="campo">
+    <label for="f-texto">Buscar</label>
+    <input id="f-texto" name="q" value="{{$f.Text}}" autocomplete="off"
+           placeholder="Correo o detalle">
+  </div>
+
+  <div class="campo">
+    <label for="f-accion">Acci&oacute;n</label>
+    <select id="f-accion" name="accion">
+      <option value="">Todas</option>
+      {{range $.Actions}}
+      <option value="{{.}}" {{if eq . $f.Action}}selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+  </div>
+
+  <div class="campo campo-acciones">
+    <button type="submit">Filtrar</button>
+    {{if or $f.Text $f.Action}}
+    <a class="enlace" href="/audit">Quitar filtros</a>
+    {{end}}
+  </div>
+</form>
+
 <section class="tarjeta">
-  {{if .Entries}}
+  {{if .Page.Entries}}
   <div class="tabla-scroll">
     <table>
       <thead>
@@ -19,7 +51,7 @@
         </tr>
       </thead>
       <tbody>
-        {{range .Entries}}
+        {{range .Page.Entries}}
         <tr>
           <td class="nowrap">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
           <td>{{.UserEmail}}</td>
@@ -31,6 +63,14 @@
       </tbody>
     </table>
   </div>
+
+  {{template "paginador" .Pag}}
+
+  {{else if or $f.Text $f.Action}}
+  <p class="vacio">
+    Ninguna acci&oacute;n coincide con el filtro.
+    <a href="/audit">Ver todas</a>.
+  </p>
   {{else}}
   <p class="vacio">Todav&iacute;a no hay acciones registradas.</p>
   {{end}}

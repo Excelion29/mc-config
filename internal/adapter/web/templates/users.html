@@ -1,25 +1,27 @@
 {{define "contenido"}}
-<h1>Usuarios del panel</h1>
-<p class="sub">
-  Estas cuentas son para entrar <strong>al panel</strong>. No son jugadores de
-  Minecraft: esa es {{if .User.Can "player.manage"}}<a href="/players">otra
-  lista</a>{{else}}otra lista{{end}}.
-</p>
+<div class="cabecera-pagina">
+  <div>
+    <h1>Usuarios del panel</h1>
+    <p class="sub">
+      Estas cuentas son para entrar <strong>al panel</strong>. No son jugadores
+      de Minecraft: esa es {{if .User.Can "player.manage"}}<a href="/players">otra
+      lista</a>{{else}}otra lista{{end}}.
+    </p>
+  </div>
+  <a class="boton" href="#crear-usuario">Crear usuario</a>
+</div>
 
-<div class="tabs">
-  <input type="radio" name="tab-usuarios" id="tab-cuentas" checked>
-  <label for="tab-cuentas">Cuentas <span class="cuenta">{{len .Users}}</span></label>
-  <div class="panel">
-    <div class="tabla-scroll">
+<section class="tarjeta">
+  <h2>Cuentas <span class="cuenta">{{.Pag.Info.Total}}</span></h2>
+  <div class="tabla-scroll">
     <table>
       <thead>
         <tr>
           <th>Correo</th>
           <th>Rol</th>
-          <th>Nivel</th>
           <th>Estado</th>
           <th>Creado</th>
-          <th></th>
+          <th class="derecha">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -28,28 +30,38 @@
         <tr>
           <td>
             {{.Email}}
-            {{if eq .ID $page.User.ID}}<span class="rol">t&uacute;</span>{{end}}
+            {{if eq .ID $page.User.ID}}<span class="etiqueta">t&uacute;</span>{{end}}
           </td>
           <td>
             {{if $page.User.CanManage .}}
-            <form method="post" action="/users/role" class="inline-form">
+            {{/*
+              Cambio rapido de rol desde la propia fila: es la accion mas
+              frecuente de esta pantalla y no merece un formulario aparte.
+              El boton "Cambiar" esta siempre visible en vez de enviarse solo
+              al elegir, porque un envio automatico convierte un clic
+              equivocado en un cambio de permisos ya hecho.
+            */}}
+            <form method="post" action="/users/role" class="inline-form fila-rol">
               <input type="hidden" name="id" value="{{.ID}}">
-              <select name="role_id" onchange="this.form.submit()">
+              <select name="role_id" aria-label="Rol de {{.Email}}">
                 {{$current := .RoleID}}
                 {{range $page.Roles}}
                 <option value="{{.ID}}" {{if eq .ID $current}}selected{{end}}>{{.Name}}</option>
                 {{end}}
               </select>
-              <noscript><button class="enlace">Cambiar</button></noscript>
+              <button class="enlace">Cambiar</button>
             </form>
             {{else}}
-            <span class="rol rol-{{.RoleCode}}">{{.RoleName}}</span>
+            <span class="etiqueta">{{.RoleName}}</span>
+            <span class="apagado">nivel {{.RoleLevel}}</span>
             {{end}}
           </td>
-          <td class="apagado">{{.RoleLevel}}</td>
-          <td>{{if .Active}}Activo{{else}}<span class="apagado">Desactivado</span>{{end}}</td>
-          <td class="nowrap">{{.CreatedAt.Format "2006-01-02"}}</td>
           <td>
+            {{if .Active}}<span class="etiqueta ok">activo</span>
+            {{else}}<span class="etiqueta aviso">desactivado</span>{{end}}
+          </td>
+          <td class="nowrap apagado">{{.CreatedAt.Format "2006-01-02"}}</td>
+          <td class="derecha">
             {{if $page.User.CanManage .}}
             <form method="post" action="/users/active" class="inline-form">
               <input type="hidden" name="id" value="{{.ID}}">
@@ -66,38 +78,49 @@
         {{end}}
       </tbody>
     </table>
-    </div>
-    <p class="ayuda">
-      Solo puedes gestionar cuentas <strong>por debajo de tu nivel</strong>. A
-      los de tu mismo rol no los tocas, y al superusuario no lo toca nadie. Tu
-      nivel es <strong>{{.User.RoleLevel}}</strong> ({{.User.RoleName}}).
-    </p>
   </div>
+  {{template "paginador" .Pag}}
 
-  <input type="radio" name="tab-usuarios" id="tab-usuarios-alta">
-  <label for="tab-usuarios-alta">Crear usuario</label>
-  <div class="panel">
-  <form method="post" action="/users" class="formulario">
-    <label for="new-email">Correo</label>
-    <input id="new-email" name="email" type="email" required autocomplete="off">
-
-    <label for="new-password">Contrase&ntilde;a</label>
-    <input id="new-password" name="password" type="password" required
-           minlength="8" autocomplete="new-password">
-
-    <label for="new-role">Rol</label>
-    <select id="new-role" name="role_id" required>
-      {{range .Roles}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
-    </select>
-
-    <button type="submit">Crear usuario</button>
-  </form>
-
-  {{if .User.Can "role.manage"}}
   <p class="ayuda">
-    Los permisos de cada rol se editan en <a href="/roles">Roles y permisos</a>.
+    Solo puedes gestionar cuentas <strong>por debajo de tu nivel</strong>. A los
+    de tu mismo rol no los tocas, y al superusuario no lo toca nadie. Tu nivel
+    es <strong>{{.User.RoleLevel}}</strong> ({{.User.RoleName}}).
   </p>
-  {{end}}
+</section>
+
+<div class="modal" id="crear-usuario">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja modal-estrecho" role="dialog" aria-labelledby="titulo-usuario">
+    <header class="modal-cabecera">
+      <h2 id="titulo-usuario">Crear usuario</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/users">
+      <div class="modal-cuerpo">
+        <label for="new-email">Correo</label>
+        <input id="new-email" name="email" type="email" required autocomplete="off">
+
+        <label for="new-password">Contrase&ntilde;a</label>
+        <input id="new-password" name="password" type="password" required
+               minlength="8" autocomplete="new-password">
+
+        <label for="new-role">Rol</label>
+        <select id="new-role" name="role_id" required>
+          {{range .Roles}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+        </select>
+        {{if .User.Can "role.manage"}}
+        <p class="ayuda">
+          Los permisos de cada rol se editan en
+          <a href="/roles">Roles y permisos</a>.
+        </p>
+        {{end}}
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Crear usuario</button>
+      </footer>
+    </form>
   </div>
 </div>
 {{end}}

@@ -52,10 +52,35 @@ func (r *MapRepo) BySHA(ctx context.Context, sha string) (*domain.Map, error) {
 }
 
 func (r *MapRepo) List(ctx context.Context) ([]domain.Map, error) {
+	out, _, err := r.ListPage(ctx, -1, 0)
+	return out, err
+}
+
+// ListPage devuelve una pagina y cuantas filas hay en total.
+//
+// El total viaja junto a las filas porque quien pinta el paginador lo
+// necesita, y pedirlo en otra llamada abriria la puerta a que las dos
+// consultas vieran estados distintos de la tabla.
+//
+// Un limite <= 0 significa "sin limite": SQLite lo entiende como LIMIT -1. Asi
+// List sigue siendo un caso particular de esto y no hay dos consultas que
+// mantener sincronizadas.
+func (r *MapRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.Map, int, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+
+	var total int
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM maps`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("contando maps: %w", err)
+	}
+
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+mapColumns+` FROM maps ORDER BY created_at DESC, id DESC`)
+		`SELECT `+mapColumns+` FROM maps ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+		limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("listando mapas: %w", err)
+		return nil, 0, fmt.Errorf("listando mapas: %w", err)
 	}
 	defer rows.Close()
 
@@ -63,14 +88,14 @@ func (r *MapRepo) List(ctx context.Context) ([]domain.Map, error) {
 	for rows.Next() {
 		m, err := scanMap(rows.Scan)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		maps = append(maps, *m)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("recorriendo mapas: %w", err)
+		return nil, 0, fmt.Errorf("recorriendo mapas: %w", err)
 	}
-	return maps, nil
+	return maps, total, nil
 }
 
 func (r *MapRepo) Delete(ctx context.Context, id int64) error {

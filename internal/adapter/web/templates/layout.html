@@ -39,3 +39,29 @@
 </footer>
 </body>
 </html>{{end}}
+
+{{/*
+  Paginador compartido. Recibe un "paginador": .Info con los numeros y .Base
+  con la URL hasta el parametro de pagina, filtros incluidos.
+
+  Se calla solo cuando hay una unica pagina: un "1 / 1" no le dice nada a
+  nadie y solo mete ruido en pantallas que casi siempre caben enteras.
+*/}}
+{{define "paginador"}}
+{{if .Info.Multiple}}
+<nav class="paginador" aria-label="Paginas">
+  <span class="apagado">{{.Info.From}}&ndash;{{.Info.To}} de {{.Info.Total}}</span>
+  <span class="paginador-botones">
+    {{if .Info.HasPrev}}
+    <a class="enlace" href="{{.Base}}p={{.Info.Prev}}">Anterior</a>
+    {{else}}<span class="apagado">Anterior</span>{{end}}
+
+    <span class="apagado">{{.Info.Page}} / {{.Info.Pages}}</span>
+
+    {{if .Info.HasNext}}
+    <a class="enlace" href="{{.Base}}p={{.Info.Next}}">Siguiente</a>
+    {{else}}<span class="apagado">Siguiente</span>{{end}}
+  </span>
+</nav>
+{{end}}
+{{end}}

@@ -96,7 +96,8 @@ func (s *Server) mapIcon(w http.ResponseWriter, r *http.Request) {
 func (s *Server) renderMaps(w http.ResponseWriter, r *http.Request, status int, errMsg, infoMsg string) {
 	actor := userFrom(r)
 
-	maps, err := s.maps.List(r.Context(), actor)
+	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
+	page, err := s.maps.ListPage(r.Context(), actor, app.Paging{Page: pagina})
 	if err != nil {
 		s.renderFailure(w, actor, "Mapas", "No se pudo leer la biblioteca de mapas.", err)
 		return
@@ -104,8 +105,9 @@ func (s *Server) renderMaps(w http.ResponseWriter, r *http.Request, status int, 
 
 	s.renderer.render(w, status, "maps.html", mapsPageData{
 		PageData:  PageData{Title: "Mapas", User: actor, Error: errMsg, Info: infoMsg},
-		Maps:      maps,
+		Maps:      page.Maps,
 		MaxUpload: app.HumanSize(s.maps.MaxUpload()),
+		Pag:       paginador{Info: page.PageInfo, Base: "/maps?"},
 	})
 }
 

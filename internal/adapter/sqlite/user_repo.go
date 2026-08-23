@@ -58,10 +58,35 @@ func (r *UserRepo) ByID(ctx context.Context, id int64) (*domain.User, error) {
 }
 
 func (r *UserRepo) List(ctx context.Context) ([]domain.User, error) {
+	out, _, err := r.ListPage(ctx, -1, 0)
+	return out, err
+}
+
+// ListPage devuelve una pagina y cuantas filas hay en total.
+//
+// El total viaja junto a las filas porque quien pinta el paginador lo
+// necesita, y pedirlo en otra llamada abriria la puerta a que las dos
+// consultas vieran estados distintos de la tabla.
+//
+// Un limite <= 0 significa "sin limite": SQLite lo entiende como LIMIT -1. Asi
+// List sigue siendo un caso particular de esto y no hay dos consultas que
+// mantener sincronizadas.
+func (r *UserRepo) ListPage(ctx context.Context, limit, offset int) ([]domain.User, int, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+
+	var total int
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM users`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("contando users: %w", err)
+	}
+
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+userColumns+` `+userFrom+` ORDER BY u.created_at ASC, u.id ASC`)
+		`SELECT `+userColumns+` `+userFrom+` ORDER BY u.created_at ASC, u.id ASC LIMIT ? OFFSET ?`,
+		limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("listando usuarios: %w", err)
+		return nil, 0, fmt.Errorf("listando usuarios: %w", err)
 	}
 	defer rows.Close()
 
@@ -69,12 +94,12 @@ func (r *UserRepo) List(ctx context.Context) ([]domain.User, error) {
 	for rows.Next() {
 		u, err := scanUserRow(rows.Scan)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		users = append(users, *u)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("recorriendo usuarios: %w", err)
+		return nil, 0, fmt.Errorf("recorriendo usuarios: %w", err)
 	}
 
 	// Los permisos se resuelven despues, cacheando por rol: una lista de veinte
@@ -85,13 +110,13 @@ func (r *UserRepo) List(ctx context.Context) ([]domain.User, error) {
 		if !ok {
 			perms, err = r.roles.permissionsOf(ctx, users[i].RoleID)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 			cache[users[i].RoleID] = perms
 		}
 		users[i].Role.Permissions = perms
 	}
-	return users, nil
+	return users, total, nil
 }
 
 func (r *UserRepo) SetActive(ctx context.Context, id int64, active bool) error {

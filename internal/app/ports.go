@@ -26,6 +26,7 @@ type UserRepo interface {
 	ByEmail(ctx context.Context, email string) (*domain.User, error)
 	ByID(ctx context.Context, id int64) (*domain.User, error)
 	List(ctx context.Context) ([]domain.User, error)
+	ListPage(ctx context.Context, limit, offset int) ([]domain.User, int, error)
 	SetActive(ctx context.Context, id int64, active bool) error
 	SetRole(ctx context.Context, id, roleID int64) error
 	Count(ctx context.Context) (int, error)
@@ -50,6 +51,7 @@ type MapRepo interface {
 	ByID(ctx context.Context, id int64) (*domain.Map, error)
 	BySHA(ctx context.Context, sha string) (*domain.Map, error)
 	List(ctx context.Context) ([]domain.Map, error)
+	ListPage(ctx context.Context, limit, offset int) ([]domain.Map, int, error)
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -86,6 +88,11 @@ type SessionRepo interface {
 type AuditRepo interface {
 	Record(ctx context.Context, e *domain.LogEntry) error
 	Latest(ctx context.Context, limit int) ([]domain.LogEntry, error)
+	// Search devuelve una pagina y ademas cuantas filas cumplen el filtro.
+	// El total viaja junto a las filas porque quien pinta el paginador lo
+	// necesita, y pedirlo por separado abriria la puerta a que las dos
+	// consultas vean estados distintos de la tabla.
+	Search(ctx context.Context, text string, action domain.Action, limit, offset int) ([]domain.LogEntry, int, error)
 }
 
 // Hasher abstrae el algoritmo de contrasenas.

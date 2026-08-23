@@ -1,21 +1,17 @@
 {{define "contenido"}}
-{{if .EnTransicion}}
-<div class="aviso info">
-  Hay un servidor arrancando o parando. Esta p&aacute;gina se actualiza sola cada
-  5 segundos.
-  <br>
-  <span class="ayuda">
-    La primera vez que se arranca una versi&oacute;n, la imagen descarga el
-    binario del servidor desde Mojang y eso puede tardar varios minutos.
-  </span>
+<div class="cabecera-pagina">
+  <div>
+    <h1>Servidores</h1>
+    <p class="sub">
+      S&oacute;lo puede haber <strong>uno encendido a la vez</strong>.
+      Arrancar otro apaga el actual, y eso desconecta a quien est&eacute;
+      jugando.
+    </p>
+  </div>
+  {{if .User.Can "instance.create"}}
+  <a class="boton" href="#crear-servidor">Crear servidor</a>
+  {{end}}
 </div>
-{{end}}
-
-<h1>Servidores</h1>
-<p class="sub">
-  S&oacute;lo puede haber <strong>uno encendido a la vez</strong> (D-02).
-  Arrancar otro apaga el actual, y eso desconecta a quien est&eacute; jugando.
-</p>
 
 {{if .Confirm}}
 <section class="tarjeta aviso-confirmar">
@@ -41,135 +37,207 @@
 </section>
 {{end}}
 
-<div class="tabs">
-  <input type="radio" name="tab-servidores" id="tab-inst-lista" checked>
-  <label for="tab-inst-lista">Servidores <span class="cuenta">{{len .Instances}}</span></label>
-  <div class="panel">
-  {{if .Instances}}
-  <ul class="mapas">
-    {{$page := .}}
-    {{range .Instances}}
-    <li class="mapa">
-      <div class="datos">
-        <strong>{{.Name}}</strong>
-        <div class="meta">
-          <span class="estado estado-{{.State}}">{{.State.Label}}</span>
-          <span class="rol rol-{{.Edition}}">{{.Edition.Label}}</span>
-          {{if .Version}}<code>{{.Version}}</code>{{end}}
-          {{if eq .State "running"}}
-          <span class="apagado">{{$page.Online}}/{{$page.MaxOnline}} jugando</span>
-          {{end}}
-        </div>
-        <div class="meta apagado">
-          mapa: {{if .MapName}}{{.MapName}}{{else}}&mdash;{{end}}
-          &middot; puerto {{.Port}}
-          &middot; {{.MemoryMB}} MiB
-        </div>
-      </div>
+{{/*
+  La pantalla se parte en dos porque la realidad tambien: solo hay UN servidor
+  encendido (D-02), y eso no es una fila mas de la tabla, es la respuesta a
+  "que esta pasando ahora mismo". Va aparte y va primero.
+*/}}
+<div class="split">
 
-      <div class="acciones">
-        {{if $page.User.Can "server.operate"}}
-          {{if .CanStart}}
-          <form method="post" action="/instances/start" class="inline-form">
-            <input type="hidden" name="id" value="{{.ID}}">
-            <button class="enlace">Arrancar</button>
-          </form>
-          {{end}}
-          {{if .CanStop}}
-          <form method="post" action="/instances/stop" class="inline-form">
-            <input type="hidden" name="id" value="{{.ID}}">
-            <button class="enlace">Detener</button>
-          </form>
-          {{end}}
-        {{end}}
+  <aside class="destacado">
+    <span class="destacado-etiqueta">En este momento</span>
 
-        {{if $page.User.Can "server.view"}}
-        <a class="enlace" href="/instances/{{.ID}}/logs" target="_blank">Logs</a>
-        {{end}}
+    {{if .Current}}
+    <h2>{{.Current.Name}}</h2>
+    <div class="meta">
+      <span class="estado estado-{{.Current.State}}">{{.Current.State.Label}}</span>
+      {{if .Current.Version}}<code>{{.Current.Version}}</code>{{end}}
+    </div>
 
-        {{if $page.User.Can "instance.delete"}}
-        <form method="post" action="/instances/delete" class="inline-form">
-          <input type="hidden" name="id" value="{{.ID}}">
-          <button class="enlace peligro">Borrar</button>
-        </form>
-        {{end}}
-      </div>
-    </li>
-    {{end}}
-  </ul>
-  {{else}}
-  <p class="vacio">
-    Todav&iacute;a no hay servidores.
-    {{if .User.Can "instance.create"}}Crea uno desde la pesta&ntilde;a
-    <em>Crear servidor</em>.{{else}}Pide a un administrador que cree
-    alguno.{{end}}
-  </p>
-  {{end}}
-  </div>
-
-  {{if .User.Can "instance.create"}}
-  <input type="radio" name="tab-servidores" id="tab-inst-alta">
-  <label for="tab-inst-alta">Crear servidor</label>
-  <div class="panel">
-  {{if .Maps}}
-  <form method="post" action="/instances" class="formulario">
-    <label for="inst-map">Mapa</label>
-    <select id="inst-map" name="map_id" required>
-      {{range .Maps}}
-      <option value="{{.ID}}">{{.Name}} &mdash; {{.Edition.Label}} {{.Version}}</option>
-      {{end}}
-    </select>
-
-    <label for="inst-name">Nombre (opcional)</label>
-    <input id="inst-name" name="name" autocomplete="off"
-           placeholder="Si lo dejas vac&iacute;o, se usa el del mapa">
-
-    <label for="inst-version">Versi&oacute;n del servidor</label>
-    {{if .Versions}}
-    <select id="inst-version" name="version">
-      {{range .Versions}}
-      <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>{{.Label}}</option>
-      {{end}}
-      <option value="">Otra (escribirla abajo)</option>
-    </select>
-
-    <label for="inst-version-manual">Versi&oacute;n concreta (opcional)</label>
-    <input id="inst-version-manual" name="version_manual" autocomplete="off"
-           placeholder="1.21.21.01">
-    {{else}}
-    <input id="inst-version" name="version" autocomplete="off" value="LATEST">
-    {{end}}
-
-    <details class="detalle">
-      <summary>&iquest;Por qu&eacute; la lista de versiones es tan corta?</summary>
-      <p class="ayuda">
-        <strong>No es la versi&oacute;n del mapa.</strong> El
-        <code>level.dat</code> dice con qu&eacute; versi&oacute;n se abri&oacute;
-        el mundo por &uacute;ltima vez, y eso es un <em>requisito
-        m&iacute;nimo</em>, no un n&uacute;mero de build que Mojang publique:
-        pedirlo tal cual da error 404 al descargar.
-      </p>
-      <p class="ayuda">
-        Mojang <strong>s&oacute;lo publica la versi&oacute;n estable actual y la
-        preview</strong>, no un hist&oacute;rico. Si necesitas una antigua
-        concreta, escr&iacute;bela a mano: funcionar&aacute; si Mojang
-        a&uacute;n la sirve.
-      </p>
-    </details>
-
+    {{if .Current.State.Busy}}
+    {{/*
+      Esqueleto, no un cero. Mientras arranca NO sabemos cuanta gente hay ni si
+      el puerto responde: pintar "0 jugando" seria afirmar algo falso sobre un
+      servidor que quiza este a medio descargar. Las barras dicen lo unico
+      cierto, que es "esto todavia se esta resolviendo".
+    */}}
+    <div class="esqueleto" aria-hidden="true">
+      <span class="hueso hueso-ancho"></span>
+      <span class="hueso"></span>
+    </div>
     <p class="ayuda">
-      Se instala el mundo, se genera la configuraci&oacute;n y se prepara el
-      contenedor. <strong>No se arranca:</strong> eso es una acci&oacute;n
-      aparte, porque s&oacute;lo puede haber uno encendido.
+      La primera vez que se arranca una versi&oacute;n, la imagen descarga el
+      binario del servidor desde Mojang: puede tardar varios minutos. Esta
+      pantalla se actualiza sola.
     </p>
-    <button type="submit">Crear servidor</button>
-  </form>
-  {{else}}
-  <p class="vacio">
-    Primero sube un mapa en <a href="/maps">la biblioteca</a>.
-  </p>
-  {{end}}
-  </div>
-  {{end}}
+    {{else}}
+    <p class="destacado-dato">
+      <strong>{{.Online}}</strong> <span class="apagado">/ {{.MaxOnline}} jugando</span>
+    </p>
+    <p class="ayuda">
+      Mapa: {{if .Current.MapName}}{{.Current.MapName}}{{else}}&mdash;{{end}}<br>
+      Puerto <code>{{.Current.Port}}</code> &middot; {{.Current.MemoryMB}} MiB
+    </p>
+    {{end}}
+
+    <div class="acciones">
+      {{if and (.User.Can "server.operate") .Current.CanStop}}
+      <form method="post" action="/instances/stop" class="inline-form">
+        <input type="hidden" name="id" value="{{.Current.ID}}">
+        <button class="enlace">Detener</button>
+      </form>
+      {{end}}
+      <a class="enlace" href="/instances/{{.Current.ID}}/logs" target="_blank">Logs</a>
+    </div>
+
+    {{else}}
+    <h2 class="apagado">Nada encendido</h2>
+    <p class="ayuda">
+      No hay ning&uacute;n servidor corriendo, as&iacute; que nadie puede
+      conectarse. Arranca uno desde la tabla.
+    </p>
+    {{end}}
+  </aside>
+
+  <section class="tarjeta">
+    <h2>Todos los servidores <span class="cuenta">{{len .Instances}}</span></h2>
+    {{if .Instances}}
+    <div class="tabla-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Servidor</th>
+            <th>Mapa</th>
+            <th>Estado</th>
+            <th class="derecha">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{$page := .}}
+          {{range .Instances}}
+          <tr {{if and $page.Current (eq .ID $page.Current.ID)}}class="fila-activa"{{end}}>
+            <td>
+              <strong>{{.Name}}</strong><br>
+              <span class="apagado">
+                {{.Edition.Label}}{{if .Version}} &middot; {{.Version}}{{end}}
+              </span>
+            </td>
+            <td class="apagado">{{if .MapName}}{{.MapName}}{{else}}&mdash;{{end}}</td>
+            <td><span class="estado estado-{{.State}}">{{.State.Label}}</span></td>
+            <td class="derecha">
+              {{if $page.User.Can "server.operate"}}
+                {{if .CanStart}}
+                <form method="post" action="/instances/start" class="inline-form">
+                  <input type="hidden" name="id" value="{{.ID}}">
+                  <button class="enlace">Arrancar</button>
+                </form>
+                {{end}}
+                {{if .CanStop}}
+                <form method="post" action="/instances/stop" class="inline-form">
+                  <input type="hidden" name="id" value="{{.ID}}">
+                  <button class="enlace">Detener</button>
+                </form>
+                {{end}}
+              {{end}}
+              <a class="enlace" href="/instances/{{.ID}}/logs" target="_blank">Logs</a>
+              {{if $page.User.Can "instance.delete"}}
+              <form method="post" action="/instances/delete" class="inline-form">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="enlace peligro">Borrar</button>
+              </form>
+              {{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+    <p class="vacio">
+      Todav&iacute;a no hay servidores.
+      {{if .User.Can "instance.create"}}
+      <a href="#crear-servidor">Crea uno a partir de un mapa</a>.
+      {{else}}Pide a un administrador que cree alguno.{{end}}
+    </p>
+    {{end}}
+  </section>
 </div>
+
+{{if .User.Can "instance.create"}}
+<div class="modal" id="crear-servidor">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-crear">
+    <header class="modal-cabecera">
+      <h2 id="titulo-crear">Crear servidor desde un mapa</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    {{if .Maps}}
+    <form method="post" action="/instances">
+      <div class="modal-cuerpo formulario">
+        <label for="inst-map">Mapa</label>
+        <select id="inst-map" name="map_id" required>
+          {{range .Maps}}
+          <option value="{{.ID}}">{{.Name}} &mdash; {{.Edition.Label}} {{.Version}}</option>
+          {{end}}
+        </select>
+
+        <label for="inst-name">Nombre (opcional)</label>
+        <input id="inst-name" name="name" autocomplete="off"
+               placeholder="Si lo dejas vac&iacute;o, se usa el del mapa">
+
+        <label for="inst-version">Versi&oacute;n del servidor</label>
+        {{if .Versions}}
+        <select id="inst-version" name="version">
+          {{range .Versions}}
+          <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>{{.Label}}</option>
+          {{end}}
+          <option value="">Otra (escribirla abajo)</option>
+        </select>
+
+        <label for="inst-version-manual">Versi&oacute;n concreta (opcional)</label>
+        <input id="inst-version-manual" name="version_manual" autocomplete="off"
+               placeholder="1.21.21.01">
+        {{else}}
+        <input id="inst-version" name="version" autocomplete="off" value="LATEST">
+        {{end}}
+
+        <details class="detalle">
+          <summary>&iquest;Por qu&eacute; la lista de versiones es tan corta?</summary>
+          <p class="ayuda">
+            <strong>No es la versi&oacute;n del mapa.</strong> El
+            <code>level.dat</code> dice con qu&eacute; versi&oacute;n se
+            abri&oacute; el mundo por &uacute;ltima vez, y eso es un
+            <em>requisito m&iacute;nimo</em>, no un n&uacute;mero de build que
+            Mojang publique: pedirlo tal cual da error 404 al descargar.
+          </p>
+          <p class="ayuda">
+            Mojang <strong>s&oacute;lo publica la versi&oacute;n estable actual
+            y la preview</strong>, no un hist&oacute;rico. Si necesitas una
+            antigua concreta, escr&iacute;bela a mano: funcionar&aacute; si
+            Mojang a&uacute;n la sirve.
+          </p>
+        </details>
+
+        <p class="ayuda">
+          Se instala el mundo, se genera la configuraci&oacute;n y se prepara el
+          contenedor. <strong>No se arranca:</strong> eso es una acci&oacute;n
+          aparte, porque s&oacute;lo puede haber uno encendido.
+        </p>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Crear servidor</button>
+      </footer>
+    </form>
+    {{else}}
+    <div class="modal-cuerpo">
+      <p class="vacio">
+        Primero sube un mapa en <a href="/maps">la biblioteca</a>.
+      </p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}
 {{end}}

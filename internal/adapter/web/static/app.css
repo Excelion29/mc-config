@@ -275,81 +275,17 @@ footer {
 
 .pie-nota { color: var(--texto-tenue); font-size: .9rem; }
 
-/* ---------------------------------------------------------------------------
-   Pestanas sin JavaScript.
-   Un radio oculto por pestana; el panel visible es el que sigue a la etiqueta
-   marcada. Se apoya en "order" de flexbox para que todas las etiquetas queden
-   arriba y los paneles debajo, aunque en el HTML vayan intercalados.
-
-   Sin JS a proposito: el panel no carga ni un script, asi que cambiar de
-   pestana no puede fallar ni depender de que algo termine de descargarse.
-   Los radios siguen siendo enfocables, de modo que las flechas del teclado
-   cambian de pestana como en cualquier grupo de opciones.
---------------------------------------------------------------------------- */
-
-.tabs { display: flex; flex-wrap: wrap; margin-top: 1.2rem; }
-
-.tabs > input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.tabs > label {
-  order: 1;
-  padding: .55rem 1.1rem;
-  cursor: pointer;
-  font-weight: 500;
-  color: var(--texto-tenue);
-  border-bottom: 2px solid var(--borde);
-  white-space: nowrap;
-}
-
-/* Rellena el resto de la fila para que la linea inferior no se corte. */
-.tabs::after {
-  content: "";
-  order: 1;
-  flex: 1;
-  border-bottom: 2px solid var(--borde);
-}
-
-.tabs > label:hover { color: var(--texto); }
-
-.tabs > input:checked + label {
-  color: var(--acento);
-  border-bottom-color: var(--acento);
-}
-
-.tabs > input:focus-visible + label {
-  outline: 2px solid var(--acento);
-  outline-offset: -2px;
-  border-radius: var(--radio) var(--radio) 0 0;
-}
-
-.tabs > .panel {
-  order: 2;
-  width: 100%;
-  display: none;
-  padding-top: 1.2rem;
-}
-
-.tabs > input:checked + label + .panel { display: block; }
-
-/* Cuenta al lado del nombre de la pestana: "Permitidos 12". */
-.tabs > label .cuenta {
+/* La cuenta que acompana a un titulo: "Permitidos 12". */
+.cuenta {
   display: inline-block;
   margin-left: .4rem;
-  padding: 0 .4rem;
+  padding: 0 .45rem;
   border-radius: 999px;
-  background: var(--borde);
-  color: var(--texto-tenue);
-  font-size: .78rem;
-  font-weight: 600;
-}
-
-.tabs > input:checked + label .cuenta {
   background: var(--acento);
   color: var(--acento-texto);
+  font-size: .78rem;
+  font-weight: 700;
+  vertical-align: middle;
 }
 
 /* ---------------------------------------------------------------------------
@@ -483,3 +419,171 @@ footer {
 .detalle summary { cursor: pointer; color: var(--texto-tenue); font-size: .9rem; }
 .detalle summary:hover { color: var(--texto); }
 .detalle[open] summary { margin-bottom: .3rem; }
+
+/* ---------------------------------------------------------------------------
+   Cabecera con accion a la derecha.
+--------------------------------------------------------------------------- */
+
+.cabecera-pagina {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cabecera-pagina > div { flex: 1 1 20rem; }
+.cabecera-pagina h1 { margin-bottom: .2rem; }
+
+.boton {
+  display: inline-block;
+  padding: .5rem 1rem;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.boton:hover { filter: brightness(1.08); }
+
+/* ---------------------------------------------------------------------------
+   Pantalla partida: la tabla a un lado, lo que esta pasando ahora al otro.
+   En pantallas estrechas el destacado sube al principio: es lo primero que
+   alguien quiere saber al abrir la pagina.
+--------------------------------------------------------------------------- */
+
+.split {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  margin-top: 1.2rem;
+}
+
+@media (min-width: 62rem) {
+  .split { grid-template-columns: minmax(0, 1fr) 19rem; align-items: stretch; }
+  .split > .tarjeta   { order: 1; }
+  .split > .destacado { order: 2; }
+}
+
+.destacado {
+  padding: 1.1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+}
+
+.destacado h2 { margin: .2rem 0 .5rem; font-size: 1.15rem; }
+
+.destacado-etiqueta {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.destacado-dato { font-size: 1.6rem; margin: .6rem 0 .2rem; }
+.destacado-dato .apagado { font-size: .95rem; }
+
+/* La fila de la tabla que corresponde al destacado, para no perder el hilo
+   entre los dos lados de la pantalla. */
+.fila-activa > td { background: var(--info-fondo); }
+
+/* ---------------------------------------------------------------------------
+   Esqueleto de carga.
+   Se usa SOLO cuando el dato aun no existe -un servidor arrancando-, nunca
+   como adorno: un esqueleto donde en realidad hay un cero enganaria mas que
+   informar.
+--------------------------------------------------------------------------- */
+
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin: .9rem 0;
+}
+
+.hueso {
+  height: .9rem;
+  width: 60%;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    var(--borde) 25%, var(--fondo) 50%, var(--borde) 75%);
+  background-size: 200% 100%;
+  animation: brillo 1.4s ease-in-out infinite;
+}
+
+.hueso-ancho { height: 1.5rem; width: 85%; }
+
+@keyframes brillo {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Quien haya pedido menos movimiento no ve el barrido, solo la forma. */
+@media (prefers-reduced-motion: reduce) {
+  .hueso { animation: none; background: var(--borde); }
+}
+
+/* ---------------------------------------------------------------------------
+   Filtros y paginador.
+--------------------------------------------------------------------------- */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .75rem;
+  margin: 1.2rem 0;
+  padding: .9rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+}
+
+.filtros .campo { display: flex; flex-direction: column; gap: .25rem; }
+.filtros .campo label { font-size: .8rem; color: var(--texto-tenue); margin: 0; }
+.filtros .campo input,
+.filtros .campo select { margin: 0; }
+.filtros .campo:first-child { flex: 1 1 14rem; }
+
+.campo-acciones { flex-direction: row; align-items: center; gap: .75rem; }
+
+.paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding-top: .8rem;
+  font-size: .9rem;
+}
+
+.paginador-botones { display: flex; align-items: center; gap: .9rem; }
+
+/* En el login el boton ocupa todo el ancho del formulario: es la unica accion
+   de la pantalla, y dejarlo pequeno a la izquierda abria un hueco vacio a su
+   derecha que no significaba nada. */
+.login button { width: 100%; margin-top: .4rem; }
+
+/* Las dos mitades comparten altura y ademas altura MINIMA, para que con la
+   lista vacia no queden dos recuadros de tamanos distintos sin motivo. */
+.split > .tarjeta,
+.split > .destacado {
+  display: flex;
+  flex-direction: column;
+  min-height: 12rem;
+  margin: 0;
+}
+
+/* El texto de "nada encendido" se centra en su mitad en vez de quedar pegado
+   arriba dejando un hueco debajo. */
+.destacado > .ayuda:last-child { margin-top: auto; margin-bottom: auto; }
+
+/* Un formulario corto no necesita un dialogo ancho. */
+.modal-estrecho { width: min(30rem, 100%); }
+
+/* Select y boton juntos, para cambiar el rol desde la propia fila. */
+.fila-rol { display: inline-flex; align-items: center; gap: .4rem; }
+.fila-rol select { margin: 0; }
