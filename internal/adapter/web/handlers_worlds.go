@@ -63,7 +63,8 @@ func (s *Server) createWorld(w http.ResponseWriter, r *http.Request) {
 	version := r.PostFormValue("version_" + string(edicion))
 
 	mundo, err := s.worlds.Create(r.Context(), actor,
-		r.PostFormValue("name"), edicion, version, gen, reglas, clientIP(r))
+		r.PostFormValue("name"), edicion, version, r.PostFormValue("icon_url"),
+		gen, reglas, clientIP(r))
 	if err != nil {
 		s.redirectError(w, r, "/worlds", s.worldErrorMessage(err, nil))
 		return
@@ -192,6 +193,8 @@ func (s *Server) worldErrorMessage(err error, dup *domain.World) string {
 		return "Ese mapa ya esta en la biblioteca."
 	case errors.Is(err, domain.ErrEmptyName):
 		return "El nombre del mundo es obligatorio."
+	case errors.Is(err, domain.ErrInvalidIconURL):
+		return "La portada debe ser un enlace que empiece por https://"
 	case errors.Is(err, domain.ErrInvalidSettings):
 		return "Alguno de los ajustes no es valido."
 	case errors.Is(err, domain.ErrNoFile):

@@ -45,9 +45,17 @@ func (s *Server) showInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Si la consulta falla, la lista queda vacia y la plantilla cae al campo
-	// libre: no impedir crear servidores porque Mojang no responda.
-	versions, _ := s.instances.Versions(r.Context(), actor, domain.EditionBedrock)
+	// Las versiones de las DOS ediciones, agrupadas.
+	//
+	// Antes esto estaba fijo a Bedrock, de cuando Java no existia: con un
+	// mundo de Java ofrecia versiones de Bedrock, que no se pueden instalar.
+	//
+	// Aqui no vale el truco de los radios que usa la pantalla de mundos: la
+	// edicion sale del MUNDO que se elija en el desplegable, y sin JavaScript
+	// no hay forma de reaccionar a eso. Asi que se ofrecen las dos en una
+	// lista agrupada por edicion, y al enviar se comprueba que la elegida sea
+	// de la edicion del mundo.
+	versions := s.versionesDeTodas(r, actor)
 
 	// La confirmacion viaja por la URL para sobrevivir a la redireccion.
 	var confirm *confirmSwitch
@@ -258,4 +266,48 @@ func (s *Server) instanceError(err error) string {
 		s.log.Error("error inesperado con una instancia", "error", err)
 		return "Ha ocurrido un error: " + err.Error()
 	}
+}
+
+// versionesDeTodas junta las versiones de las dos ediciones en una sola lista
+// agrupada, para poder ofrecerlas juntas sin que se confundan.
+func (s *Server) versionesDeTodas(r *http.Request, actor *domain.User) []grupoVersiones {
+	var todas []app.VersionOption
+	for _, e := range []domain.Edition{domain.EditionBedrock, domain.EditionJava} {
+		v, err := s.instances.Versions(r.Context(), actor, e)
+		if err != nil {
+			// Si una falla, se sigue con la otra: no impedir crear servidores
+			// de Java porque Mojang no responda, ni al reves.
+			continue
+		}
+		for _, o := range v {
+			// El grupo lleva la edicion DELANTE porque es lo que hay que
+			// mirar primero: elegir la version de la edicion equivocada es el
+			// error que esta pantalla tiene que hacer dificil.
+			o.Group = e.Label()
+			if o.Value == "LATEST" {
+				// LATEST vale para las dos y no se repite: se deja suelta
+				// arriba, sin grupo.
+				o.Group = ""
+				o.Label = "La mas reciente de la edicion del mundo"
+			}
+			todas = append(todas, o)
+		}
+	}
+	return agruparVersiones(deduplicarLatest(todas))
+}
+
+// deduplicarLatest deja una sola entrada de LATEST, la primera.
+func deduplicarLatest(v []app.VersionOption) []app.VersionOption {
+	visto := false
+	out := make([]app.VersionOption, 0, len(v))
+	for _, o := range v {
+		if o.Value == "LATEST" {
+			if visto {
+				continue
+			}
+			visto = true
+		}
+		out = append(out, o)
+	}
+	return out
 }

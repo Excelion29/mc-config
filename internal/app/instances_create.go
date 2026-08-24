@@ -47,6 +47,17 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 	// D-01: un .mcworld no va a un servidor Java, y al reves tampoco. Se
 	// comprueba aqui y no al arrancar, para no dejar una instancia creada que
 	// nunca podra funcionar.
+	// La version elegida tiene que ser DE LA EDICION del mundo. La pantalla
+	// ofrece las dos juntas porque sin JavaScript no puede saber cual toca
+	// hasta que se envia, asi que la comprobacion vive aqui.
+	//
+	// Sin esto, elegir una de Bedrock para un mundo de Java se traduce en una
+	// descarga que falla dentro del contenedor, minutos despues, con un error
+	// que no menciona la version. Se rechaza antes, diciendo por que.
+	if err := i.versionValida(ctx, mp.Edition, version); err != nil {
+		return nil, err
+	}
+
 	flavor, ok := i.flavors[mp.Edition]
 	if !ok {
 		return nil, fmt.Errorf("%w: no hay soporte para %s", domain.ErrEditionMismatch, mp.Edition.Label())
@@ -162,4 +173,38 @@ func (i *Instances) SwitchPreview(ctx context.Context, actor *domain.User, targe
 
 	online, _, _ := i.playersOf(ctx, running)
 	return running, online, nil
+}
+
+// versionValida comprueba que la version exista para esa edicion.
+//
+// Se acepta siempre lo vacio y LATEST -valen para las dos- y tambien una
+// version que no este en la lista: Mojang y PaperMC no publican todo su
+// historico, y quien sabe lo que quiere debe poder escribirlo. Lo que se
+// rechaza es lo que se sabe que es de OTRA edicion, que es el error real.
+func (i *Instances) versionValida(ctx context.Context, e domain.Edition, version string) error {
+	if version == "" || version == "LATEST" {
+		return nil
+	}
+
+	otra := domain.EditionJava
+	if e == domain.EditionJava {
+		otra = domain.EditionBedrock
+	}
+
+	flavor, ok := i.flavors[otra]
+	if !ok {
+		return nil
+	}
+	opciones, err := flavor.AvailableVersions(ctx)
+	if err != nil {
+		return nil // sin lista con que comparar, se deja pasar
+	}
+
+	for _, o := range opciones {
+		if o.Value == version {
+			return fmt.Errorf("%w: %s es una version de %s, y el mundo es de %s",
+				domain.ErrEditionMismatch, version, otra.Label(), e.Label())
+		}
+	}
+	return nil
 }

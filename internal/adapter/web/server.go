@@ -180,7 +180,15 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("Content-Security-Policy",
-			"default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'")
+			// img-src admite https: para las portadas por enlace. Es la
+			// relajacion mas barata de la politica: una imagen no ejecuta
+			// nada, y sin scripts de terceros no sirve como via de fuga.
+			// script-src y style-src siguen cerrados a 'self', que es donde
+			// esta el peligro de verdad.
+			//
+			// Solo https, no http: la pagina va por TLS y el navegador
+			// bloquearia la imagen por contenido mixto de todas formas.
+			"default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self'; frame-ancestors 'none'")
 		next.ServeHTTP(w, r)
 	})
 }

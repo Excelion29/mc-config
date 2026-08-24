@@ -8,6 +8,10 @@ import "errors"
 //
 // El texto va en espanol porque parte de estos mensajes llegan al usuario.
 var (
+	// ErrInvalidIconURL: la portada tiene que ser https. El panel se sirve por
+	// TLS y una imagen http la bloquea el navegador por contenido mixto: se
+	// veria rota sin decir por que, asi que se rechaza al escribirla.
+	ErrInvalidIconURL = errors.New("la portada debe empezar por https://")
 	// ErrInvalidSettings: un ajuste fuera de los valores permitidos. Se
 	// rechaza en vez de escribirlo: el servidor ignoraria el valor raro y se
 	// comportaria de otra forma sin dar ningun error.

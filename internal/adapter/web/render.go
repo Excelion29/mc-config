@@ -85,7 +85,7 @@ type instancesPageData struct {
 	Maps      []domain.World
 	Online    int
 	MaxOnline int
-	Versions  []app.VersionOption
+	Versions  []grupoVersiones
 	Confirm   *confirmSwitch
 }
 

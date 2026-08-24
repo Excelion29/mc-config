@@ -81,6 +81,16 @@ type World struct {
 	SHA256    string
 	HasIcon   bool
 
+	// IconURL es la portada de un mundo creado, alojada por un tercero.
+	//
+	// Se guarda el ENLACE y no la imagen, por lo mismo que los paquetes de
+	// texturas: sin almacenamiento y sin crecimiento de disco (M-2).
+	//
+	// La carga el navegador de quien mira el panel, no Minecraft. Eso implica
+	// que ese tercero ve cuando se abre el panel y desde donde, y que si el
+	// enlace muere la imagen sale rota y desde aqui no se puede arreglar.
+	IconURL string
+
 	// Gen son los ajustes con los que nacio el mundo. En uno importado
 	// describen lo que traia el archivo, y en los dos casos son de solo
 	// lectura una vez generado el terreno.
@@ -146,4 +156,14 @@ type WorldInspection struct {
 	IconBytes []byte // world_icon.jpeg si venia incluido
 	Entries   int
 	Uncompressed int64
+}
+
+// PortadaValida comprueba que una URL de portada se pueda usar.
+//
+// Solo https: el panel se sirve por TLS, y una imagen http la bloquea el
+// navegador por contenido mixto. Saldria rota sin decir por que, asi que es
+// mejor rechazarla al escribirla.
+func PortadaValida(u string) bool {
+	u = strings.TrimSpace(u)
+	return u == "" || strings.HasPrefix(u, "https://")
 }

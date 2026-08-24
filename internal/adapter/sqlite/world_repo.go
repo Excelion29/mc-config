@@ -14,7 +14,7 @@ import (
 type WorldRepo struct{ db *sql.DB }
 
 const worldColumns = `id, name, raw_name, edition, version, origin, file_name,
-	size_bytes, sha256, has_icon, seed, level_type, structures, bonus_chest,
+	size_bytes, sha256, has_icon, icon_url, seed, level_type, structures, bonus_chest,
 	gamemode, difficulty, allow_commands, pvp, max_players,
 	uploaded_by, created_at`
 
@@ -26,14 +26,14 @@ func (r *WorldRepo) Create(ctx context.Context, m *domain.World) (int64, error) 
 
 	res, err := r.db.ExecContext(ctx,
 		`INSERT INTO worlds (name, raw_name, edition, version, origin, file_name,
-		                   size_bytes, sha256, has_icon, seed, level_type,
+		                   size_bytes, sha256, has_icon, icon_url, seed, level_type,
 		                   structures, bonus_chest, gamemode, difficulty,
 		                   allow_commands, pvp, max_players,
 		                   uploaded_by, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.Name, m.RawName, string(m.Edition), m.Version, string(m.Origin),
 		m.FileName, m.SizeBytes, hashONulo(m.SHA256), boolToInt(m.HasIcon),
-		m.Gen.Seed, string(m.Gen.LevelType),
+		m.IconURL, m.Gen.Seed, string(m.Gen.LevelType),
 		boolToInt(m.Gen.Structures), boolToInt(m.Gen.BonusChest),
 		string(m.Rules.Gamemode), string(m.Rules.Difficulty),
 		boolToInt(m.Rules.AllowCommands), boolToInt(m.Rules.PvP),
@@ -142,7 +142,7 @@ func scanWorld(scan func(...any) error) (*domain.World, error) {
 		createdAt  string
 	)
 	err := scan(&m.ID, &m.Name, &m.RawName, &edition, &m.Version, &origin,
-		&m.FileName, &m.SizeBytes, &sha, &hasIcon, &m.Gen.Seed, &nivel,
+		&m.FileName, &m.SizeBytes, &sha, &hasIcon, &m.IconURL, &m.Gen.Seed, &nivel,
 		&estructuras, &cofre, &modo, &dificultad, &comandos, &pvp,
 		&m.Rules.MaxPlayers, &uploadedBy, &createdAt)
 	if err != nil {

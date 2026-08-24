@@ -199,10 +199,21 @@
         {{if .Versions}}
         <select id="inst-version" name="version">
           {{range .Versions}}
-          <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>{{.Label}}</option>
+          {{if .Nombre}}<optgroup label="{{.Nombre}}">{{end}}
+            {{range .Opciones}}
+            <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>
+              {{.Label}}{{if .Note}} &mdash; {{.Note}}{{end}}
+            </option>
+            {{end}}
+          {{if .Nombre}}</optgroup>{{end}}
           {{end}}
           <option value="">Otra (escribirla abajo)</option>
         </select>
+        <p class="ayuda">
+          Elige una de la <strong>misma edici&oacute;n que el mundo</strong>.
+          Si te equivocas, el panel lo rechaza en vez de intentar descargar
+          algo que no existe.
+        </p>
 
         <label for="inst-version-manual">Versi&oacute;n concreta (opcional)</label>
         <input id="inst-version-manual" name="version_manual" autocomplete="off"

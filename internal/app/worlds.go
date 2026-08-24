@@ -224,7 +224,7 @@ func HumanSize(b int64) string {
 // arranca con ella. Generarlos antes exigiria levantar un servidor solo para
 // eso, que es justo lo que el servidor ya hace por su cuenta al encenderse.
 func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
-	edicion domain.Edition, version string, gen domain.Generation,
+	edicion domain.Edition, version, portada string, gen domain.Generation,
 	reglas domain.Rules, ip string,
 ) (*domain.World, error) {
 	if !actor.Can(domain.PermWorldImport) {
@@ -248,6 +248,9 @@ func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
 	if reglas.MaxPlayers < 1 || reglas.MaxPlayers > 100 {
 		return nil, domain.ErrInvalidSettings
 	}
+	if !domain.PortadaValida(portada) {
+		return nil, domain.ErrInvalidIconURL
+	}
 
 	// No se comprueba el disco: un mundo creado no ocupa nada hasta que se
 	// enciende, y quien lo enciende es Instances, que si lo comprueba.
@@ -256,6 +259,7 @@ func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
 		RawName:   nombre,
 		Edition:   edicion,
 		Origin:  domain.OriginCreated,
+		IconURL: strings.TrimSpace(portada),
 		Gen:     gen,
 		Rules:   reglas,
 		// La version de un mundo CREADO significa algo distinto que la de uno
