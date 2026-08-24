@@ -77,9 +77,25 @@
 
     fetch(destino, {
       method: "POST",
-      body: new FormData(formulario),
-      // Misma cabecera que envia HTMX, para que el servidor no distinga.
-      headers: { "HX-Request": "true" },
+      // URLSearchParams y NO FormData a proposito.
+      //
+      // FormData se envia como multipart/form-data, y eso NO es lo que manda
+      // un formulario normal: manda application/x-www-form-urlencoded. La
+      // diferencia importa porque en Go ParseForm no interpreta cuerpos
+      // multipart, asi que los campos llegaban vacios y el servidor respondia
+      // "identificador invalido".
+      //
+      // El sintoma era enganoso: la fila desaparecia de la pantalla -el
+      // navegador ya la habia quitado- y el error no se veia. Con esto la
+      // peticion es IDENTICA a la que haria el formulario sin JavaScript, que
+      // es justo lo que debe ser: la mejora progresiva no puede cambiar lo que
+      // recibe el servidor.
+      body: new URLSearchParams(new FormData(formulario)),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        // Misma cabecera que envia HTMX, para que el servidor no distinga.
+        "HX-Request": "true",
+      },
       credentials: "same-origin",
     })
       .then(function (respuesta) {

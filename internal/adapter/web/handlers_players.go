@@ -144,11 +144,10 @@ func (s *Server) setPlayerOp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deletePlayer(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		s.redirectError(w, r, rutaJugadores, "No se pudo leer el formulario.")
-		return
-	}
-
+	// Sin ParseForm previo: PostFormValue ya interpreta el cuerpo, y ademas
+	// sabe hacerlo con los DOS formatos. Llamar antes a ParseForm deja
+	// PostForm inicializado y vacio para un cuerpo multipart, y entonces todos
+	// los campos llegan en blanco sin que nada de error.
 	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	if err != nil {
 		s.redirectError(w, r, rutaJugadores, "Jugador invalido.")
@@ -171,11 +170,7 @@ func (s *Server) deletePlayer(w http.ResponseWriter, r *http.Request) {
 
 // playerForm lee el id y un valor booleano del formulario.
 func (s *Server) playerForm(w http.ResponseWriter, r *http.Request, campo string) (int64, bool, bool) {
-	if err := r.ParseForm(); err != nil {
-		s.redirectError(w, r, rutaJugadores, "No se pudo leer el formulario.")
-		return 0, false, false
-	}
-
+	// Ver deletePlayer: nada de ParseForm antes de PostFormValue.
 	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
 	if err != nil {
 		s.redirectError(w, r, rutaJugadores, "Jugador invalido.")
