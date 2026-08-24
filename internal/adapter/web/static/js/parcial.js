@@ -84,13 +84,31 @@
     })
       .then(function (respuesta) {
         if (!respuesta.ok) throw new Error("respuesta " + respuesta.status);
+
+        // Una REDIRECCION significa que algo fallo.
+        //
+        // En este panel el camino de exito devuelve un fragmento con 200, y el
+        // de error redirige con el motivo en el flash. Pero fetch sigue las
+        // redirecciones solo, asi que llega un 200 con la pagina entera y sin
+        // esta comprobacion se trataba como un exito: la fila se quitaba de la
+        // pantalla, el error no se veia por ningun sitio, y al recargar todo
+        // seguia como estaba.
+        //
+        // Recargar ensena el mensaje y el estado de verdad.
+        if (respuesta.redirected) {
+          window.location.reload();
+          throw new Error("redirigido");
+        }
+
         actualizarContadores(respuesta);
         return respuesta.text();
       })
       .then(function (html) {
         aplicar(objetivo, modo, html);
       })
-      .catch(function () {
+      .catch(function (e) {
+        // Si ya se pidio la recarga por una redireccion, no se pide dos veces.
+        if (e && e.message === "redirigido") return;
         // Si algo sale mal se recarga: mas vale una pantalla lenta que una
         // pantalla que miente sobre el estado del servidor.
         window.location.reload();

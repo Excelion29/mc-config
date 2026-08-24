@@ -108,6 +108,16 @@ func (r *Runtime) Create(ctx context.Context, spec app.ContainerSpec) (string, e
 	port := fmt.Sprintf("%d/%s", spec.PortIn, proto)
 
 	env := make([]string, 0, len(spec.Env))
+	// UID/GID los entiende la imagen de itzg y con ellos elige el usuario al
+	// que hace chown de /data. Sin esto elige el suyo y el panel se queda sin
+	// permiso de escritura sobre la carpeta de la instancia.
+	if spec.UID > 0 {
+		env = append(env, "UID="+strconv.Itoa(spec.UID))
+	}
+	if spec.GID > 0 {
+		env = append(env, "GID="+strconv.Itoa(spec.GID))
+	}
+
 	for k, v := range spec.Env {
 		env = append(env, k+"="+v)
 	}

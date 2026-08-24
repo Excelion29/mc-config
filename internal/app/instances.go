@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"os"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -136,6 +137,18 @@ func (i *Instances) ByID(ctx context.Context, actor *domain.User, id int64) (*do
 func (i *Instances) specDe(flavor ServerFlavor, inst *domain.Instance, dir string) ContainerSpec {
 	spec := flavor.Spec(inst, dir)
 	spec.Network = i.network
+
+	// El servidor corre con el MISMO usuario que el panel.
+	//
+	// Las imagenes de Minecraft hacen chown de su carpeta de datos al
+	// arrancar: la de Java al 1000, la de Bedrock al 65532. Si no coincide con
+	// el del panel, este deja de poder escribir la configuracion y la lista de
+	// permitidos, y nadie puede entrar al servidor.
+	//
+	// Se toma del proceso en vez de fijarlo a un numero: asi vale para
+	// cualquier imagen y no depende de que dos numeros coincidan por
+	// casualidad, que es justo como funcionaba antes sin que nadie lo supiera.
+	spec.UID, spec.GID = os.Getuid(), os.Getgid()
 	return spec
 }
 

@@ -42,6 +42,15 @@ type ContainerSpec struct {
 	// Vacia lo deja en la red por defecto, y entonces el panel NO puede
 	// alcanzarlo: Docker aisla las redes de usuario entre si.
 	Network string
+	// UID y GID con los que debe correr el servidor.
+	//
+	// Tienen que coincidir con los del PANEL: las imagenes se apropian de su
+	// carpeta de datos al arrancar, y si eligen un usuario distinto el panel
+	// deja de poder escribir ahi. El sintoma es callado -la lista de
+	// permitidos no se actualiza y nadie puede entrar- porque el panel cree
+	// que escribio.
+	UID int
+	GID int
 	MemoryMB int
 	CPUs     float64
 }
