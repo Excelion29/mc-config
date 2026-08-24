@@ -184,8 +184,8 @@
     {{if .Maps}}
     <form method="post" action="/instances">
       <div class="modal-cuerpo formulario">
-        <label for="inst-map">Mundo</label>
-        <select id="inst-map" name="map_id" required>
+        <label for="inst-world">Mundo</label>
+        <select id="inst-world" name="world_id" required>
           {{range .Maps}}
           <option value="{{.ID}}">{{.Name}} &mdash; {{.Edition.Label}} {{.Version}}</option>
           {{end}}

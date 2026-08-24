@@ -120,6 +120,7 @@ func (s *Server) Routes() http.Handler {
 			g.Use(s.requirePermission(domain.PermWorldImport))
 			g.Post("/worlds", s.importWorld)
 			g.Post("/worlds/create", s.createWorld)
+			g.Post("/worlds/update", s.updateWorld)
 		})
 
 		private.Group(func(g chi.Router) {

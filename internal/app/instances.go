@@ -28,6 +28,10 @@ type Instances struct {
 	host string
 	// network es la red de Docker que se asigna a cada instancia.
 	network string
+	// rulesOf relee las reglas del mundo al arrancar. Se inyecta despues, en
+	// la raiz de composicion, porque Worlds e Instances se necesitan
+	// mutuamente y encadenarlos en el constructor haria un ciclo.
+	rulesOf func(context.Context, int64) (domain.Rules, error)
 	// allowlist devuelve los gamertags de la lista maestra (D-13). Se inyecta
 	// despues de construir, porque Players necesita a Instances y al reves.
 	allowlist func(context.Context) ([]string, error)
@@ -55,6 +59,12 @@ func NewInstances(
 }
 
 // SetAllowlistSource cierra el ciclo entre Players e Instances.
+// SetRulesSource cierra el ciclo con Worlds, igual que SetAllowlistSource lo
+// cierra con Players.
+func (i *Instances) SetRulesSource(f func(context.Context, int64) (domain.Rules, error)) {
+	i.rulesOf = f
+}
+
 func (i *Instances) SetAllowlistSource(f func(context.Context) ([]string, error)) {
 	i.allowlist = f
 }

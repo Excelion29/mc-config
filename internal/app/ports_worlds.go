@@ -17,6 +17,7 @@ type WorldRepo interface {
 	BySHA(ctx context.Context, sha string) (*domain.World, error)
 	List(ctx context.Context) ([]domain.World, error)
 	ListPage(ctx context.Context, limit, offset int) ([]domain.World, int, error)
+	Update(ctx context.Context, m *domain.World) error
 	Delete(ctx context.Context, id int64) error
 }
 

@@ -23,6 +23,12 @@ import (
 // Por D-02 solo puede haber una encendida: si hay otra, se detiene primero. Y
 // como eso desconecta a quien este jugando, no se hace sin confirmacion (D-08).
 func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, confirmed bool, ip string) error {
+	// Las reglas se releen del mundo, no se usa la copia que hizo la instancia
+	// al crearse: si alguien edito el mundo despues, esa copia esta vieja y el
+	// servidor arrancaria con lo de antes sin que nada lo explique.
+	//
+	// Encaja con la regla general: el panel reescribe la configuracion en cada
+	// arranque, asi que lo que vale es lo que dice el mundo AHORA.
 	if !actor.Can(domain.PermServerOperate) {
 		return domain.ErrForbidden
 	}
@@ -30,6 +36,18 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 	inst, err := i.repo.ByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	// Reglas frescas del mundo. Si falla, se sigue con las que trae la
+	// instancia: no impedir arrancar un servidor porque no se pudo releer un
+	// ajuste.
+	if inst.WorldID > 0 && i.rulesOf != nil {
+		if reglas, err := i.rulesOf(ctx, inst.WorldID); err == nil {
+			inst.Rules = reglas
+		} else {
+			i.log.Warn("no se pudieron releer las reglas del mundo; se usan las de la instancia",
+				"instancia", inst.Name, "error", err)
+		}
 	}
 	if inst.State.Busy() {
 		return domain.ErrInstanceBusy

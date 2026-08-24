@@ -112,7 +112,7 @@ func (s *Server) createInstance(w http.ResponseWriter, r *http.Request) {
 
 	worldID, err := strconv.ParseInt(r.PostFormValue("world_id"), 10, 64)
 	if err != nil {
-		s.redirectError(w, r, rutaInstancias, "Selecciona un mapa.")
+		s.redirectError(w, r, rutaInstancias, "Selecciona un mundo.")
 		return
 	}
 

@@ -72,7 +72,7 @@ type deps struct {
 	migrations func() (map[int]bool, error)
 	auth       *app.Auth
 	audit      *app.Audit
-	maps       *app.Worlds
+	worlds       *app.Worlds
 	instances  *app.Instances
 	players    *app.Players
 	// watcher aprende el XUID de cada jugador la primera vez que entra. Se
@@ -119,7 +119,7 @@ func build(log *slog.Logger) (*deps, error) {
 	)
 
 	inspector := mcworld.New()
-	maps := app.NewWorlds(db.Worlds(), store, inspector, audit, clock, cfg.MaxUpload, log)
+	worlds := app.NewWorlds(db.Worlds(), store, inspector, audit, clock, cfg.MaxUpload, log)
 
 	// El runtime de contenedores puede no estar disponible al desarrollar. No
 	// se aborta el arranque por eso: el panel sigue sirviendo para gestionar
@@ -148,6 +148,7 @@ func build(log *slog.Logger) (*deps, error) {
 	// lista, e Instances necesita la lista al arrancar. Se inyecta despues de
 	// construir ambos, en vez de acoplarlos entre si.
 	instances.SetAllowlistSource(players.ActiveGamertags)
+	instances.SetRulesSource(worlds.RulesOf)
 
 	return &deps{
 		cfg:        cfg,
@@ -155,7 +156,7 @@ func build(log *slog.Logger) (*deps, error) {
 		migrations: func() (map[int]bool, error) { return db.AppliedMigrations(context.Background()) },
 		auth:       auth,
 		audit:      audit,
-		maps:       maps,
+		worlds:       worlds,
 		instances:  instances,
 		players:    players,
 		watcher:    watcher,
@@ -193,7 +194,7 @@ func run(log *slog.Logger) error {
 	go d.watcher.Run(ctx)
 
 	// --- Adaptador HTTP ----------------------------------------------------
-	handler, err := web.NewServer(auth, audit, d.maps, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
+	handler, err := web.NewServer(auth, audit, d.worlds, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
 	if err != nil {
 		return err
 	}

@@ -181,3 +181,25 @@ func hashONulo(sha string) any {
 	}
 	return sha
 }
+
+// Update cambia lo que SI se puede cambiar de un mundo.
+//
+// La generacion -semilla, tipo de terreno, estructuras- no esta aqui a
+// proposito: da forma al terreno una sola vez y cambiarla despues no
+// reescribe lo que ya hay en disco. Ofrecerla seria mentir.
+func (r *WorldRepo) Update(ctx context.Context, m *domain.World) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE worlds SET name = ?, icon_url = ?, gamemode = ?, difficulty = ?,
+		                   allow_commands = ?, pvp = ?, max_players = ?
+		  WHERE id = ?`,
+		m.Name, m.IconURL, string(m.Rules.Gamemode), string(m.Rules.Difficulty),
+		boolToInt(m.Rules.AllowCommands), boolToInt(m.Rules.PvP),
+		m.Rules.MaxPlayers, m.ID)
+	if err != nil {
+		return fmt.Errorf("actualizando mundo: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return domain.ErrWorldNotFound
+	}
+	return nil
+}

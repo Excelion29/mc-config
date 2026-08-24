@@ -74,6 +74,47 @@ func (s *Server) createWorld(w http.ResponseWriter, r *http.Request) {
 		"Mundo \""+mundo.Name+"\" creado. El terreno se genera la primera vez que arranques un servidor con el.")
 }
 
+// updateWorld cambia lo que SI se puede cambiar de un mundo.
+//
+// Nombre, portada y reglas. La generacion no: da forma al terreno una sola vez
+// y cambiarla despues no reescribe lo que ya hay en disco.
+func (s *Server) updateWorld(w http.ResponseWriter, r *http.Request) {
+	actor := userFrom(r)
+
+	if err := r.ParseForm(); err != nil {
+		s.redirectError(w, r, "/worlds", "No se pudo leer el formulario.")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
+	if err != nil {
+		s.redirectError(w, r, "/worlds", "Mundo invalido.")
+		return
+	}
+	maxJug, err := strconv.Atoi(r.PostFormValue("max_players"))
+	if err != nil {
+		s.redirectError(w, r, "/worlds", "Indica cuantos jugadores caben.")
+		return
+	}
+
+	mundo, err := s.worlds.Update(r.Context(), actor, id,
+		r.PostFormValue("name"), r.PostFormValue("icon_url"),
+		domain.Rules{
+			Gamemode:      domain.Gamemode(r.PostFormValue("gamemode")),
+			Difficulty:    domain.Difficulty(r.PostFormValue("difficulty")),
+			AllowCommands: r.PostFormValue("allow_commands") == "1",
+			PvP:           r.PostFormValue("pvp") == "1",
+			MaxPlayers:    maxJug,
+		}, clientIP(r))
+	if err != nil {
+		s.redirectError(w, r, "/worlds", s.worldErrorMessage(err, nil))
+		return
+	}
+
+	s.redirectInfo(w, r, "/worlds",
+		"Mundo \""+mundo.Name+"\" actualizado. Las reglas se aplican la proxima vez que arranques un servidor con el.")
+}
+
 func (s *Server) importWorld(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 	max := s.worlds.MaxUpload()

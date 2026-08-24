@@ -25,6 +25,7 @@ const (
 
 	ActionWorldImported Action = "map_imported"
 	ActionWorldCreated  Action = "world_created"
+	ActionWorldUpdated  Action = "world_updated"
 	ActionWorldDeleted  Action = "map_deleted"
 
 	ActionInstanceCreated Action = "instance_created"

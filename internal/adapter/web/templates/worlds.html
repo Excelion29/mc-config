@@ -56,6 +56,10 @@
         </div>
       </div>
 
+      {{if $page.User.Can "map.import"}}
+      <a class="accion" href="#editar-{{.ID}}" title="Editar"
+         aria-label="Editar {{.Name}}">{{template "ico-editar"}}</a>
+      {{end}}
       {{if $page.User.Can "map.delete"}}
       <form method="post" action="/worlds/delete">
         <input type="hidden" name="id" value="{{.ID}}">
@@ -77,6 +81,108 @@
   </p>
   {{end}}
 </section>
+
+{{/* Dialogos de edicion: nombre, portada y reglas. */}}
+{{if .User.Can "map.import"}}
+{{range .Maps}}
+<div class="modal" id="editar-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-editar-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-editar-{{.ID}}">Editar {{.Name}}</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/worlds/update">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <div class="modal-cuerpo">
+        <div class="campos">
+          <div class="campo-ancho">
+            <label for="e-name-{{.ID}}">Nombre</label>
+            <input id="e-name-{{.ID}}" name="name" required autocomplete="off" value="{{.Name}}">
+          </div>
+          <div class="campo-ancho">
+            <label for="e-icon-{{.ID}}">Portada (opcional)</label>
+            <input id="e-icon-{{.ID}}" name="icon_url" type="url" autocomplete="off"
+                   value="{{.IconURL}}" placeholder="https://ejemplo.com/imagen.png">
+            {{if .HasIcon}}
+            <p class="ayuda">
+              Este mundo ya trae portada dentro del archivo importado, y esa
+              tiene preferencia sobre el enlace.
+            </p>
+            {{end}}
+          </div>
+        </div>
+
+        <fieldset>
+          <legend>Reglas</legend>
+          <p class="ayuda">
+            Se aplican la <strong>pr&oacute;xima vez</strong> que arranques un
+            servidor con este mundo. El panel reescribe la configuraci&oacute;n
+            en cada arranque.
+          </p>
+
+          <div class="campos">
+            <div>
+              <label for="e-gamemode-{{.ID}}">Modo de juego</label>
+              <select id="e-gamemode-{{.ID}}" name="gamemode">
+                <option value="survival" {{if eq .Rules.Gamemode "survival"}}selected{{end}}>Supervivencia</option>
+                <option value="creative" {{if eq .Rules.Gamemode "creative"}}selected{{end}}>Creativo</option>
+                <option value="adventure" {{if eq .Rules.Gamemode "adventure"}}selected{{end}}>Aventura</option>
+              </select>
+            </div>
+            <div>
+              <label for="e-difficulty-{{.ID}}">Dificultad</label>
+              <select id="e-difficulty-{{.ID}}" name="difficulty">
+                <option value="peaceful" {{if eq .Rules.Difficulty "peaceful"}}selected{{end}}>Pac&iacute;fico</option>
+                <option value="easy" {{if eq .Rules.Difficulty "easy"}}selected{{end}}>F&aacute;cil</option>
+                <option value="normal" {{if eq .Rules.Difficulty "normal"}}selected{{end}}>Normal</option>
+                <option value="hard" {{if eq .Rules.Difficulty "hard"}}selected{{end}}>Dif&iacute;cil</option>
+              </select>
+            </div>
+            <div>
+              <label for="e-max-{{.ID}}">Jugadores</label>
+              <input id="e-max-{{.ID}}" name="max_players" type="number" min="1" max="100" value="{{.Rules.MaxPlayers}}">
+            </div>
+          </div>
+
+          <label class="check">
+            <input type="checkbox" name="allow_commands" value="1" {{if .Rules.AllowCommands}}checked{{end}}>
+            <span>Permitir comandos</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" name="pvp" value="1" {{if .Rules.PvP}}checked{{end}}>
+            <span>Los jugadores pueden hacerse da&ntilde;o (PvP)</span>
+          </label>
+        </fieldset>
+
+        {{/*
+          La generacion se ensena pero NO se puede tocar: da forma al terreno
+          una sola vez. Un campo editable que no hace nada seria peor que no
+          tenerlo, asi que aqui es solo informacion.
+        */}}
+        <fieldset disabled>
+          <legend>Generaci&oacute;n &mdash; ya no se puede cambiar</legend>
+          <p class="ayuda">
+            {{.Gen.LevelType.Label}}{{if .Gen.Seed}} &middot; semilla <code>{{.Gen.Seed}}</code>{{end}}
+            {{if .Gen.Structures}} &middot; con estructuras{{else}} &middot; sin estructuras{{end}}
+            {{if .Gen.BonusChest}} &middot; con cofre de regalo{{end}}
+          </p>
+          <p class="ayuda">
+            El terreno ya est&aacute; escrito en disco. Para otra semilla o otro
+            tipo, hay que crear un mundo nuevo.
+          </p>
+        </fieldset>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Guardar cambios</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+{{end}}
 
 {{if .User.Can "map.import"}}
 <div class="modal" id="crear-mundo">

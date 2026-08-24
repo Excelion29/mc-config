@@ -284,3 +284,59 @@ func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
 		nombre+" ("+edicion.Label()+")", ip)
 	return mundo, nil
 }
+
+// Update cambia el nombre, la portada y las reglas de un mundo.
+//
+// Las reglas se releen en cada arranque, asi que cambiarlas aqui basta: la
+// siguiente vez que se encienda un servidor con este mundo, se aplican. La
+// generacion no se toca porque no se puede: el terreno ya esta escrito.
+func (m *Worlds) Update(ctx context.Context, actor *domain.User, id int64,
+	nombre, portada string, reglas domain.Rules, ip string,
+) (*domain.World, error) {
+	if !actor.Can(domain.PermWorldImport) {
+		return nil, domain.ErrForbidden
+	}
+
+	mundo, err := m.repo.ByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	nombre = strings.TrimSpace(nombre)
+	if nombre == "" {
+		return nil, domain.ErrEmptyName
+	}
+	if !domain.PortadaValida(portada) {
+		return nil, domain.ErrInvalidIconURL
+	}
+	if !reglas.Gamemode.Valid() || !reglas.Difficulty.Valid() {
+		return nil, domain.ErrInvalidSettings
+	}
+	if reglas.MaxPlayers < 1 || reglas.MaxPlayers > 100 {
+		return nil, domain.ErrInvalidSettings
+	}
+
+	mundo.Name = nombre
+	mundo.IconURL = strings.TrimSpace(portada)
+	mundo.Rules = reglas
+
+	if err := m.repo.Update(ctx, mundo); err != nil {
+		return nil, err
+	}
+
+	m.audit.Record(ctx, actor, actor.Email, domain.ActionWorldUpdated, nombre, ip)
+	return mundo, nil
+}
+
+// RulesOf da las reglas vigentes de un mundo.
+//
+// Lo usa Instances al arrancar, para no fiarse de la copia que hizo al crear
+// la instancia: si alguien edito el mundo despues, la copia esta vieja y el
+// servidor arrancaria con lo de antes sin que nada lo explique.
+func (m *Worlds) RulesOf(ctx context.Context, id int64) (domain.Rules, error) {
+	mundo, err := m.repo.ByID(ctx, id)
+	if err != nil {
+		return domain.Rules{}, err
+	}
+	return mundo.Rules, nil
+}
