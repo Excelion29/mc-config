@@ -14,13 +14,13 @@ import (
 // PlayerRepo implementa app.PlayerRepo.
 type PlayerRepo struct{ db *sql.DB }
 
-const playerColumns = `id, gamertag, java_name, note, xuid, first_seen, is_op, active, created_at`
+const playerColumns = `id, gamertag, java_name, java_uuid, note, xuid, first_seen, is_op, active, created_at`
 
 func (r *PlayerRepo) Create(ctx context.Context, p *domain.Player) (int64, error) {
 	res, err := r.db.ExecContext(ctx,
-		`INSERT INTO players (gamertag, java_name, note, is_op, active, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		p.Gamertag, p.JavaName, p.Note, boolToInt(p.IsOp), boolToInt(p.Active),
+		`INSERT INTO players (gamertag, java_name, java_uuid, note, is_op, active, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		p.Gamertag, p.JavaName, p.JavaUUID, p.Note, boolToInt(p.IsOp), boolToInt(p.Active),
 		p.CreatedAt.Format(time.RFC3339))
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -122,6 +122,30 @@ func (r *PlayerRepo) SearchPage(ctx context.Context, texto, estado string, limit
 	return out, total, rows.Err()
 }
 
+// Permitidos son los jugadores activos, enteros.
+//
+// Se devuelven completos y no solo sus nombres porque cada edicion identifica
+// distinto: Bedrock por gamertag, Java por UUID. Quien construye el archivo
+// decide que campo usar.
+func (r *PlayerRepo) Permitidos(ctx context.Context) ([]domain.Player, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+playerColumns+` FROM players WHERE active = 1 ORDER BY gamertag`)
+	if err != nil {
+		return nil, fmt.Errorf("leyendo jugadores permitidos: %w", err)
+	}
+	defer rows.Close()
+
+	var out []domain.Player
+	for rows.Next() {
+		p, err := scanPlayer(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *p)
+	}
+	return out, rows.Err()
+}
+
 // ActiveGamertags es lo que acaba dentro de allowlist.json.
 func (r *PlayerRepo) ActiveGamertags(ctx context.Context) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -185,7 +209,7 @@ func scanPlayer(scan func(...any) error) (*domain.Player, error) {
 		createdAt string
 		firstSeen sql.NullString
 	)
-	err := scan(&p.ID, &p.Gamertag, &p.JavaName, &p.Note, &p.XUID, &firstSeen,
+	err := scan(&p.ID, &p.Gamertag, &p.JavaName, &p.JavaUUID, &p.Note, &p.XUID, &firstSeen,
 		&isOp, &active, &createdAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

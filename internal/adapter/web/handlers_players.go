@@ -52,7 +52,7 @@ func (s *Server) addPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p, err := s.players.Add(r.Context(), actor,
-		r.PostFormValue("gamertag"), r.PostFormValue("note"),
+		r.PostFormValue("gamertag"), r.PostFormValue("java_name"), r.PostFormValue("note"),
 		r.PostFormValue("is_op") == "1", clientIP(r))
 	if err != nil {
 		s.redirectError(w, r, rutaJugadores, s.playerError(err))
@@ -189,7 +189,9 @@ func (s *Server) playerError(err error) string {
 	case errors.Is(err, domain.ErrDuplicatePlayer):
 		return "Ese gamertag ya esta en la lista."
 	case errors.Is(err, domain.ErrEmptyGamertag):
-		return "El gamertag es obligatorio."
+		return "Indica al menos un nombre: el de Bedrock o el de Java."
+	case errors.Is(err, domain.ErrJavaNameNotFound):
+		return "Mojang no conoce esa cuenta de Java. Revisa como esta escrita."
 	case errors.Is(err, domain.ErrPlayerNotFound):
 		return "Ese jugador ya no esta en la lista."
 	case errors.Is(err, domain.ErrForbidden):

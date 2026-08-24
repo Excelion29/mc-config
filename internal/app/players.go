@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/Excelion29/mc-config/internal/domain"
@@ -12,16 +13,26 @@ import (
 // La idea de D-13: la verdad vive en la base, y los allowlist.json de cada
 // instancia son DERIVADOS. Dar de alta a un amigo una vez lo habilita en todos
 // los mapas, presentes y futuros, sin reiniciar nada.
+// JavaIdentity traduce un nombre de Java a su UUID.
+//
+// Es un puerto porque hablar con Mojang es un detalle de infraestructura: los
+// casos de uso solo saben que un nombre de Java se puede convertir en algo que
+// el servidor entiende.
+type JavaIdentity interface {
+	ResolveJavaUUID(ctx context.Context, nombre string) (string, error)
+}
+
 type Players struct {
 	repo      PlayerRepo
+	java      JavaIdentity
 	instances *Instances
 	audit     *Audit
 	clock     Clock
 	log       *slog.Logger
 }
 
-func NewPlayers(repo PlayerRepo, instances *Instances, audit *Audit, clock Clock, log *slog.Logger) *Players {
-	return &Players{repo: repo, instances: instances, audit: audit, clock: clock, log: log}
+func NewPlayers(repo PlayerRepo, java JavaIdentity, instances *Instances, audit *Audit, clock Clock, log *slog.Logger) *Players {
+	return &Players{repo: repo, java: java, instances: instances, audit: audit, clock: clock, log: log}
 }
 
 func (p *Players) List(ctx context.Context, actor *domain.User) ([]domain.Player, error) {
@@ -41,24 +52,55 @@ func (p *Players) ByID(ctx context.Context, actor *domain.User, id int64) (*doma
 	return p.repo.ByID(ctx, id)
 }
 
-// ActiveGamertags lo usa Instances al crear una instancia nueva, para que nazca
-// ya con la lista puesta en vez de vacia.
-func (p *Players) ActiveGamertags(ctx context.Context) ([]string, error) {
-	return p.repo.ActiveGamertags(ctx)
+// Permitidos lo usa Instances para generar la lista de cada servidor.
+//
+// Devuelve jugadores ENTEROS y no nombres: cada edicion identifica distinto y
+// quien escribe el archivo necesita poder elegir el campo. Con solo nombres,
+// Java no podria escribir su whitelist, que va por UUID.
+func (p *Players) Permitidos(ctx context.Context) ([]domain.Player, error) {
+	return p.repo.Permitidos(ctx)
 }
 
-func (p *Players) Add(ctx context.Context, actor *domain.User, gamertag, note string, isOp bool, ip string) (*domain.Player, error) {
+func (p *Players) Add(ctx context.Context, actor *domain.User, gamertag, javaName, note string, isOp bool, ip string) (*domain.Player, error) {
 	if !actor.Can(domain.PermPlayerManage) {
 		return nil, domain.ErrForbidden
 	}
 
 	gamertag = domain.NormalizeGamertag(gamertag)
-	if gamertag == "" {
+	javaName = domain.NormalizeGamertag(javaName)
+
+	// Hace falta al menos UNA identidad. Alguien sin gamertag ni nombre de
+	// Java no puede entrar a ningun sitio, y darlo de alta seria guardar una
+	// fila que no significa nada.
+	if gamertag == "" && javaName == "" {
 		return nil, domain.ErrEmptyGamertag
+	}
+
+	// El UUID se resuelve AHORA, no cuando la persona entre. En Java se puede
+	// preguntar a Mojang de antemano (H-J-8), y hacerlo aqui tiene una ventaja
+	// que no es solo tecnica: si el nombre esta mal escrito, se sabe en este
+	// momento y no dentro de una semana cuando alguien no pueda entrar.
+	javaUUID := ""
+	if javaName != "" && p.java != nil {
+		uuid, err := p.java.ResolveJavaUUID(ctx, javaName)
+		switch {
+		case err == nil:
+			javaUUID = uuid
+		case errors.Is(err, domain.ErrJavaNameNotFound):
+			return nil, err
+		default:
+			// Mojang caido no debe impedir dar de alta a alguien: se guarda
+			// sin UUID y no podra entrar a Java hasta que se reintente. La
+			// pantalla lo dice, no se finge que esta listo.
+			p.log.Warn("no se pudo resolver el UUID de Java; el jugador queda sin acceso a Java",
+				"nombre", javaName, "error", err)
+		}
 	}
 
 	player := &domain.Player{
 		Gamertag:  gamertag,
+		JavaName:  javaName,
+		JavaUUID:  javaUUID,
 		Note:      note,
 		IsOp:      isOp,
 		Active:    true,
@@ -142,7 +184,7 @@ func (p *Players) Delete(ctx context.Context, actor *domain.User, id int64, ip s
 // porque se regenera tambien entonces. Fallar aqui obligaria a deshacer un alta
 // correcta por un problema de otra cosa.
 func (p *Players) propagate(ctx context.Context) {
-	names, err := p.repo.ActiveGamertags(ctx)
+	jugadores, err := p.repo.Permitidos(ctx)
 	if err != nil {
 		p.log.Error("no se pudo leer la lista maestra para propagarla", "error", err)
 		return
@@ -156,12 +198,12 @@ func (p *Players) propagate(ctx context.Context) {
 
 	for i := range list {
 		inst := &list[i]
-		if err := p.instances.ApplyAllowlist(ctx, inst, names); err != nil {
+		if err := p.instances.ApplyAllowlist(ctx, inst, jugadores); err != nil {
 			p.log.Warn("no se pudo aplicar la lista a una instancia",
 				"instancia", inst.Name, "error", err)
 			continue
 		}
 		p.log.Info("lista de permitidos aplicada",
-			"instancia", inst.Name, "jugadores", len(names))
+			"instancia", inst.Name, "jugadores", len(jugadores))
 	}
 }

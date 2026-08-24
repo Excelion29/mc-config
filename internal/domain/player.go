@@ -14,9 +14,16 @@ type Player struct {
 	// Gamertag es el nombre de Xbox Live, tal cual. Bedrock lo compara
 	// EXACTO: mayusculas y espacios incluidos.
 	Gamertag string
-	// JavaName se rellenara en el hito 2. La identidad de Java es distinta:
-	// usuario y contrasena de AuthMe, no gamertag (ver D-04).
+	// JavaName es el nombre de Minecraft Java. Es una TERCERA identidad,
+	// distinta del gamertag de Bedrock y de la cuenta del panel: la misma
+	// persona se llama distinto en cada una (H-J-9).
 	JavaName string
+	// JavaUUID identifica a la persona ante un servidor Java, que no acepta
+	// nombres en su whitelist.
+	//
+	// A diferencia del XUID de Bedrock, este SI se puede resolver antes de que
+	// nadie juegue: se le pregunta a Mojang a partir del nombre.
+	JavaUUID string
 	Note string
 	// XUID es el identificador de Xbox Live. Ya existe antes de que nos
 	// conozca -lo tiene desde que creo su cuenta- pero el panel no lo sabe
@@ -56,4 +63,15 @@ func (p *Player) PuedeSerOp() bool {
 // persona sin decir por que.
 func NormalizeGamertag(s string) string {
 	return strings.Join(strings.Fields(strings.TrimSpace(s)), " ")
+}
+
+// PuedeJugarBedrock indica si tiene identidad para entrar a un servidor
+// Bedrock. Basta el gamertag: la allow-list de Bedrock va por nombre.
+func (p *Player) PuedeJugarBedrock() bool {
+	return p != nil && p.Gamertag != ""
+}
+
+// PuedeJugarJava exige el UUID, porque whitelist.json no acepta nombres.
+func (p *Player) PuedeJugarJava() bool {
+	return p != nil && p.JavaUUID != ""
 }

@@ -8,6 +8,10 @@ import "errors"
 //
 // El texto va en espanol porque parte de estos mensajes llegan al usuario.
 var (
+	// ErrJavaNameNotFound: Mojang no conoce ese nombre de Java. Casi siempre
+	// es una errata, y decirlo al darlo de alta evita el "no puedo entrar" de
+	// dentro de una semana.
+	ErrJavaNameNotFound = errors.New("esa cuenta de Java no existe")
 	// ErrInvalidIconURL: la portada tiene que ser https. El panel se sirve por
 	// TLS y una imagen http la bloquea el navegador por contenido mixto: se
 	// veria rota sin decir por que, asi que se rechaza al escribirla.

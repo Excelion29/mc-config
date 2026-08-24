@@ -75,9 +75,9 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 	// La lista de permitidos se regenera en cada arranque desde la maestra:
 	// una instancia parada pudo perderse altas o bajas mientras no corria.
 	if i.allowlist != nil {
-		if names, err := i.allowlist(ctx); err == nil {
+		if jugadores, err := i.allowlist(ctx); err == nil {
 			if flavor, ok := i.flavors[inst.Edition]; ok {
-				if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsFrom(names)); err != nil {
+				if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, jugadores)); err != nil {
 					i.log.Warn("no se pudo escribir la lista de permitidos",
 						"instancia", inst.Name, "error", err)
 				}

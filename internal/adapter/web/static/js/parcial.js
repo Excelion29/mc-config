@@ -37,14 +37,22 @@
       objetivo.remove();
       return;
     }
-    // Un <tr> no se puede crear con innerHTML sobre un div suelto: el
+    // Un <tr> suelto no se puede interpretar en cualquier contexto: el
     // analizador de HTML descarta las filas que no estan dentro de una tabla.
-    // Por eso se usa una plantilla, que si conserva el contexto.
-    var molde = document.createElement("template");
-    molde.innerHTML = html.trim();
-    var nuevo = molde.content.firstElementChild;
+    //
+    // createContextualFragment interpreta el HTML COMO SI estuviera en el sitio
+    // donde va a ir, asi que una fila dentro de un <tbody> se conserva. Es lo
+    // que hace falta aqui y lo que una plantilla suelta no garantiza.
+    var rango = document.createRange();
+    rango.selectNodeContents(objetivo.parentNode);
+    var trozo = rango.createContextualFragment(html.trim());
+
+    var nuevo = trozo.firstElementChild;
     if (!nuevo) {
-      objetivo.remove();
+      // Antes esto BORRABA la fila, y era peor que el problema: un fallo al
+      // interpretar la respuesta se convertia en datos que desaparecen de la
+      // pantalla sin que nada lo explique. Se recarga, que dice la verdad.
+      window.location.reload();
       return;
     }
     objetivo.replaceWith(nuevo);

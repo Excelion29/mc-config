@@ -34,7 +34,7 @@ type Instances struct {
 	rulesOf func(context.Context, int64) (domain.Rules, error)
 	// allowlist devuelve los gamertags de la lista maestra (D-13). Se inyecta
 	// despues de construir, porque Players necesita a Instances y al reves.
-	allowlist func(context.Context) ([]string, error)
+	allowlist func(context.Context) ([]domain.Player, error)
 	// stopTimeout es lo que se espera a un apagado limpio antes de forzar.
 	// Medido en F0: ~2 s con el mundo vacio, pero un mundo jugado tarda mas.
 	stopTimeout time.Duration
@@ -65,7 +65,31 @@ func (i *Instances) SetRulesSource(f func(context.Context, int64) (domain.Rules,
 	i.rulesOf = f
 }
 
-func (i *Instances) SetAllowlistSource(f func(context.Context) ([]string, error)) {
+// RefsPara traduce jugadores a la identidad que entiende cada edicion.
+//
+// Es donde vive la diferencia: Bedrock reconoce por gamertag, Java exige el
+// UUID. Quien no tenga identidad valida para esa edicion se queda fuera del
+// archivo, porque una entrada que el servidor no sabe interpretar no permite
+// entrar a nadie y ademas confunde a quien lea el archivo.
+func RefsPara(e domain.Edition, jugadores []domain.Player) []PlayerRef {
+	out := make([]PlayerRef, 0, len(jugadores))
+	for k := range jugadores {
+		p := &jugadores[k]
+		switch e {
+		case domain.EditionJava:
+			if p.PuedeJugarJava() {
+				out = append(out, PlayerRef{ID: p.JavaUUID, Name: p.JavaName})
+			}
+		case domain.EditionBedrock:
+			if p.PuedeJugarBedrock() {
+				out = append(out, PlayerRef{ID: p.XUID, Name: p.Gamertag})
+			}
+		}
+	}
+	return out
+}
+
+func (i *Instances) SetAllowlistSource(f func(context.Context) ([]domain.Player, error)) {
 	i.allowlist = f
 }
 
@@ -122,12 +146,12 @@ func (i *Instances) dataDir(inst *domain.Instance) string {
 
 // ApplyAllowlist reescribe la lista de permitidos y la recarga en caliente.
 // Lo usara F4 con la lista maestra (D-13).
-func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, names []string) error {
+func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, jugadores []domain.Player) error {
 	flavor, ok := i.flavors[inst.Edition]
 	if !ok {
 		return domain.ErrEditionMismatch
 	}
-	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsFrom(names)); err != nil {
+	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, jugadores)); err != nil {
 		return err
 	}
 	if inst.State == domain.StateRunning {

@@ -23,6 +23,7 @@ import (
 	"github.com/Excelion29/mc-config/internal/adapter/dockerx"
 	"github.com/Excelion29/mc-config/internal/adapter/java"
 	"github.com/Excelion29/mc-config/internal/adapter/mcworld"
+	"github.com/Excelion29/mc-config/internal/adapter/mojang"
 	"github.com/Excelion29/mc-config/internal/adapter/security"
 	"github.com/Excelion29/mc-config/internal/adapter/sqlite"
 	"github.com/Excelion29/mc-config/internal/adapter/storage"
@@ -72,7 +73,7 @@ type deps struct {
 	migrations func() (map[int]bool, error)
 	auth       *app.Auth
 	audit      *app.Audit
-	worlds       *app.Worlds
+	worlds     *app.Worlds
 	instances  *app.Instances
 	players    *app.Players
 	// watcher aprende el XUID de cada jugador la primera vez que entra. Se
@@ -141,13 +142,13 @@ func build(log *slog.Logger) (*deps, error) {
 		audit, clock, cfg.InstancesPath, cfg.GameHost, cfg.GameNetwork, log,
 	)
 
-	players := app.NewPlayers(db.Players(), instances, audit, clock, log)
+	players := app.NewPlayers(db.Players(), mojang.New(), instances, audit, clock, log)
 	watcher := app.NewConnectionWatcher(db.Players(), instances, bedrock.New(inspector), log)
 
 	// Ciclo cerrado a proposito: Players necesita Instances para propagar la
 	// lista, e Instances necesita la lista al arrancar. Se inyecta despues de
 	// construir ambos, en vez de acoplarlos entre si.
-	instances.SetAllowlistSource(players.ActiveGamertags)
+	instances.SetAllowlistSource(players.Permitidos)
 	instances.SetRulesSource(worlds.RulesOf)
 
 	return &deps{
@@ -156,7 +157,7 @@ func build(log *slog.Logger) (*deps, error) {
 		migrations: func() (map[int]bool, error) { return db.AppliedMigrations(context.Background()) },
 		auth:       auth,
 		audit:      audit,
-		worlds:       worlds,
+		worlds:     worlds,
 		instances:  instances,
 		players:    players,
 		watcher:    watcher,

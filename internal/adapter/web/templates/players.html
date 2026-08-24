@@ -87,13 +87,28 @@
 
     <form method="post" action="/players">
       <div class="modal-cuerpo">
-        <label for="gamertag">Gamertag de Xbox</label>
-        <input id="gamertag" name="gamertag" required autocomplete="off"
+        <p class="ayuda" style="margin-top:0">
+          La misma persona tiene <strong>nombres distintos</strong> en cada
+          edici&oacute;n. Rellena el que uses; puedes poner los dos si juega a
+          las dos.
+        </p>
+
+        <label for="gamertag">Gamertag de Xbox (Bedrock)</label>
+        <input id="gamertag" name="gamertag" autocomplete="off"
                placeholder="Wronkow29">
         <p class="ayuda">
           Tal cual aparece en Minecraft, <strong>respetando may&uacute;sculas y
           espacios</strong>. Bedrock lo compara exacto: una letra distinta y la
           persona no entra, sin que nada explique por qu&eacute;.
+        </p>
+
+        <label for="java-name">Nombre de Minecraft Java</label>
+        <input id="java-name" name="java_name" autocomplete="off"
+               placeholder="Areku29">
+        <p class="ayuda">
+          Se le pregunta a Mojang <strong>al guardarlo</strong>, as&iacute; que
+          si est&aacute; mal escrito te enteras ahora y no la semana que viene
+          cuando alguien no pueda entrar.
         </p>
 
         <label for="note">Nota (opcional)</label>
@@ -129,13 +144,18 @@
 {{define "fila-jugador"}}
         <tr>
           <td>
-            <strong class="dato">{{.Gamertag}}</strong>
+            <strong class="dato">{{if .Gamertag}}{{.Gamertag}}{{else}}{{.JavaName}}{{end}}</strong>
+            {{if and .Gamertag .JavaName}}
+            <span class="apagado dato">&middot; {{.JavaName}}</span>
+            {{end}}
             {{if and .IsOp .HaEntrado}}
             <span class="etiqueta ok" title="Puede usar comandos dentro del juego">admin del juego</span>
             {{end}}
           </td>
           <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
           <td>
+            {{if .PuedeJugarJava}}<span class="etiqueta ok">Java</span>{{end}}
+            {{if .PuedeJugarBedrock}}<span class="etiqueta">Bedrock</span>{{end}}
             {{if not .Active}}<span class="etiqueta aviso">bloqueado</span>
             {{else if .HaEntrado}}<span class="etiqueta ok">ha jugado</span>
             {{else}}

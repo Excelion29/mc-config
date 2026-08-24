@@ -18,6 +18,7 @@ type PlayerRepo interface {
 	// SearchPage filtra por texto libre y por estado.
 	SearchPage(ctx context.Context, texto, estado string, limit, offset int) ([]domain.Player, int, error)
 	ActiveGamertags(ctx context.Context) ([]string, error)
+	Permitidos(ctx context.Context) ([]domain.Player, error)
 	SetActive(ctx context.Context, id int64, active bool) error
 	SetOp(ctx context.Context, id int64, isOp bool) error
 	Delete(ctx context.Context, id int64) error
