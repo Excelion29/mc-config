@@ -41,6 +41,22 @@ type createRequest struct {
 	OpenStdin    bool                `json:"OpenStdin"`
 	Tty          bool                `json:"Tty"`
 	HostConfig   hostConfig          `json:"HostConfig"`
+	// NetworkingConfig conecta el contenedor a una red al crearlo.
+	//
+	// Tiene que ser al CREARLO y no despues: conectar una red a posteriori
+	// necesitaria el endpoint /networks, que el proxy de Docker no expone
+	// (M-4), y ademas dejaria un hueco en el que el contenedor existe sin la
+	// red que se espera que tenga.
+	NetworkingConfig *networkingConfig `json:"NetworkingConfig,omitempty"`
+}
+
+type networkingConfig struct {
+	EndpointsConfig map[string]endpointConfig `json:"EndpointsConfig"`
+}
+
+type endpointConfig struct {
+	// Aliases son los nombres por los que se le podra llamar dentro de la red.
+	Aliases []string `json:"Aliases,omitempty"`
 }
 
 type hostConfig struct {
@@ -105,6 +121,7 @@ func (r *Runtime) Create(ctx context.Context, spec app.ContainerSpec) (string, e
 		// por su entrada estandar, que es como funciona send-command (H-F0-7).
 		OpenStdin: true,
 		Tty:       false,
+		NetworkingConfig: redDe(spec),
 		HostConfig: hostConfig{
 			Binds:        []string{spec.DataDir + ":/data"},
 			PortBindings: map[string][]portBinding{port: {{HostIP: "0.0.0.0", HostPort: strconv.Itoa(spec.PortHost)}}},
@@ -316,4 +333,24 @@ func (r *Runtime) ensureImage(ctx context.Context, image string) error {
 		return fmt.Errorf("descargando la imagen %s: %w", image, err)
 	}
 	return nil
+}
+
+// redDe conecta la instancia a la red del panel, si se indico una.
+//
+// Sin esto el contenedor va a la red por defecto, y entonces el panel no puede
+// preguntarle nada: Docker AISLA las redes de usuario entre si -las cadenas
+// DOCKER-ISOLATION- y un paquete de un bridge a otro se descarta. El sintoma
+// es un servidor que arranca perfectamente y un panel clavado en "arrancando".
+//
+// Compartiendo red se le pregunta por su nombre, sin NAT, sin salir al host y
+// sin depender de reglas de iptables que cualquiera puede recargar.
+func redDe(spec app.ContainerSpec) *networkingConfig {
+	if spec.Network == "" {
+		return nil
+	}
+	return &networkingConfig{
+		EndpointsConfig: map[string]endpointConfig{
+			spec.Network: {Aliases: []string{spec.Name}},
+		},
+	}
 }

@@ -107,7 +107,7 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 		return nil, err
 	}
 
-	containerID, err := i.runtime.Create(ctx, flavor.Spec(inst, dir))
+	containerID, err := i.runtime.Create(ctx, i.specDe(flavor, inst, dir))
 	if err != nil {
 		limpiar()
 		return nil, err

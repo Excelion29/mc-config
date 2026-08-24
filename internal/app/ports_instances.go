@@ -36,6 +36,12 @@ type ContainerSpec struct {
 	PortHost int
 	PortIn   int
 	Protocol string // "udp" o "tcp"
+	// Network es la red de Docker a la que se conecta el contenedor.
+	//
+	// Se le pone la del panel para que este pueda preguntarle por su nombre.
+	// Vacia lo deja en la red por defecto, y entonces el panel NO puede
+	// alcanzarlo: Docker aisla las redes de usuario entre si.
+	Network string
 	MemoryMB int
 	CPUs     float64
 }

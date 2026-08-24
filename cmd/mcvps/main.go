@@ -138,7 +138,7 @@ func build(log *slog.Logger) (*deps, error) {
 		// Los dos sabores. Instances elige por la edicion del mundo, asi que
 		// anadir Java no cambia ni un caso de uso (D-15).
 		[]app.ServerFlavor{bedrock.New(inspector), java.New(inspector)},
-		audit, clock, cfg.InstancesPath, cfg.GameHost, log,
+		audit, clock, cfg.InstancesPath, cfg.GameHost, cfg.GameNetwork, log,
 	)
 
 	players := app.NewPlayers(db.Players(), instances, audit, clock, log)

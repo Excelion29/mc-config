@@ -33,6 +33,13 @@ type Config struct {
 	// Host donde responde el servidor de Minecraft, para el ping de jugadores.
 	// Dentro del contenedor "localhost" no vale: el servidor corre en otro.
 	GameHost string
+	// GameNetwork es la red de Docker que comparten el panel y las instancias.
+	//
+	// Con ella, el panel pregunta a cada servidor por su NOMBRE de contenedor
+	// y no hace falta ni NAT ni salir al host. Vacia, las instancias van a la
+	// red por defecto y el panel no las alcanza, porque Docker aisla las redes
+	// de usuario entre si.
+	GameNetwork string
 
 	// Credenciales del superusuario. Solo se usan si todavia no existe: el
 	// arranque nunca pisa una cuenta ya creada.
@@ -66,6 +73,7 @@ func Load() (Config, error) {
 		InstancesPath: env("MCVPS_INSTANCES_PATH", "/data/instances"),
 		DockerHost:    os.Getenv("MCVPS_DOCKER_HOST"),
 		GameHost:      env("MCVPS_GAME_HOST", "127.0.0.1"),
+		GameNetwork:   env("MCVPS_GAME_NETWORK", ""),
 		MaxUpload:     1 << 30, // 1 GiB
 		SuperuserEmail:    os.Getenv("MCVPS_SUPERUSER_EMAIL"),
 		SuperuserPassword: os.Getenv("MCVPS_SUPERUSER_PASSWORD"),

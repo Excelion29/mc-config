@@ -26,6 +26,8 @@ type Instances struct {
 	// host es donde se consulta el ping. En el contenedor no vale "localhost":
 	// el servidor de Minecraft corre en OTRO contenedor.
 	host string
+	// network es la red de Docker que se asigna a cada instancia.
+	network string
 	// allowlist devuelve los gamertags de la lista maestra (D-13). Se inyecta
 	// despues de construir, porque Players necesita a Instances y al reves.
 	allowlist func(context.Context) ([]string, error)
@@ -37,7 +39,7 @@ type Instances struct {
 func NewInstances(
 	repo InstanceRepo, maps WorldRepo, store WorldStorage,
 	runtime ContainerRuntime, flavors []ServerFlavor,
-	audit *Audit, clock Clock, dataRoot, host string, log *slog.Logger,
+	audit *Audit, clock Clock, dataRoot, host, network string, log *slog.Logger,
 ) *Instances {
 	byEdition := make(map[domain.Edition]ServerFlavor, len(flavors))
 	for _, f := range flavors {
@@ -47,7 +49,8 @@ func NewInstances(
 	return &Instances{
 		repo: repo, maps: maps, store: store, runtime: runtime,
 		flavors: byEdition, audit: audit, clock: clock,
-		dataRoot: dataRoot, host: host, stopTimeout: 60 * time.Second, log: log,
+		dataRoot: dataRoot, host: host, network: network,
+		stopTimeout: 60 * time.Second, log: log,
 	}
 }
 
@@ -91,6 +94,17 @@ func (i *Instances) ByID(ctx context.Context, actor *domain.User, id int64) (*do
 	return i.repo.ByID(ctx, id)
 }
 
+// specDe completa la definicion del contenedor con lo que el sabor no sabe.
+//
+// La red no es cosa de Bedrock ni de Java: es donde vive ESTE panel. El sabor
+// describe como se levanta un servidor de su edicion; donde se enchufa lo
+// decide quien lo orquesta.
+func (i *Instances) specDe(flavor ServerFlavor, inst *domain.Instance, dir string) ContainerSpec {
+	spec := flavor.Spec(inst, dir)
+	spec.Network = i.network
+	return spec
+}
+
 // dataDir es el /data de una instancia en el host.
 func (i *Instances) dataDir(inst *domain.Instance) string {
 	return filepath.Join(i.dataRoot, inst.Slug)
@@ -125,7 +139,7 @@ func (i *Instances) ensureContainer(ctx context.Context, inst *domain.Instance) 
 		}
 	}
 
-	id, err := i.runtime.Create(ctx, flavor.Spec(inst, i.dataDir(inst)))
+	id, err := i.runtime.Create(ctx, i.specDe(flavor, inst, i.dataDir(inst)))
 	if err != nil {
 		return err
 	}
@@ -142,7 +156,15 @@ func (i *Instances) playersOf(ctx context.Context, inst *domain.Instance) (int, 
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	online, max, err := flavor.Players(ctx, i.host, inst.Port)
+	// Compartiendo red se pregunta al contenedor por su nombre y por el puerto
+	// INTERNO: no hay NAT de por medio, asi que el puerto publicado en el host
+	// no pinta nada aqui.
+	host, puerto := i.host, inst.Port
+	if i.network != "" {
+		host, puerto = "mcvps-"+inst.Slug, flavor.DefaultPort()
+	}
+
+	online, max, err := flavor.Players(ctx, host, puerto)
 	if err != nil {
 		// Este fallo NO era visible en ningun sitio, y es el que decide si una
 		// instancia pasa de "arrancando" a "activa". Sin esta linea el sintoma
@@ -153,7 +175,7 @@ func (i *Instances) playersOf(ctx context.Context, inst *domain.Instance) (int, 
 		// Se registra la direccion consultada a proposito: casi siempre el
 		// problema es esa, no el servidor.
 		i.log.Warn("el servidor no responde al ping; sigue en arrancando",
-			"instancia", inst.Name, "host", i.host, "puerto", inst.Port, "error", err)
+			"instancia", inst.Name, "host", host, "puerto", puerto, "error", err)
 	}
 	return online, max, err
 }
