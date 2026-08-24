@@ -3,14 +3,17 @@
   <div>
     <h1>Mundos</h1>
     <p class="sub">
-      Un <strong>mundo</strong> es lo que carga el servidor. Hoy se consiguen
-      importando un mapa: t&uacute; descargas el archivo y lo subes aqu&iacute;
-      &mdash;el panel <strong>no baja mapas de internet</strong>&mdash; y la
-      edici&oacute;n y la versi&oacute;n se detectan solas.
+      Un <strong>mundo</strong> es lo que carga el servidor. Puedes
+      <strong>crear uno nuevo</strong> &mdash;el servidor lo genera solo al
+      arrancar&mdash; o <strong>importar un mapa</strong> que ya exista: t&uacute;
+      descargas el archivo y lo subes, porque el panel no baja nada de internet.
     </p>
   </div>
   {{if .User.Can "map.import"}}
-  <a class="boton" href="#importar-mapa">Importar mapa</a>
+  <div class="cabecera-acciones">
+    <a class="boton boton-secundario" href="#importar-mapa">Importar mapa</a>
+    <a class="boton" href="#crear-mundo">Crear mundo</a>
+  </div>
   {{end}}
 </div>
 
@@ -33,10 +36,19 @@
         <strong>{{.Name}}</strong>
         <div class="meta">
           <span class="etiqueta">{{.Edition.Label}}</span>
-          {{if .Version}}<code>{{.Version}}</code>{{else}}<span class="apagado">version desconocida</span>{{end}}
+          <span class="etiqueta">{{.Origin.Label}}</span>
+          {{if .Version}}<code>{{.Version}}</code>{{end}}
         </div>
         <div class="meta apagado">
-          {{.FileName}} &middot; {{.CreatedAt.Format "2006-01-02"}}
+          {{.Rules.Gamemode.Label}} &middot; {{.Rules.Difficulty.Label}}
+          &middot; hasta {{.Rules.MaxPlayers}}
+          {{if .Rules.AllowCommands}}&middot; con comandos{{end}}
+        </div>
+        <div class="meta apagado">
+          {{if .Importado}}{{.FileName}}
+          {{else}}{{.Gen.LevelType.Label}}{{if .Gen.Seed}} &middot; semilla <code>{{.Gen.Seed}}</code>{{end}}
+          {{if not .Gen.Structures}} &middot; sin estructuras{{end}}{{end}}
+          &middot; {{.CreatedAt.Format "2006-01-02"}}
         </div>
       </div>
 
@@ -55,13 +67,194 @@
   <p class="vacio">
     Todav&iacute;a no hay mundos.
     {{if .User.Can "map.import"}}
-    <a href="#importar-mapa">Importa un mapa</a> para empezar.
+    <a href="#crear-mundo">Crea uno</a> o
+    <a href="#importar-mapa">importa un mapa</a> para empezar.
     {{else}}Pide a un administrador que a&ntilde;ada alguno.{{end}}
   </p>
   {{end}}
 </section>
 
 {{if .User.Can "map.import"}}
+<div class="modal" id="crear-mundo">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-crear-mundo">
+    <header class="modal-cabecera">
+      <h2 id="titulo-crear-mundo">Crear un mundo</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/worlds/create">
+      <div class="modal-cuerpo">
+        <div class="campos">
+          <div class="campo-ancho">
+            <label for="w-name">Nombre del mundo</label>
+            <input id="w-name" name="name" required autocomplete="off"
+                   placeholder="Mundo nuevo" value="Mundo nuevo">
+          </div>
+        </div>
+
+        {{/*
+          Edicion con radios y no con un desplegable: asi CSS puede ensenar la
+          lista de versiones que toca. Sin JavaScript no hay forma de repoblar
+          un <select> al cambiar de edicion, y las versiones de Bedrock y Java
+          no tienen nada que ver entre si.
+        */}}
+        <fieldset class="edicion">
+          <legend>Edici&oacute;n y versi&oacute;n</legend>
+
+          <div class="opciones">
+            <label class="opcion">
+              <input type="radio" name="edition" id="ed-bedrock" value="bedrock" checked>
+              <span>Bedrock</span>
+            </label>
+            <label class="opcion">
+              <input type="radio" name="edition" id="ed-java" value="java">
+              <span>Java</span>
+            </label>
+          </div>
+
+          <div class="solo-bedrock">
+            <label for="w-ver-bedrock">Versi&oacute;n de Bedrock</label>
+            {{if .VersionsBedrock}}
+            <select id="w-ver-bedrock" name="version_bedrock">
+              {{range .VersionsBedrock}}
+              {{if .Nombre}}<optgroup label="Minecraft {{.Nombre}}">{{end}}
+                {{range .Opciones}}
+                <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>
+                  {{.Label}}{{if .Note}} &mdash; {{.Note}}{{end}}
+                </option>
+                {{end}}
+              {{if .Nombre}}</optgroup>{{end}}
+              {{end}}
+            </select>
+            {{else}}
+            <input id="w-ver-bedrock" name="version_bedrock" value="LATEST" autocomplete="off">
+            <p class="ayuda">No se pudo consultar la lista; escr&iacute;bela a mano.</p>
+            {{end}}
+          </div>
+
+          <div class="solo-java">
+            <label for="w-ver-java">Versi&oacute;n de Java</label>
+            {{if .VersionsJava}}
+            <select id="w-ver-java" name="version_java">
+              {{range .VersionsJava}}
+              {{if .Nombre}}<optgroup label="Minecraft {{.Nombre}}">{{end}}
+                {{range .Opciones}}
+                <option value="{{.Value}}" {{if .Recommended}}selected{{end}}>
+                  {{.Label}}{{if .Note}} &mdash; {{.Note}}{{end}}
+                </option>
+                {{end}}
+              {{if .Nombre}}</optgroup>{{end}}
+              {{end}}
+            </select>
+            {{else}}
+            <input id="w-ver-java" name="version_java" value="LATEST" autocomplete="off">
+            <p class="ayuda">No se pudo consultar la lista; escr&iacute;bela a mano.</p>
+            {{end}}
+          </div>
+
+          <p class="ayuda">
+            Si eliges una concreta, tus amigos tendr&aacute;n que tener
+            <strong>esa misma</strong>: las dos ediciones exigen que cliente y
+            servidor coincidan.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Reglas</legend>
+          <p class="ayuda">
+            Esto se puede cambiar despu&eacute;s. El panel lo reescribe en cada
+            arranque, as&iacute; que si alguien lo cambia dentro del juego,
+            vale para esa partida y al reiniciar vuelve a mandar el panel.
+          </p>
+
+          <div class="campos">
+            <div>
+              <label for="w-gamemode">Modo de juego</label>
+              <select id="w-gamemode" name="gamemode">
+                <option value="survival" selected>Supervivencia</option>
+                <option value="creative">Creativo</option>
+                <option value="adventure">Aventura</option>
+              </select>
+            </div>
+            <div>
+              <label for="w-difficulty">Dificultad</label>
+              <select id="w-difficulty" name="difficulty">
+                <option value="peaceful">Pac&iacute;fico</option>
+                <option value="easy">F&aacute;cil</option>
+                <option value="normal" selected>Normal</option>
+                <option value="hard">Dif&iacute;cil</option>
+              </select>
+            </div>
+            <div>
+              <label for="w-max">Jugadores</label>
+              <input id="w-max" name="max_players" type="number" min="1" max="100" value="12">
+            </div>
+          </div>
+
+          <label class="check">
+            <input type="checkbox" name="allow_commands" value="1">
+            <span>Permitir comandos</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" name="pvp" value="1" checked>
+            <span>Los jugadores pueden hacerse da&ntilde;o (PvP)</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Generaci&oacute;n</legend>
+          <p class="ayuda">
+            Esto <strong>no se puede cambiar despu&eacute;s</strong>: da forma
+            al terreno la primera vez y luego ya est&aacute; en disco.
+          </p>
+
+          <div class="campos">
+            <div class="campo-ancho">
+              <label for="w-seed">Semilla (opcional)</label>
+              <input id="w-seed" name="seed" autocomplete="off"
+                     placeholder="D&eacute;jala vac&iacute;a para una al azar">
+            </div>
+            <div class="campo-ancho solo-bedrock">
+              <label for="w-type-bedrock">Tipo de terreno</label>
+              <select id="w-type-bedrock" name="level_type_bedrock">
+                {{range .TypesBedrock}}
+                <option value="{{.}}">{{.Label}}{{if .Note}} &mdash; {{.Note}}{{end}}</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="campo-ancho solo-java">
+              <label for="w-type-java">Tipo de terreno</label>
+              <select id="w-type-java" name="level_type_java">
+                {{range .TypesJava}}
+                <option value="{{.}}">{{.Label}}{{if .Note}} &mdash; {{.Note}}{{end}}</option>
+                {{end}}
+              </select>
+            </div>
+          </div>
+          <p class="ayuda">
+            La semilla vale un n&uacute;mero o una palabra: <code>hola</code>
+            tambi&eacute;n es una semilla y el juego la convierte.
+          </p>
+
+          <label class="check">
+            <input type="checkbox" name="structures" value="1" checked>
+            <span>Generar estructuras (pueblos, templos, fortalezas)</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" name="bonus_chest" value="1">
+            <span>Cofre de regalo junto al punto de aparici&oacute;n</span>
+          </label>
+        </fieldset>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Crear mundo</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="importar-mapa">
   <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
   <div class="modal-caja modal-estrecho" role="dialog" aria-labelledby="titulo-importar">

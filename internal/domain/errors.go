@@ -8,6 +8,13 @@ import "errors"
 //
 // El texto va en espanol porque parte de estos mensajes llegan al usuario.
 var (
+	// ErrInvalidSettings: un ajuste fuera de los valores permitidos. Se
+	// rechaza en vez de escribirlo: el servidor ignoraria el valor raro y se
+	// comportaria de otra forma sin dar ningun error.
+	ErrInvalidSettings = errors.New("ajustes invalidos")
+	// ErrEmptyName: un mundo sin nombre no se puede listar ni elegir.
+	ErrEmptyName = errors.New("el nombre es obligatorio")
+
 	ErrNotFound           = errors.New("no encontrado")
 	ErrDuplicateEmail     = errors.New("ya existe un usuario con ese correo")
 	ErrInvalidCredentials = errors.New("correo o contrasena incorrectos")

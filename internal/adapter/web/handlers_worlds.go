@@ -13,9 +13,69 @@ func (s *Server) showWorlds(w http.ResponseWriter, r *http.Request) {
 	s.renderWorlds(w, r, "", "")
 }
 
+// createWorld da de alta un mundo vacio, que generara el servidor al arrancar.
+//
+// No comprueba el disco a proposito: un mundo creado no ocupa nada hasta que se
+// enciende, y quien lo enciende ya lo comprueba. Bloquearlo aqui impediria
+// preparar un mundo estando justo de espacio, que es cuando mas falta hace
+// poder organizarse.
+// versionesDe consulta las versiones instalables de una edicion.
+func (s *Server) versionesDe(r *http.Request, actor *domain.User, e domain.Edition) []grupoVersiones {
+	v, err := s.instances.Versions(r.Context(), actor, e)
+	if err != nil {
+		return nil
+	}
+	return agruparVersiones(v)
+}
+
+func (s *Server) createWorld(w http.ResponseWriter, r *http.Request) {
+	actor := userFrom(r)
+
+	if err := r.ParseForm(); err != nil {
+		s.redirectError(w, r, "/worlds", "No se pudo leer el formulario.")
+		return
+	}
+
+	maxJug, err := strconv.Atoi(r.PostFormValue("max_players"))
+	if err != nil {
+		s.redirectError(w, r, "/worlds", "Indica cuantos jugadores caben.")
+		return
+	}
+
+	gen := domain.Generation{
+		Seed:      r.PostFormValue("seed"),
+		LevelType: domain.LevelType(r.PostFormValue("level_type_" + r.PostFormValue("edition"))),
+		Structures: r.PostFormValue("structures") == "1",
+		BonusChest: r.PostFormValue("bonus_chest") == "1",
+	}
+	reglas := domain.Rules{
+		Gamemode:      domain.Gamemode(r.PostFormValue("gamemode")),
+		Difficulty:    domain.Difficulty(r.PostFormValue("difficulty")),
+		AllowCommands: r.PostFormValue("allow_commands") == "1",
+		PvP:           r.PostFormValue("pvp") == "1",
+		MaxPlayers:    maxJug,
+	}
+
+	// Se mandan los dos desplegables y aqui se coge el de la edicion elegida.
+	// Es la contrapartida de resolverlo con CSS en vez de JavaScript: el
+	// oculto viaja igual, asi que hay que ignorarlo a proposito.
+	edicion := domain.Edition(r.PostFormValue("edition"))
+	version := r.PostFormValue("version_" + string(edicion))
+
+	mundo, err := s.worlds.Create(r.Context(), actor,
+		r.PostFormValue("name"), edicion, version, gen, reglas, clientIP(r))
+	if err != nil {
+		s.redirectError(w, r, "/worlds", s.worldErrorMessage(err, nil))
+		return
+	}
+
+	s.redirectInfo(w, r, "/worlds",
+		"Mundo \""+mundo.Name+"\" creado. El terreno se genera la primera vez que arranques un servidor con el.")
+}
+
 func (s *Server) importWorld(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
-	max := s.maps.MaxUpload()
+	max := s.worlds.MaxUpload()
 
 	// Se limita el cuerpo ANTES de leerlo: sin esto, un archivo enorme se
 	// escribe entero en disco antes de que nadie compruebe su tamano.
@@ -39,7 +99,7 @@ func (s *Server) importWorld(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	mp, err := s.maps.Import(r.Context(), actor, file, header.Filename, header.Size, clientIP(r))
+	mp, err := s.worlds.Import(r.Context(), actor, file, header.Filename, header.Size, clientIP(r))
 	if err != nil {
 		// El codigo de estado deja de importar: la respuesta pasa a ser
 		// siempre una redireccion y el motivo viaja en el flash.
@@ -65,7 +125,7 @@ func (s *Server) deleteWorld(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.maps.Delete(r.Context(), actor, id, clientIP(r)); err != nil {
+	if err := s.worlds.Delete(r.Context(), actor, id, clientIP(r)); err != nil {
 		s.redirectError(w, r, "/worlds", s.worldErrorMessage(err, nil))
 		return
 	}
@@ -80,7 +140,7 @@ func (s *Server) worldIcon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := s.maps.Icon(r.Context(), userFrom(r), id)
+	data, err := s.worlds.Icon(r.Context(), userFrom(r), id)
 	if err != nil || len(data) == 0 {
 		http.NotFound(w, r)
 		return
@@ -102,7 +162,7 @@ func (s *Server) renderWorlds(w http.ResponseWriter, r *http.Request, errMsg, in
 	actor := userFrom(r)
 
 	pagina, _ := strconv.Atoi(r.URL.Query().Get("p"))
-	page, err := s.maps.ListPage(r.Context(), actor, app.Paging{Page: pagina})
+	page, err := s.worlds.ListPage(r.Context(), actor, app.Paging{Page: pagina})
 	if err != nil {
 		s.renderFailure(w, actor, "Mapas", "No se pudo leer la biblioteca de mapas.", err)
 		return
@@ -111,7 +171,13 @@ func (s *Server) renderWorlds(w http.ResponseWriter, r *http.Request, errMsg, in
 	s.renderer.render(w, http.StatusOK, "worlds.html", worldsPageData{
 		PageData:  s.pagina(r, "Mapas", errMsg, infoMsg),
 		Maps:      page.Maps,
-		MaxUpload: app.HumanSize(s.maps.MaxUpload()),
+		MaxUpload: app.HumanSize(s.worlds.MaxUpload()),
+		// Si la consulta falla, la lista queda vacia y la plantilla cae al
+		// campo libre: no impedir crear mundos porque un tercero no responda.
+		VersionsBedrock: s.versionesDe(r, actor, domain.EditionBedrock),
+		VersionsJava:    s.versionesDe(r, actor, domain.EditionJava),
+		TypesBedrock:    domain.LevelTypesFor(domain.EditionBedrock),
+		TypesJava:       domain.LevelTypesFor(domain.EditionJava),
 		Pag:       paginador{Info: page.PageInfo, Base: "/maps?"},
 	})
 }
@@ -124,10 +190,14 @@ func (s *Server) worldErrorMessage(err error, dup *domain.World) string {
 			return "Ese archivo ya esta en la biblioteca como \"" + dup.Name + "\"."
 		}
 		return "Ese mapa ya esta en la biblioteca."
+	case errors.Is(err, domain.ErrEmptyName):
+		return "El nombre del mundo es obligatorio."
+	case errors.Is(err, domain.ErrInvalidSettings):
+		return "Alguno de los ajustes no es valido."
 	case errors.Is(err, domain.ErrNoFile):
 		return "No se recibio ningun archivo."
 	case errors.Is(err, domain.ErrFileTooBig):
-		return "El archivo supera el tamano maximo (" + app.HumanSize(s.maps.MaxUpload()) + ")."
+		return "El archivo supera el tamano maximo (" + app.HumanSize(s.worlds.MaxUpload()) + ")."
 	case errors.Is(err, domain.ErrNotAnArchive):
 		return "El archivo no es un ZIP valido. Un .mcworld es un ZIP; comprueba que no se descargo a medias."
 	case errors.Is(err, domain.ErrNotAWorld):

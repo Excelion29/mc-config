@@ -24,8 +24,32 @@ main {
   flex-wrap: wrap;
 }
 
-.cabecera-pagina > div { flex: 1 1 20rem; }
+/* El bloque de texto se queda con el espacio que necesita, sin un ancho fijo
+   que lo estrangule. min-width: 0 evita que un titulo largo lo desborde. */
+/* SIN flex-grow. Con el, este bloque absorbe todo el espacio libre y el
+   margin-left:auto de las acciones se queda sin nada que empujar: los botones
+   acaban flotando a media pagina. */
+.cabecera-pagina > div {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .cabecera-pagina h1 { margin-bottom: .2rem; }
+
+/* Las acciones se van al borde derecho en vez de quedarse pegadas al texto.
+   Antes flotaban a media pagina, con el parrafo apretado a un lado y un hueco
+   muerto al otro: ni lo uno ni lo otro decia nada. */
+.cabecera-acciones,
+.cabecera-pagina > .boton {
+  margin-left: auto;
+}
+
+.cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  flex-wrap: wrap;
+}
 
 /* --- Pantalla partida ----------------------------------------------------
    La lista a un lado y lo que esta pasando ahora al otro. En pantallas

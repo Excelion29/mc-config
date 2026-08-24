@@ -87,10 +87,27 @@ func (f *Flavor) WriteConfig(inst *domain.Instance, dataDir string, allowlist []
 		"server-port":   strconv.Itoa(domain.PortBedrock),
 		"server-portv6": strconv.Itoa(domain.PortBedrock + 1),
 		"online-mode":   "true",
-		"allow-list":    "true",
-		"gamemode":      "survival",
-		"difficulty":    "easy",
-		"max-players":   "12",
+		// La allow-list va SIEMPRE puesta. En Bedrock una lista vacia bloquea
+		// a todos, que es el fallo seguro: mas vale no poder entrar tu que
+		// dejar entrar a cualquiera.
+		"allow-list": "true",
+
+		// --- Reglas: se reescriben en cada arranque ---
+		"gamemode":     string(inst.Rules.Gamemode),
+		"difficulty":   string(inst.Rules.Difficulty),
+		"allow-cheats": boolProp(inst.Rules.AllowCommands),
+		"max-players":  strconv.Itoa(inst.Rules.MaxPlayers),
+	}
+
+	// --- Generacion: solo se escribe si el mundo nacio vacio ---
+	//
+	// En un mapa importado el terreno ya esta hecho y estas claves no harian
+	// nada, salvo confundir a quien lea el archivo pensando que si.
+	if inst.Gen.Seed != "" {
+		props["level-seed"] = inst.Gen.Seed
+	}
+	if t := levelType(inst.Gen.LevelType); t != "" {
+		props["level-type"] = t
 	}
 
 	if err := writeProperties(filepath.Join(dataDir, "server.properties"), props); err != nil {
@@ -261,4 +278,29 @@ func nombresDe(refs []app.PlayerRef) []string {
 		out = append(out, r.Name)
 	}
 	return out
+}
+
+// boolProp escribe un booleano como lo espera server.properties.
+func boolProp(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
+
+// levelType traduce el tipo de terreno al valor que espera Bedrock.
+//
+// Bedrock los escribe en MAYUSCULAS y solo entiende tres. Devuelve vacio para
+// los que no conoce, y entonces no se escribe la clave: mas vale no ponerla
+// que ponerla con algo que el servidor ignora en silencio.
+func levelType(t domain.LevelType) string {
+	switch t {
+	case domain.LevelFlat:
+		return "FLAT"
+	case domain.LevelLegacy:
+		return "LEGACY"
+	case domain.LevelNormal:
+		return "DEFAULT"
+	}
+	return ""
 }

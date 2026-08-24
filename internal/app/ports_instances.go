@@ -120,9 +120,13 @@ type ServerFlavor interface {
 
 // VersionOption es una version que se puede instalar.
 type VersionOption struct {
-	Value       string
-	Label       string
-	Note        string
+	Value string
+	Label string
+	Note  string
+	// Group agrupa versiones emparentadas -"1.21", "26.2"- para que una lista
+	// larga se pueda recorrer. Vacio significa suelta, sin grupo: Bedrock
+	// ofrece tres opciones y agruparlas seria ruido.
+	Group       string
 	Recommended bool
 }
 

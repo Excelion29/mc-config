@@ -141,7 +141,21 @@ func (i *Instances) playersOf(ctx context.Context, inst *domain.Instance) (int, 
 
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	return flavor.Players(ctx, i.host, inst.Port)
+
+	online, max, err := flavor.Players(ctx, i.host, inst.Port)
+	if err != nil {
+		// Este fallo NO era visible en ningun sitio, y es el que decide si una
+		// instancia pasa de "arrancando" a "activa". Sin esta linea el sintoma
+		// es una pantalla clavada en "arrancando" y cero pistas: ni en el log
+		// del panel ni en el del servidor, porque el servidor esta
+		// perfectamente y quien no llega es el panel.
+		//
+		// Se registra la direccion consultada a proposito: casi siempre el
+		// problema es esa, no el servidor.
+		i.log.Warn("el servidor no responde al ping; sigue en arrancando",
+			"instancia", inst.Name, "host", i.host, "puerto", inst.Port, "error", err)
+	}
+	return online, max, err
 }
 
 // fail marca la instancia como fallida y deja el motivo en el log del proceso.

@@ -163,3 +163,47 @@
 }
 
 .acciones-fila form { display: inline-flex; }
+
+/* --- Campos en rejilla ---------------------------------------------------
+   Un formulario donde todo va en su propia fila desperdicia el ancho y obliga
+   a desplazarse por campos que caben de sobra al lado. Los cortos comparten
+   fila; los que necesitan sitio piden la fila entera.
+
+   auto-fit y no un numero de columnas fijo: en un dialogo estrecho o en el
+   movil se apilan solos, sin media queries. */
+
+.campos {
+  display: grid;
+  /* 14rem y no menos: con un minimo pequeno caben tres columnas en un dialogo
+     y un campo solo en su fila se queda a un tercio de ancho, que parece roto.
+     Con este minimo salen dos, y un campo suelto ocupa la mitad. */
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--espacio-2) var(--espacio-3);
+  align-items: end;
+}
+
+/* Ocupa toda la fila: nombres y semillas necesitan sitio para leerse. */
+.campo-ancho { grid-column: 1 / -1; }
+
+/* El primer label de cada celda no lleva el margen de arriba, o la rejilla
+   queda con las filas desalineadas. */
+.campos > div > label:first-child { margin-top: 0; }
+
+/* --- Eleccion de edicion -------------------------------------------------
+   Radios en vez de un desplegable para que CSS pueda ensenar la lista de
+   versiones que corresponde. Sin JavaScript no hay forma de repoblar un
+   <select> al cambiar de edicion. */
+
+.edicion .opciones { display: flex; gap: var(--espacio-4); margin-bottom: var(--espacio-2); }
+
+.opcion { display: inline-flex; align-items: center; gap: var(--espacio-1); margin: 0; cursor: pointer; }
+.opcion input { width: auto; margin: 0; }
+.opcion span { color: var(--color-texto); }
+
+/* Lo que corresponde a la edicion que NO esta marcada se oculta.
+   Se cuelga del formulario entero y no del grupo de edicion: hay campos que
+   dependen de la edicion mas abajo -el tipo de terreno- y encerrarlos junto a
+   los radios solo para que el selector alcanzara habria sido acomodar el HTML
+   a una limitacion del CSS. */
+form:has(#ed-bedrock:checked) .solo-java,
+form:has(#ed-java:checked) .solo-bedrock { display: none; }

@@ -62,7 +62,16 @@ type worldsPageData struct {
 	PageData
 	Maps      []domain.World
 	MaxUpload string
-	Pag       paginador
+	// Las versiones de las DOS ediciones viajan juntas porque el formulario
+	// ofrece las dos listas y CSS ensena la que toque. Sin JavaScript no se
+	// puede repoblar un desplegable al cambiar de edicion, asi que se mandan
+	// ambas y se oculta una.
+	VersionsBedrock []grupoVersiones
+	VersionsJava    []grupoVersiones
+	// Los tipos de terreno tambien difieren por edicion.
+	TypesBedrock []domain.LevelType
+	TypesJava    []domain.LevelType
+	Pag             paginador
 }
 
 type instancesPageData struct {
@@ -152,7 +161,7 @@ func (s *Server) pagina(r *http.Request, titulo, errMsg, infoMsg string) PageDat
 
 	// Solo se rellena si hay algo que decir: por debajo del umbral, ni se
 	// menciona. Un aviso permanente deja de leerse.
-	if estado, err := s.maps.Disk(); err == nil && estado.Avisar() {
+	if estado, err := s.worlds.Disk(); err == nil && estado.Avisar() {
 		pd.Disco = &estado
 	}
 	return pd

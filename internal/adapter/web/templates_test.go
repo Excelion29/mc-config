@@ -169,3 +169,39 @@ func resumen(s string) string {
 	}
 	return s
 }
+
+// TestLosBotonesDeCabeceraSeAlinean protege la alineacion de las cabeceras.
+//
+// El boton de accion tiene que ir dentro de .cabecera-acciones, que es lo que
+// lo empuja al borde derecho. Suelto queda flotando a media pagina, con el
+// texto apretado a un lado y un hueco muerto al otro.
+//
+// Paso justo eso: se arreglo en una pantalla y las otras cuatro se quedaron
+// atras, porque nada obligaba a que fueran iguales.
+func TestLosBotonesDeCabeceraSeAlinean(t *testing.T) {
+	paginas, err := fs.Glob(assets, "templates/*.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	revisadas := 0
+	for _, ruta := range paginas {
+		datos, err := fs.ReadFile(assets, ruta)
+		if err != nil {
+			t.Fatal(err)
+		}
+		html := string(datos)
+		if !strings.Contains(html, `class="cabecera-pagina"`) {
+			continue
+		}
+		revisadas++
+
+		if !strings.Contains(html, `class="cabecera-acciones"`) {
+			t.Errorf("%s: tiene cabecera pero el boton no esta en .cabecera-acciones", ruta)
+		}
+	}
+
+	if revisadas == 0 {
+		t.Error("no se reviso ninguna cabecera; la prueba no comprueba nada")
+	}
+}

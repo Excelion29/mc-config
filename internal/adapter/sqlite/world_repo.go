@@ -13,8 +13,10 @@ import (
 // WorldRepo implementa app.WorldRepo.
 type WorldRepo struct{ db *sql.DB }
 
-const worldColumns = `id, name, raw_name, edition, version, file_name,
-	size_bytes, sha256, has_icon, uploaded_by, created_at`
+const worldColumns = `id, name, raw_name, edition, version, origin, file_name,
+	size_bytes, sha256, has_icon, seed, level_type, structures, bonus_chest,
+	gamemode, difficulty, allow_commands, pvp, max_players,
+	uploaded_by, created_at`
 
 func (r *WorldRepo) Create(ctx context.Context, m *domain.World) (int64, error) {
 	var uploadedBy any
@@ -23,12 +25,20 @@ func (r *WorldRepo) Create(ctx context.Context, m *domain.World) (int64, error) 
 	}
 
 	res, err := r.db.ExecContext(ctx,
-		`INSERT INTO worlds (name, raw_name, edition, version, file_name,
-		                   size_bytes, sha256, has_icon, uploaded_by, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		m.Name, m.RawName, string(m.Edition), m.Version, m.FileName,
-		m.SizeBytes, m.SHA256, boolToInt(m.HasIcon), uploadedBy,
-		m.CreatedAt.Format(time.RFC3339))
+		`INSERT INTO worlds (name, raw_name, edition, version, origin, file_name,
+		                   size_bytes, sha256, has_icon, seed, level_type,
+		                   structures, bonus_chest, gamemode, difficulty,
+		                   allow_commands, pvp, max_players,
+		                   uploaded_by, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		m.Name, m.RawName, string(m.Edition), m.Version, string(m.Origin),
+		m.FileName, m.SizeBytes, hashONulo(m.SHA256), boolToInt(m.HasIcon),
+		m.Gen.Seed, string(m.Gen.LevelType),
+		boolToInt(m.Gen.Structures), boolToInt(m.Gen.BonusChest),
+		string(m.Rules.Gamemode), string(m.Rules.Difficulty),
+		boolToInt(m.Rules.AllowCommands), boolToInt(m.Rules.PvP),
+		m.Rules.MaxPlayers,
+		uploadedBy, m.CreatedAt.Format(time.RFC3339))
 	if err != nil {
 		if isUniqueViolation(err) {
 			return 0, domain.ErrDuplicateWorld
@@ -121,12 +131,20 @@ func scanWorld(scan func(...any) error) (*domain.World, error) {
 	var (
 		m          domain.World
 		edition    string
+		origin     string
 		hasIcon    int
+		nivel      string
+		modo       string
+		dificultad string
+		estructuras, cofre, comandos, pvp int
+		sha        sql.NullString
 		uploadedBy sql.NullInt64
 		createdAt  string
 	)
-	err := scan(&m.ID, &m.Name, &m.RawName, &edition, &m.Version, &m.FileName,
-		&m.SizeBytes, &m.SHA256, &hasIcon, &uploadedBy, &createdAt)
+	err := scan(&m.ID, &m.Name, &m.RawName, &edition, &m.Version, &origin,
+		&m.FileName, &m.SizeBytes, &sha, &hasIcon, &m.Gen.Seed, &nivel,
+		&estructuras, &cofre, &modo, &dificultad, &comandos, &pvp,
+		&m.Rules.MaxPlayers, &uploadedBy, &createdAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err
@@ -135,10 +153,31 @@ func scanWorld(scan func(...any) error) (*domain.World, error) {
 	}
 
 	m.Edition = domain.Edition(edition)
+	m.Origin = domain.Origin(origin)
+	m.SHA256 = sha.String // vacio si es NULL, que es lo que queremos
+	m.Gen.LevelType = domain.LevelType(nivel)
+	m.Gen.Structures = estructuras == 1
+	m.Gen.BonusChest = cofre == 1
+	m.Rules.Gamemode = domain.Gamemode(modo)
+	m.Rules.Difficulty = domain.Difficulty(dificultad)
+	m.Rules.AllowCommands = comandos == 1
+	m.Rules.PvP = pvp == 1
 	m.HasIcon = hasIcon == 1
 	if uploadedBy.Valid {
 		m.UploadedBy = uploadedBy.Int64
 	}
 	m.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
 	return &m, nil
+}
+
+// hashONulo convierte un hash vacio en NULL.
+//
+// El UNIQUE de sha256 sigue detectando archivos repetidos, pero SQLite trata
+// cada NULL como distinto: asi caben todos los mundos creados, que no tienen
+// archivo y por tanto no tienen hash. Con cadena vacia solo cabria uno.
+func hashONulo(sha string) any {
+	if sha == "" {
+		return nil
+	}
+	return sha
 }

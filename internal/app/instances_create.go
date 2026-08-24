@@ -73,6 +73,8 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 		Version:   version,
 		WorldID:     mp.ID,
 		WorldName:   mp.Name,
+		Gen:         mp.Gen,
+		Rules:       mp.Rules,
 		LevelName: slug,
 		Port:      flavor.DefaultPort(),
 		State:     domain.StateStopped,
@@ -89,7 +91,14 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 	// Si algo falla a partir de aqui, no debe quedar media instancia en disco.
 	limpiar := func() { os.RemoveAll(dir) }
 
-	if err := flavor.InstallWorld(i.store.ArchivePath(mp.SHA256), dir, inst.LevelName); err != nil {
+	// Un mundo creado no tiene archivo que extraer: lo genera el propio
+	// servidor al arrancar, a partir de la semilla que va en la configuracion.
+	// Se le pasa ruta vacia y cada adaptador decide que hacer con eso.
+	archivo := ""
+	if mp.Importado() {
+		archivo = i.store.ArchivePath(mp.SHA256)
+	}
+	if err := flavor.InstallWorld(archivo, dir, inst.LevelName); err != nil {
 		limpiar()
 		return nil, err
 	}
@@ -114,7 +123,8 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 	inst.ID = id
 
 	i.audit.Record(ctx, actor, actor.Email, domain.ActionInstanceCreated,
-		fmt.Sprintf("%s (%s %s) desde el mapa %s", inst.Name, inst.Edition.Label(), inst.Version, mp.Name), ip)
+		fmt.Sprintf("%s (%s %s) desde %s %q", inst.Name, inst.Edition.Label(),
+			inst.Version, strings.ToLower(mp.Origin.Label()), mp.Name), ip)
 	return inst, nil
 }
 

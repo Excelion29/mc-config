@@ -29,6 +29,18 @@ services:
       MCVPS_DOCKER_HOST: tcp://mcvps-docker-proxy:2375
 
     # Sin "ports". A proposito. No lo anadas para "probar rapido".
+
+    # El panel comprueba si un servidor esta en pie haciendole un ping al
+    # puerto del juego. Ese puerto lo publica OTRO contenedor en el host, y el
+    # panel vive en su propia red: no puede alcanzarlo por su nombre.
+    #
+    # Apuntar a la IP publica de la VPS obliga al paquete a salir, llegar al
+    # host y volver a entrar hacia otro contenedor -"hairpin NAT"-, que con UDP
+    # suele no funcionar. host-gateway resuelve al host directamente, sin dar
+    # esa vuelta.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     networks:
       - proxy            # para que el reverse proxy lo alcance
       - mcvps_internal   # para hablar con el proxy de Docker

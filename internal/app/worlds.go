@@ -60,7 +60,7 @@ func (m *Worlds) Icon(ctx context.Context, actor *domain.User, id int64) ([]byte
 // despues se inspecciona, y solo si todo cuadra se mueve a su sitio. Asi un
 // archivo malo nunca llega a la biblioteca.
 func (m *Worlds) Import(ctx context.Context, actor *domain.User, src io.Reader, fileName string, declaredSize int64, ip string) (*domain.World, error) {
-	if !actor.Can(domain.PermMapImport) {
+	if !actor.Can(domain.PermWorldImport) {
 		return nil, domain.ErrForbidden
 	}
 	if src == nil || strings.TrimSpace(fileName) == "" {
@@ -137,6 +137,11 @@ func (m *Worlds) Import(ctx context.Context, actor *domain.User, src io.Reader, 
 		RawName:    insp.RawName,
 		Edition:    insp.Edition,
 		Version:    insp.Version,
+		Origin:     domain.OriginImported,
+		// Un mapa importado trae su terreno hecho, asi que la generacion solo
+		// describe lo que ya es. Las reglas si son nuestras.
+		Gen:        domain.DefaultGeneration(),
+		Rules:      domain.DefaultRules(),
 		FileName:   filepath.Base(fileName),
 		SizeBytes:  written,
 		SHA256:     sha,
@@ -167,13 +172,13 @@ func (m *Worlds) Import(ctx context.Context, actor *domain.User, src io.Reader, 
 	}
 	mp.ID = id
 
-	m.audit.Record(ctx, actor, actor.Email, domain.ActionMapImported,
+	m.audit.Record(ctx, actor, actor.Email, domain.ActionWorldImported,
 		fmt.Sprintf("%s (%s %s, %s)", mp.Name, mp.Edition.Label(), mp.Version, HumanSize(mp.SizeBytes)), ip)
 	return mp, nil
 }
 
 func (m *Worlds) Delete(ctx context.Context, actor *domain.User, id int64, ip string) error {
-	if !actor.Can(domain.PermMapDelete) {
+	if !actor.Can(domain.PermWorldDelete) {
 		return domain.ErrForbidden
 	}
 
@@ -191,7 +196,7 @@ func (m *Worlds) Delete(ctx context.Context, actor *domain.User, id int64, ip st
 			"sha", mp.SHA256, "error", err)
 	}
 
-	m.audit.Record(ctx, actor, actor.Email, domain.ActionMapDeleted, mp.Name, ip)
+	m.audit.Record(ctx, actor, actor.Email, domain.ActionWorldDeleted, mp.Name, ip)
 	return nil
 }
 
@@ -207,4 +212,71 @@ func HumanSize(b int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+// Create da de alta un mundo VACIO, que generara el servidor al arrancar.
+//
+// Es el camino normal para ponerse a jugar: eliges edicion, opcionalmente una
+// semilla, y ya. Importar un mapa es el otro camino, y es el especial.
+//
+// Aqui no se toca el disco. Un mundo creado es una DECLARACION -esta semilla,
+// este tipo de terreno- y los archivos no existen hasta que un servidor
+// arranca con ella. Generarlos antes exigiria levantar un servidor solo para
+// eso, que es justo lo que el servidor ya hace por su cuenta al encenderse.
+func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
+	edicion domain.Edition, version string, gen domain.Generation,
+	reglas domain.Rules, ip string,
+) (*domain.World, error) {
+	if !actor.Can(domain.PermWorldImport) {
+		return nil, domain.ErrForbidden
+	}
+
+	nombre = strings.TrimSpace(nombre)
+	if nombre == "" {
+		return nil, domain.ErrEmptyName
+	}
+	if !edicion.Valid() {
+		return nil, domain.ErrEditionMismatch
+	}
+
+	// Se validan aqui y no en la plantilla: un valor invalido en
+	// server.properties no da error, el servidor lo ignora y se comporta de
+	// otra forma sin decir nada.
+	if !gen.LevelType.ValidFor(edicion) || !reglas.Gamemode.Valid() || !reglas.Difficulty.Valid() {
+		return nil, domain.ErrInvalidSettings
+	}
+	if reglas.MaxPlayers < 1 || reglas.MaxPlayers > 100 {
+		return nil, domain.ErrInvalidSettings
+	}
+
+	// No se comprueba el disco: un mundo creado no ocupa nada hasta que se
+	// enciende, y quien lo enciende es Instances, que si lo comprueba.
+	mundo := &domain.World{
+		Name:      nombre,
+		RawName:   nombre,
+		Edition:   edicion,
+		Origin:  domain.OriginCreated,
+		Gen:     gen,
+		Rules:   reglas,
+		// La version de un mundo CREADO significa algo distinto que la de uno
+		// importado. En el importado se leyo de level.dat y dice "con esto se
+		// jugo la ultima vez", que es un minimo, no una version descargable.
+		// Aqui es una eleccion: con que version quieres generarlo.
+		//
+		// Vacia equivale a LATEST, que es lo que ya hace la creacion de
+		// servidores.
+		Version: strings.TrimSpace(version),
+		UploadedBy: actor.ID,
+		CreatedAt:  m.clock(),
+	}
+
+	id, err := m.repo.Create(ctx, mundo)
+	if err != nil {
+		return nil, err
+	}
+	mundo.ID = id
+
+	m.audit.Record(ctx, actor, actor.Email, domain.ActionWorldCreated,
+		nombre+" ("+edicion.Label()+")", ip)
+	return mundo, nil
 }

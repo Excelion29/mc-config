@@ -15,8 +15,12 @@ const (
 	PermServerView    Permission = "server.view"
 	PermServerOperate Permission = "server.operate"
 
-	PermMapImport Permission = "map.import"
-	PermMapDelete Permission = "map.delete"
+	// PermWorldImport cubre anadir mundos, tanto importando un mapa como
+	// creando uno vacio. El codigo sigue siendo "map.import" porque esta
+	// guardado en la base: renombrarlo obligaria a migrar los permisos ya
+	// concedidos, y el codigo no lo lee nadie de fuera.
+	PermWorldImport Permission = "map.import"
+	PermWorldDelete Permission = "map.delete"
 
 	PermInstanceCreate Permission = "instance.create"
 	PermInstanceDelete Permission = "instance.delete"
@@ -46,9 +50,9 @@ var Permissions = []PermissionDef{
 	{PermServerOperate, "Servidores", "Arrancar, parar y cambiar de mapa",
 		"Cambiar de mapa desconecta a quien este jugando (D-02).", false},
 
-	{PermMapImport, "Mapas", "Importar mapas",
+	{PermWorldImport, "Mundos", "Anadir mundos",
 		"Subir archivos .mcworld y anadirlos a la biblioteca.", false},
-	{PermMapDelete, "Mapas", "Borrar mapas",
+	{PermWorldDelete, "Mundos", "Borrar mundos",
 		"Elimina el mapa de la biblioteca y del disco.", true},
 
 	{PermInstanceCreate, "Instancias", "Crear instancias",

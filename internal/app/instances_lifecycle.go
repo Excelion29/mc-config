@@ -232,6 +232,14 @@ func (i *Instances) Status(ctx context.Context, actor *domain.User, id int64) (*
 
 	if inst.ContainerID != "" {
 		st, err := i.runtime.Status(ctx, inst.ContainerID)
+		if err != nil {
+			// Otro fallo que no se veia en ningun sitio. Si Docker no
+			// contesta -o el contenedor ya no existe con ese id, porque
+			// alguien lo recreo a mano- el estado se queda congelado y no hay
+			// forma de saber por que mirando el panel.
+			i.log.Warn("no se pudo consultar el contenedor; el estado se queda como esta",
+				"instancia", inst.Name, "contenedor", inst.ContainerID, "error", err)
+		}
 		if err == nil {
 			switch {
 			case inst.State == domain.StateStarting:

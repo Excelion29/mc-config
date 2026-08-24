@@ -39,7 +39,7 @@ func (s *Server) showInstances(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	maps, err := s.maps.List(r.Context(), actor)
+	maps, err := s.worlds.List(r.Context(), actor)
 	if err != nil {
 		s.renderFailure(w, actor, "Servidores", "No se pudo leer la biblioteca de mapas.", err)
 		return

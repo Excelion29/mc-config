@@ -57,6 +57,11 @@ type Instance struct {
 	WorldID       int64
 	WorldName     string
 	LevelName   string
+	// Gen y Rules se copian del mundo al crear la instancia. Gen le dice al
+	// servidor QUE generar la primera vez; Rules se reescribe en cada
+	// arranque.
+	Gen   Generation
+	Rules Rules
 	ContainerID string
 	Port        int
 	State       InstanceState
@@ -119,4 +124,7 @@ const (
 	// PortBedrock es el puerto estandar. Por D-02 solo hay un servidor
 	// encendido a la vez, asi que no hay que repartir puertos.
 	PortBedrock = 19132
+	// PortJava es el puerto estandar de Java. Es TCP, no UDP: es la diferencia
+	// mas visible entre las dos ediciones a nivel de red.
+	PortJava = 25565
 )

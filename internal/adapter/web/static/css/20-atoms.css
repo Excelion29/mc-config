@@ -29,6 +29,21 @@ button { margin-top: var(--espacio-5); }
 
 button:hover, .boton:hover { filter: brightness(1.08); }
 
+/* Accion alternativa: mismo peso visual, menos enfasis. Perfilado en vez de
+   relleno. Es lo correcto cuando las dos opciones son legitimas y solo una es
+   la mas comun. */
+.boton-secundario {
+  background: transparent;
+  color: var(--color-texto);
+  border: var(--borde-fino) solid var(--color-borde);
+}
+
+.boton-secundario:hover {
+  border-color: var(--color-acento);
+  color: var(--color-acento);
+  filter: none;
+}
+
 /* Accion secundaria: parece un enlace pero puede ser un <button> dentro de un
    formulario. Es lo correcto para "Detener" o "Borrar": son envios, no
    navegacion, y un <a> ahi mentiria sobre lo que va a pasar. */
@@ -109,7 +124,14 @@ button:hover, .boton:hover { filter: brightness(1.08); }
 
 /* --- Texto ---------------------------------------------------------------- */
 
-.sub    { color: var(--color-texto-tenue); margin: 0 0 var(--espacio-5); }
+.sub {
+  color: var(--color-texto-tenue);
+  margin: 0 0 var(--espacio-5);
+  /* Un parrafo que cruza 1400 px no se lee: al volver del final de la linea el
+     ojo pierde el renglon. Se limita, pero sin quedarse corto: con el boton ya
+     anclado a la derecha, 70 caracteres dejaban media linea vacia sin motivo. */
+  max-width: 90ch;
+}
 .apagado { color: var(--color-texto-tenue); }
 .tenue  { color: var(--color-texto-tenue); font-weight: var(--peso-normal); font-size: var(--texto-sm); }
 .vacio  { color: var(--color-texto-tenue); margin: 0; }

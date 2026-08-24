@@ -23,8 +23,9 @@ const (
 	ActionRoleUpdated Action = "role_updated"
 	ActionRoleDeleted Action = "role_deleted"
 
-	ActionMapImported Action = "map_imported"
-	ActionMapDeleted  Action = "map_deleted"
+	ActionWorldImported Action = "map_imported"
+	ActionWorldCreated  Action = "world_created"
+	ActionWorldDeleted  Action = "map_deleted"
 
 	ActionInstanceCreated Action = "instance_created"
 	ActionInstanceStarted Action = "instance_started"

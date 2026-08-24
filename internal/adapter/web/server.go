@@ -27,7 +27,7 @@ const cookieName = "mcvps_session"
 type Server struct {
 	auth     *app.Auth
 	audit    *app.Audit
-	maps      *app.Worlds
+	worlds    *app.Worlds
 	instances *app.Instances
 	players   *app.Players
 	renderer *renderer
@@ -42,7 +42,7 @@ type Server struct {
 func NewServer(
 	auth *app.Auth,
 	audit *app.Audit,
-	maps *app.Worlds,
+	worlds    *app.Worlds,
 	instances *app.Instances,
 	players *app.Players,
 	log *slog.Logger,
@@ -54,7 +54,7 @@ func NewServer(
 		return nil, err
 	}
 	return &Server{
-		auth: auth, audit: audit, maps: maps, instances: instances, players: players,
+		auth: auth, audit: audit, worlds: worlds, instances: instances, players: players,
 		renderer: r, log: log,
 		secureCookies: secureCookies, sessionTTL: sessionTTL,
 	}, nil
@@ -117,12 +117,13 @@ func (s *Server) Routes() http.Handler {
 		})
 
 		private.Group(func(g chi.Router) {
-			g.Use(s.requirePermission(domain.PermMapImport))
+			g.Use(s.requirePermission(domain.PermWorldImport))
 			g.Post("/worlds", s.importWorld)
+			g.Post("/worlds/create", s.createWorld)
 		})
 
 		private.Group(func(g chi.Router) {
-			g.Use(s.requirePermission(domain.PermMapDelete))
+			g.Use(s.requirePermission(domain.PermWorldDelete))
 			g.Post("/worlds/delete", s.deleteWorld)
 		})
 

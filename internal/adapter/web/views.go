@@ -3,6 +3,7 @@ package web
 import (
 	"time"
 
+	"github.com/Excelion29/mc-config/internal/app"
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
@@ -141,4 +142,31 @@ func permisosPorRol(roles []domain.Role) map[int64]map[domain.Permission]bool {
 		m[roles[i].ID] = marcados
 	}
 	return m
+}
+
+// grupoVersiones es un <optgroup> ya resuelto.
+type grupoVersiones struct {
+	// Nombre vacio = opciones sueltas, sin agrupar.
+	Nombre   string
+	Opciones []app.VersionOption
+}
+
+// agruparVersiones prepara la lista para pintarla con <optgroup>.
+//
+// PaperMC devuelve todas las versiones que existen y son muchas. Sueltas, una
+// lista de cien entradas no se recorre; agrupadas por familia -1.21, 26.2- si.
+//
+// Se agrupa aqui y no en la plantilla porque abrir y cerrar etiquetas dentro
+// de condicionales produce HTML desequilibrado a la minima. En Go el grupo es
+// una estructura y la plantilla solo recorre.
+func agruparVersiones(opciones []app.VersionOption) []grupoVersiones {
+	var grupos []grupoVersiones
+	for _, o := range opciones {
+		if n := len(grupos); n > 0 && grupos[n-1].Nombre == o.Group {
+			grupos[n-1].Opciones = append(grupos[n-1].Opciones, o)
+			continue
+		}
+		grupos = append(grupos, grupoVersiones{Nombre: o.Group, Opciones: []app.VersionOption{o}})
+	}
+	return grupos
 }

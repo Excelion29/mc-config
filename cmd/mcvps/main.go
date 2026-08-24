@@ -21,6 +21,7 @@ import (
 
 	"github.com/Excelion29/mc-config/internal/adapter/bedrock"
 	"github.com/Excelion29/mc-config/internal/adapter/dockerx"
+	"github.com/Excelion29/mc-config/internal/adapter/java"
 	"github.com/Excelion29/mc-config/internal/adapter/mcworld"
 	"github.com/Excelion29/mc-config/internal/adapter/security"
 	"github.com/Excelion29/mc-config/internal/adapter/sqlite"
@@ -134,7 +135,9 @@ func build(log *slog.Logger) (*deps, error) {
 
 	instances := app.NewInstances(
 		db.Instances(), db.Worlds(), store, runtime,
-		[]app.ServerFlavor{bedrock.New(inspector)},
+		// Los dos sabores. Instances elige por la edicion del mundo, asi que
+		// anadir Java no cambia ni un caso de uso (D-15).
+		[]app.ServerFlavor{bedrock.New(inspector), java.New(inspector)},
 		audit, clock, cfg.InstancesPath, cfg.GameHost, log,
 	)
 

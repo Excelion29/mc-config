@@ -180,11 +180,42 @@
 
 .modal-cerrar:hover { color: var(--color-texto); }
 
+/* El formulario es hijo directo de la caja, asi que TIENE que participar en el
+   flex. Sin esto crece con su contenido, el cuerpo nunca llega a desplazarse y
+   el pie -donde esta el boton de guardar- se va fuera de la pantalla.
+
+   min-height: 0 no es opcional: por defecto un elemento flexible no se encoge
+   por debajo de su contenido, y sin eso el overflow del cuerpo no se activa
+   nunca. Es la trampa clasica de flexbox. */
+.modal-caja > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-cuerpo {
   padding: var(--espacio-5);
   overflow: auto;
   flex: 1 1 auto;
+  min-height: 0;
 }
+
+/* Los grupos dentro de un dialogo necesitan aire entre ellos, o "Reglas" y
+   "Generacion" se leen como una sola lista larga. */
+.modal-cuerpo fieldset {
+  /* Aire ARRIBA tambien: sin el, el borde del grupo queda pegado al campo
+     anterior y parece que forman parte de lo mismo. */
+  margin: var(--espacio-5) 0;
+  padding: var(--espacio-3) var(--espacio-4) var(--espacio-4);
+}
+.modal-cuerpo fieldset:first-child { margin-top: 0; }
+.modal-cuerpo fieldset:last-child { margin-bottom: 0; }
+.modal-cuerpo fieldset legend {
+  font-weight: var(--peso-fuerte);
+  color: var(--color-texto);
+}
+.modal-cuerpo fieldset > .ayuda:first-of-type { margin-top: var(--espacio-1); }
 
 .modal-pie {
   border-top: var(--borde-fino) solid var(--color-borde);
