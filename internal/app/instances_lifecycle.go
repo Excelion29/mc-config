@@ -247,6 +247,20 @@ func (i *Instances) Status(ctx context.Context, actor *domain.User, id int64) (*
 				// contenedor viva: puede estar descargando el binario durante
 				// minutos. Es que responda al ping.
 				switch {
+				case !st.Exists:
+					// El contenedor ya no esta. Pasa si alguien lo borro a
+					// mano, o si Docker se lo llevo por delante.
+					//
+					// Sin este caso la instancia se quedaba en "arrancando"
+					// PARA SIEMPRE: el estado nunca avanzaba y, como el boton
+					// de arrancar solo aparece si esta detenida o fallida, no
+					// habia forma de recuperarla desde el panel. Un callejon
+					// sin salida al que solo se llegaba por accidente, que son
+					// los peores.
+					i.log.Warn("el contenedor de la instancia ya no existe; se marca como fallida",
+						"instancia", inst.Name, "contenedor", inst.ContainerID)
+					i.repo.SetState(ctx, inst.ID, domain.StateFailed)
+					inst.State = domain.StateFailed
 				case st.Exists && !st.Running:
 					i.repo.SetState(ctx, inst.ID, domain.StateFailed)
 					inst.State = domain.StateFailed

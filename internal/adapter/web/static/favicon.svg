@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Un bloque, que es lo que todo el mundo reconoce de Minecraft. Va en SVG
+       y no en .ico porque son 400 bytes de texto en vez de un binario que
+       nadie puede revisar en una revision de codigo. -->
+  <rect width="32" height="32" rx="4" fill="#0b0e0c"/>
+  <path d="M6 11l10-5 10 5-10 5z" fill="#5ee68a"/>
+  <path d="M6 11v10l10 5V16z" fill="#3aa862"/>
+  <path d="M26 11v10l-10 5V16z" fill="#2b7d49"/>
+</svg>

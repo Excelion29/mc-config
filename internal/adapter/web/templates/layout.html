@@ -9,6 +9,9 @@
   solo se apoya en las anteriores. El numero del nombre ES el orden, para que
   no dependa de recordarlo aqui.
 */}}
+{{/* Sin esto el navegador pide /favicon.ico en cada carga y se lleva un 404
+     que ensucia el log por algo que no es un problema. */}}
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/css/00-tokens.css">
 <link rel="stylesheet" href="/static/css/10-base.css">
 <link rel="stylesheet" href="/static/css/20-atoms.css">
