@@ -42,6 +42,21 @@ func (t *tiendaFalsa) Installed(_ string, plugins []Plugin) []Plugin {
 type saborFalso struct{ ServerFlavor }
 
 func (saborFalso) Edition() domain.Edition { return domain.EditionJava }
+func (saborFalso) DefaultPort() int        { return 25565 }
+
+// Spec imita lo que hace el sabor de Java: el modo sale de inst.Auth.
+func (saborFalso) Spec(inst *domain.Instance, dir string) ContainerSpec {
+	modo := "TRUE"
+	if inst.Auth.SinConexion() {
+		modo = "FALSE"
+	}
+	return ContainerSpec{
+		Name:    "mcvps-" + inst.Slug,
+		Image:   "imagen",
+		Env:     map[string]string{"ONLINE_MODE": modo},
+		DataDir: dir,
+	}
+}
 
 func (saborFalso) PluginsFor(mode domain.AuthMode) []Plugin {
 	if !mode.SinConexion() {
@@ -151,5 +166,57 @@ func TestSinTiendaDeComplementosNoSeArrancaAbierto(t *testing.T) {
 
 	if err := i.asegurarPlugins(context.Background(), inst); !errors.Is(err, domain.ErrPluginsUnavailable) {
 		t.Fatalf("deberia negarse por falta de tienda, devolvio %v", err)
+	}
+}
+
+// TestElModoLlegaAlContenedor protege el fallo que dejo F6 sin efecto.
+//
+// El sabor construye ONLINE_MODE a partir de inst.Auth. Antes el modo se leia
+// DESPUES de pedirle la definicion, sobre un campo del spec que no leia nadie,
+// y al crear una instancia inst.Auth venia vacio. Resultado: el contenedor
+// exigia cuenta comprada SIEMPRE, mientras el panel decia que el acceso estaba
+// abierto.
+//
+// No dio ningun error en ningun sitio. El servidor arrancaba perfecto; lo unico
+// que se veia era un amigo que no podia entrar.
+func TestElModoLlegaAlContenedor(t *testing.T) {
+	for _, modo := range []domain.AuthMode{domain.AuthOnline, domain.AuthOffline} {
+		i := instanciasDePrueba(&tiendaFalsa{puestos: map[string]bool{}})
+		i.authMode = func(context.Context) domain.AuthMode { return modo }
+
+		// Sin tocar inst.Auth a proposito: es como llega una instancia recien
+		// creada, y es donde estaba el fallo.
+		inst := &domain.Instance{Name: "servidor", Slug: "servidor", Edition: domain.EditionJava}
+		spec := i.specDe(context.Background(), saborFalso{}, inst, "/tmp/servidor")
+
+		esperado := "TRUE"
+		if modo.SinConexion() {
+			esperado = "FALSE"
+		}
+		if spec.Env["ONLINE_MODE"] != esperado {
+			t.Errorf("modo %s: ONLINE_MODE = %q, se esperaba %q",
+				modo, spec.Env["ONLINE_MODE"], esperado)
+		}
+	}
+}
+
+// TestLaHuellaCambiaConElModo es lo que obliga a rehacer el contenedor.
+//
+// Las variables de entorno se fijan al crearlo: si la huella no cambiara,
+// cambiar el modo no llegaria nunca a un servidor ya creado, por muchas veces
+// que se reinicie.
+func TestLaHuellaCambiaConElModo(t *testing.T) {
+	huella := func(modo domain.AuthMode) string {
+		i := instanciasDePrueba(&tiendaFalsa{puestos: map[string]bool{}})
+		i.authMode = func(context.Context) domain.AuthMode { return modo }
+		inst := &domain.Instance{Name: "servidor", Slug: "servidor", Edition: domain.EditionJava}
+		return i.specDe(context.Background(), saborFalso{}, inst, "/tmp/servidor").Huella()
+	}
+
+	if huella(domain.AuthOnline) == huella(domain.AuthOffline) {
+		t.Error("la huella deberia cambiar con el modo; si no, el contenedor viejo se reutiliza")
+	}
+	if huella(domain.AuthOffline) != huella(domain.AuthOffline) {
+		t.Error("la huella tiene que ser estable, o el contenedor se rehace en cada arranque")
 	}
 }

@@ -2,6 +2,10 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/Excelion29/mc-config/internal/domain"
@@ -17,7 +21,7 @@ type InstanceRepo interface {
 	// haber una.
 	Running(ctx context.Context) (*domain.Instance, error)
 	SetState(ctx context.Context, id int64, state domain.InstanceState) error
-	SetContainer(ctx context.Context, id int64, containerID string) error
+	SetContainer(ctx context.Context, id int64, containerID, specHash string) error
 	MarkStarted(ctx context.Context, id int64, at time.Time) error
 	Delete(ctx context.Context, id int64) error
 	CountByWorld(ctx context.Context, worldID int64) (int, error)
@@ -51,11 +55,42 @@ type ContainerSpec struct {
 	// que escribio.
 	UID int
 	GID int
-	// AuthMode decide si el servidor exige cuenta comprada. Lo pone quien
-	// orquesta, no el sabor: es un ajuste del panel (D-17).
-	AuthMode domain.AuthMode
+	// NO se guarda aqui el modo de autenticacion. Se intento, y era peor que
+	// no tenerlo: el runtime no lo leia, asi que el campo parecia llevar el
+	// modo al contenedor sin llevarlo. Viaja donde el servidor de verdad lo
+	// mira, que es una variable de entorno dentro de Env.
 	MemoryMB int
 	CPUs     float64
+}
+
+// Huella resume la definicion para poder saber si cambio.
+//
+// Solo entra lo que obliga a REHACER el contenedor. Las variables de entorno,
+// los puertos, los limites y la red se fijan al crearlo: cambiarlas en el panel
+// no llega al contenedor que ya existe, y reiniciarlo tampoco. Sin esto, abrir
+// el acceso a cuentas no premium no tenia ningun efecto sobre un servidor ya
+// creado -y arrancaba perfectamente, que es lo que lo hacia invisible-.
+//
+// Las claves del entorno se ordenan porque en Go recorrer un mapa da un orden
+// distinto cada vez, y una huella que cambia sola rehace el contenedor en cada
+// arranque.
+func (s ContainerSpec) Huella() string {
+	h := sha256.New()
+
+	fmt.Fprintf(h, "img=%s\ncmd=%v\ndir=%s\npuertos=%d:%d/%s\nred=%s\nusuario=%d:%d\nmem=%d\ncpus=%v\n",
+		s.Image, s.Cmd, s.DataDir, s.PortHost, s.PortIn, s.Protocol,
+		s.Network, s.UID, s.GID, s.MemoryMB, s.CPUs)
+
+	claves := make([]string, 0, len(s.Env))
+	for k := range s.Env {
+		claves = append(claves, k)
+	}
+	sort.Strings(claves)
+	for _, k := range claves {
+		fmt.Fprintf(h, "env:%s=%s\n", k, s.Env[k])
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // ContainerStatus es lo que el runtime sabe del contenedor.

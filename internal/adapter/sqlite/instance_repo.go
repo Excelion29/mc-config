@@ -14,7 +14,7 @@ import (
 type InstanceRepo struct{ db *sql.DB }
 
 const instanceColumns = `i.id, i.name, i.slug, i.edition, i.version, i.world_id,
-	i.level_name, i.container_id, i.port, i.state, i.memory_mb, i.cpus,
+	i.level_name, i.container_id, i.spec_hash, i.port, i.state, i.memory_mb, i.cpus,
 	i.created_at, i.last_started, COALESCE(w.name, '')`
 
 const instanceFrom = `FROM instances i LEFT JOIN worlds w ON w.id = i.world_id`
@@ -98,9 +98,10 @@ func (r *InstanceRepo) SetState(ctx context.Context, id int64, state domain.Inst
 	return nil
 }
 
-func (r *InstanceRepo) SetContainer(ctx context.Context, id int64, containerID string) error {
+func (r *InstanceRepo) SetContainer(ctx context.Context, id int64, containerID, specHash string) error {
 	if _, err := r.db.ExecContext(ctx,
-		`UPDATE instances SET container_id = ? WHERE id = ?`, containerID, id); err != nil {
+		`UPDATE instances SET container_id = ?, spec_hash = ? WHERE id = ?`,
+		containerID, specHash, id); err != nil {
 		return fmt.Errorf("guardando el contenedor: %w", err)
 	}
 	return nil
@@ -156,7 +157,7 @@ func scanInstance(scan func(...any) error) (*domain.Instance, error) {
 		lastStarted sql.NullString
 	)
 	err := scan(&i.ID, &i.Name, &i.Slug, &edition, &i.Version, &worldID,
-		&i.LevelName, &i.ContainerID, &i.Port, &state, &i.MemoryMB, &i.CPUs,
+		&i.LevelName, &i.ContainerID, &i.SpecHash, &i.Port, &state, &i.MemoryMB, &i.CPUs,
 		&createdAt, &lastStarted, &i.WorldName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

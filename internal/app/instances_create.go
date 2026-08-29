@@ -113,6 +113,9 @@ func (i *Instances) Create(ctx context.Context, actor *domain.User, name string,
 		limpiar()
 		return nil, err
 	}
+	// El modo, tambien al crear: WriteConfig escribe online-mode a partir de
+	// el, y una instancia recien creada no habia pasado nunca por Start.
+	inst.Auth = i.modoActual(ctx)
 	if err := flavor.WriteConfig(inst, dir, RefsFrom(allowlist)); err != nil {
 		limpiar()
 		return nil, err

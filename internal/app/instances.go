@@ -129,14 +129,20 @@ func (i *Instances) SetRulesSource(f func(context.Context, int64) (domain.Rules,
 // UUID. Quien no tenga identidad valida para esa edicion se queda fuera del
 // archivo, porque una entrada que el servidor no sabe interpretar no permite
 // entrar a nadie y ademas confunde a quien lea el archivo.
-func RefsPara(e domain.Edition, jugadores []domain.Player) []PlayerRef {
+func RefsPara(e domain.Edition, modo domain.AuthMode, jugadores []domain.Player) []PlayerRef {
 	out := make([]PlayerRef, 0, len(jugadores))
 	for k := range jugadores {
 		p := &jugadores[k]
 		switch e {
 		case domain.EditionJava:
-			if p.PuedeJugarJava() {
-				out = append(out, PlayerRef{ID: p.JavaUUID, Name: p.JavaName})
+			// En Java el UUID depende del MODO, no solo de la persona: con
+			// Mojang autenticando es el que el asigna, y sin conexion es uno
+			// que se calcula del nombre. Quien no compro el juego no tiene el
+			// primero, y ahi estaba el fallo: se le dejaba fuera de la lista
+			// sin decir nada, y el rechazo al conectarse no mencionaba la
+			// lista por ningun lado.
+			for _, uuid := range p.IdentidadesJava(modo) {
+				out = append(out, PlayerRef{ID: uuid, Name: p.JavaName})
 			}
 		case domain.EditionBedrock:
 			if p.PuedeJugarBedrock() {
@@ -145,6 +151,14 @@ func RefsPara(e domain.Edition, jugadores []domain.Player) []PlayerRef {
 		}
 	}
 	return out
+}
+
+// modoActual lee el modo vigente, con el seguro por defecto.
+func (i *Instances) modoActual(ctx context.Context) domain.AuthMode {
+	if i.authMode == nil {
+		return domain.AuthOnline
+	}
+	return i.authMode(ctx)
 }
 
 func (i *Instances) SetAllowlistSource(f func(context.Context) ([]domain.Player, error)) {
@@ -192,6 +206,15 @@ func (i *Instances) ByID(ctx context.Context, actor *domain.User, id int64) (*do
 // describe como se levanta un servidor de su edicion; donde se enchufa lo
 // decide quien lo orquesta.
 func (i *Instances) specDe(ctx context.Context, flavor ServerFlavor, inst *domain.Instance, dir string) ContainerSpec {
+	// El modo se pone en la instancia ANTES de pedirle la definicion al sabor.
+	//
+	// Aqui estaba el fallo que hizo que abrir el acceso no sirviera de nada: el
+	// sabor construye ONLINE_MODE a partir de inst.Auth, y el modo se leia
+	// DESPUES, sobre un campo del spec que no lee nadie. Al crear una instancia
+	// inst.Auth venia vacio, asi que el contenedor salia siempre exigiendo
+	// cuenta comprada -y el panel decia que el acceso estaba abierto-.
+	inst.Auth = i.modoActual(ctx)
+
 	spec := flavor.Spec(inst, dir)
 	spec.Network = i.network
 
@@ -207,13 +230,6 @@ func (i *Instances) specDe(ctx context.Context, flavor ServerFlavor, inst *domai
 	// casualidad, que es justo como funcionaba antes sin que nadie lo supiera.
 	spec.UID, spec.GID = os.Getuid(), os.Getgid()
 
-	// El modo de autenticacion es global y se consulta AHORA, no se guarda en
-	// la instancia: si alguien lo cambia, el siguiente arranque tiene que
-	// obedecer sin que haya que tocar nada mas.
-	spec.AuthMode = domain.AuthOnline
-	if i.authMode != nil {
-		spec.AuthMode = i.authMode(ctx)
-	}
 	return spec
 }
 
@@ -233,10 +249,8 @@ func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, j
 	// WriteConfig reescribe server.properties entero, asi que necesita el modo
 	// vigente. Sin esto, propagar la lista de permitidos volveria a poner
 	// online-mode=true y desactivaria a los no premium sin que nada lo diga.
-	if i.authMode != nil {
-		inst.Auth = i.authMode(ctx)
-	}
-	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, jugadores)); err != nil {
+	inst.Auth = i.modoActual(ctx)
+	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, inst.Auth, jugadores)); err != nil {
 		return err
 	}
 	if inst.State == domain.StateRunning {
@@ -252,18 +266,40 @@ func (i *Instances) ensureContainer(ctx context.Context, inst *domain.Instance) 
 		return domain.ErrEditionMismatch
 	}
 
+	spec := i.specDe(ctx, flavor, inst, i.dataDir(inst))
+	huella := spec.Huella()
+
 	if inst.ContainerID != "" {
 		if st, err := i.runtime.Status(ctx, inst.ContainerID); err == nil && st.Exists {
-			return nil
+			// Existe, pero puede estar hecho con una definicion vieja. El
+			// entorno, los puertos y los limites se fijan al CREARLO: no hay
+			// forma de cambiarlos en caliente ni reiniciando.
+			//
+			// Aqui se destapo con el modo de autenticacion. Abrir el acceso a
+			// cuentas no premium no surtia efecto en un servidor ya creado,
+			// porque ONLINE_MODE seguia siendo el del dia que se creo. Y el
+			// servidor arrancaba perfectamente, asi que no habia nada que
+			// mirar: el sintoma era un amigo que no entra.
+			if inst.SpecHash == huella {
+				return nil
+			}
+
+			i.log.Info("la definicion del contenedor cambio; se rehace",
+				"instancia", inst.Name)
+			if err := i.runtime.Remove(ctx, inst.ContainerID); err != nil {
+				return fmt.Errorf("retirando el contenedor viejo: %w", err)
+			}
+			inst.ContainerID = ""
 		}
 	}
 
-	id, err := i.runtime.Create(ctx, i.specDe(ctx, flavor, inst, i.dataDir(inst)))
+	id, err := i.runtime.Create(ctx, spec)
 	if err != nil {
 		return err
 	}
 	inst.ContainerID = id
-	return i.repo.SetContainer(ctx, inst.ID, id)
+	inst.SpecHash = huella
+	return i.repo.SetContainer(ctx, inst.ID, id, huella)
 }
 
 func (i *Instances) playersOf(ctx context.Context, inst *domain.Instance) (int, int, error) {

@@ -100,6 +100,10 @@ type playersPageData struct {
 	Filtro  app.PlayerFilter
 	Estados [][2]string
 	Pag     paginador
+	// Modo decide que identidad vale en Java, y por tanto quien puede jugar.
+	// Sin el, la pantalla diria que un amigo sin cuenta comprada no puede
+	// entrar justo cuando si puede.
+	Modo domain.AuthMode
 }
 
 type rolesPageData struct {

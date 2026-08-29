@@ -31,6 +31,7 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 		Players:  page.Players,
 		Filtro:   page.Filter,
 		Estados:  app.EstadosDeJugador(),
+		Modo:     s.acceso.Mode(r.Context()),
 		Pag: paginador{
 			Info: page.PageInfo,
 			// Los filtros viajan dentro de la base para no perderlos al

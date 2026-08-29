@@ -158,6 +158,7 @@ func build(log *slog.Logger) (*deps, error) {
 	// Se cierra el ciclo igual que con Players y Worlds.
 	acceso := app.NewAccess(db.Settings(), instances, audit, log)
 	instances.SetAuthModeSource(acceso.Mode)
+	players.SetAuthModeSource(acceso.Mode)
 
 	// Instalador de plugins con cache compartida: los mismos .jar valen para
 	// todos los servidores, y bajarlos una vez por instancia seria gastar red

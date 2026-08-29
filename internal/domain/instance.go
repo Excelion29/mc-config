@@ -67,6 +67,10 @@ type Instance struct {
 	// cambiar sin reescribir cada instancia.
 	Auth AuthMode
 	ContainerID string
+	// SpecHash es la huella de la definicion con la que se creo el contenedor.
+	// Si deja de coincidir con la que el panel quiere ahora, hay que rehacerlo:
+	// entorno, puertos y limites no se pueden cambiar en caliente.
+	SpecHash string
 	Port        int
 	State       InstanceState
 	MemoryMB    int

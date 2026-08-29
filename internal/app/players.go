@@ -26,13 +26,28 @@ type Players struct {
 	repo      PlayerRepo
 	java      JavaIdentity
 	instances *Instances
-	audit     *Audit
-	clock     Clock
-	log       *slog.Logger
+	// authMode dice si hace falta cuenta comprada. Se inyecta despues, como en
+	// Instances, porque Access necesita a los dos.
+	authMode func(context.Context) domain.AuthMode
+	audit    *Audit
+	clock    Clock
+	log      *slog.Logger
 }
 
 func NewPlayers(repo PlayerRepo, java JavaIdentity, instances *Instances, audit *Audit, clock Clock, log *slog.Logger) *Players {
 	return &Players{repo: repo, java: java, instances: instances, audit: audit, clock: clock, log: log}
+}
+
+// SetAuthModeSource cierra el ciclo con Access.
+func (p *Players) SetAuthModeSource(f func(context.Context) domain.AuthMode) {
+	p.authMode = f
+}
+
+func (p *Players) modoActual(ctx context.Context) domain.AuthMode {
+	if p.authMode == nil {
+		return domain.AuthOnline
+	}
+	return p.authMode(ctx)
 }
 
 func (p *Players) List(ctx context.Context, actor *domain.User) ([]domain.Player, error) {
@@ -87,7 +102,20 @@ func (p *Players) Add(ctx context.Context, actor *domain.User, gamertag, javaNam
 		case err == nil:
 			javaUUID = uuid
 		case errors.Is(err, domain.ErrJavaNameNotFound):
-			return nil, err
+			// Que Mojang no lo conozca solo es un error si hace falta tener el
+			// juego comprado. Con el acceso abierto es lo NORMAL -es
+			// exactamente el caso que queriamos cubrir- y rechazarlo dejaba
+			// fuera del panel a la gente para la que se hizo F6, con un
+			// "jugador invalido" que no explicaba nada.
+			//
+			// Se guarda sin UUID a proposito: el de sin conexion se calcula del
+			// nombre al escribir la lista. Guardarlo aqui seria fijar una
+			// identidad que deja de valer en cuanto se cierre el acceso.
+			if !p.modoActual(ctx).SinConexion() {
+				return nil, err
+			}
+			p.log.Info("nombre de Java desconocido para Mojang; se acepta porque el acceso esta abierto",
+				"nombre", javaName)
 		default:
 			// Mojang caido no debe impedir dar de alta a alguien: se guarda
 			// sin UUID y no podra entrar a Java hasta que se reintente. La

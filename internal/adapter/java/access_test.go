@@ -96,33 +96,3 @@ func TestListasVacias(t *testing.T) {
 		}
 	}
 }
-
-// TestOfflineUUIDEsDeterminista: el mismo nombre da siempre el mismo UUID, y
-// nombres distintos dan UUIDs distintos. Es lo que permite identificar a un
-// jugador no premium sin preguntarle a nadie.
-//
-// El valor exacto se verificara contra un servidor real en F6; aqui se fija la
-// forma y la propiedad, que es lo que se puede comprobar sin uno.
-func TestOfflineUUIDEsDeterminista(t *testing.T) {
-	a := OfflineUUID("AmigoNoPremium")
-	b := OfflineUUID("AmigoNoPremium")
-	c := OfflineUUID("OtroAmigo")
-
-	if a != b {
-		t.Errorf("el mismo nombre dio dos UUID: %s y %s", a, b)
-	}
-	if a == c {
-		t.Error("dos nombres distintos dieron el mismo UUID")
-	}
-	if len(a) != 36 {
-		t.Errorf("UUID = %q, deberia medir 36 caracteres", a)
-	}
-	// Version 3: el primer caracter del tercer grupo.
-	if a[14] != '3' {
-		t.Errorf("UUID = %q, deberia ser de version 3", a)
-	}
-	// Variante RFC 4122: el primer caracter del cuarto grupo es 8, 9, a o b.
-	if v := a[19]; v != '8' && v != '9' && v != 'a' && v != 'b' {
-		t.Errorf("UUID = %q, variante incorrecta (%c)", a, v)
-	}
-}

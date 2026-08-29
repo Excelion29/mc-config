@@ -1,7 +1,6 @@
 package java
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -78,29 +77,8 @@ func escribirJSON(dataDir, nombre string, v []any) error {
 	return nil
 }
 
-// OfflineUUID calcula el UUID que Minecraft asigna a un jugador SIN cuenta
-// premium, a partir de su nombre.
+// OfflineUUID se mudo a domain.OfflineUUID.
 //
-// No hay nada que consultar: es determinista. Java toma el MD5 de la cadena
-// "OfflinePlayer:<nombre>" y lo convierte en un UUID de version 3. Por eso un
-// jugador no premium tiene siempre el mismo UUID en cualquier servidor sin
-// conexion, y por eso su nombre es su identidad -y por eso hace falta AuthMe
-// para que nadie use el nombre de otro (D-07)-.
-//
-// Esto solo aplica con online-mode=false, o sea a partir de F6. Para cuentas
-// premium el UUID lo asigna Mojang y hay que preguntarselo.
-//
-// PENDIENTE DE VERIFICAR contra un servidor real cuando se monte AuthMe: el
-// algoritmo esta documentado, pero en este proyecto no damos por buena una
-// suposicion hasta verla funcionar.
-func OfflineUUID(nombre string) string {
-	suma := md5.Sum([]byte("OfflinePlayer:" + nombre))
-
-	// Se marcan version 3 y variante RFC 4122, que es lo que hace la funcion
-	// equivalente de Java al construir el UUID desde unos bytes.
-	b := suma
-	b[6] = (b[6] & 0x0f) | 0x30
-	b[8] = (b[8] & 0x3f) | 0x80
-
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
-}
+// No era cosa del adaptador: no habla con nadie ni depende de Paper. Es la
+// regla de como se identifica un jugador sin cuenta comprada, y la necesitan
+// tambien el alta de jugadores y la escritura de la lista.

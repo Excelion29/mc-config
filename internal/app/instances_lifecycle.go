@@ -40,9 +40,7 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 
 	// El modo de autenticacion, fresco tambien: es global y tiene que valer
 	// desde el siguiente arranque sin tocar la instancia.
-	if i.authMode != nil {
-		inst.Auth = i.authMode(ctx)
-	}
+	inst.Auth = i.modoActual(ctx)
 
 	// Reglas frescas del mundo. Si falla, se sigue con las que trae la
 	// instancia: no impedir arrancar un servidor porque no se pudo releer un
@@ -100,7 +98,7 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 	if i.allowlist != nil {
 		if jugadores, err := i.allowlist(ctx); err == nil {
 			if flavor, ok := i.flavors[inst.Edition]; ok {
-				if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, jugadores)); err != nil {
+				if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, inst.Auth, jugadores)); err != nil {
 					i.log.Warn("no se pudo escribir la lista de permitidos",
 						"instancia", inst.Name, "error", err)
 				}
