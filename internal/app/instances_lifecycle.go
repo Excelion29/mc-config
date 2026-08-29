@@ -38,6 +38,12 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 		return err
 	}
 
+	// El modo de autenticacion, fresco tambien: es global y tiene que valer
+	// desde el siguiente arranque sin tocar la instancia.
+	if i.authMode != nil {
+		inst.Auth = i.authMode(ctx)
+	}
+
 	// Reglas frescas del mundo. Si falla, se sigue con las que trae la
 	// instancia: no impedir arrancar un servidor porque no se pudo releer un
 	// ajuste.
@@ -65,6 +71,23 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 			return err
 		}
 	} else if err != nil && !errors.Is(err, domain.ErrInstanceNotFound) {
+		return err
+	}
+
+	// Los complementos, ANTES de arrancar y en CADA arranque.
+	//
+	// Es la red de seguridad del modo sin conexion. El modo es global y se
+	// aplica a toda instancia que arranque, vieja o nueva; instalarlos solo
+	// desde la pantalla de Acceso dejaria fuera al servidor que se cree
+	// despues, y ese arrancaria abierto y SIN AuthMe: cualquiera entrando con
+	// el nombre que quiera, incluido el de quien administra.
+	//
+	// Se niega a arrancar si no lo consigue. Arrancar igual seria justo el
+	// fallo que este proyecto no se puede permitir: uno que no da error y deja
+	// la puerta abierta.
+	if err := i.asegurarPlugins(ctx, inst); err != nil {
+		i.log.Error("no se pudieron instalar los complementos; no se arranca",
+			"instancia", inst.Name, "error", err)
 		return err
 	}
 
@@ -320,4 +343,26 @@ func (i *Instances) Logs(ctx context.Context, actor *domain.User, id int64, line
 		return "", err
 	}
 	return i.runtime.Logs(ctx, inst.ContainerID, lines)
+}
+
+// asegurarPlugins instala lo que exija el modo vigente para esta instancia.
+//
+// No hace nada en el caso normal: en modo online ninguna edicion pide plugins,
+// y en sin conexion no vuelve a bajar los que ya estan. Es barato de mas
+// precisamente para poder llamarlo siempre, que es lo que lo convierte en
+// garantia y no en un paso que alguien puede saltarse.
+func (i *Instances) asegurarPlugins(ctx context.Context, inst *domain.Instance) error {
+	requeridos := i.PluginsPara(inst.Edition, inst.Auth)
+	if len(requeridos) == 0 {
+		return nil
+	}
+
+	faltan := i.PluginsQueFaltan(inst, requeridos)
+	if len(faltan) == 0 {
+		return nil
+	}
+
+	i.log.Info("instalando complementos que faltan antes de arrancar",
+		"instancia", inst.Name, "cuantos", len(faltan))
+	return i.InstalarPlugins(ctx, inst, faltan)
 }

@@ -62,6 +62,10 @@ type Instance struct {
 	// arranque.
 	Gen   Generation
 	Rules Rules
+	// Auth es el modo de autenticacion vigente. No se guarda en la base: se
+	// consulta al arrancar, porque es un ajuste global y tiene que poder
+	// cambiar sin reescribir cada instancia.
+	Auth AuthMode
 	ContainerID string
 	Port        int
 	State       InstanceState

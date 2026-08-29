@@ -19,6 +19,9 @@ type Config struct {
 
 	// Carpeta donde se guardan los archivos de los mapas.
 	WorldsPath string
+	// PluginsPath es la cache de complementos de servidor. Compartida entre
+	// instancias: el mismo .jar sirve para todas.
+	PluginsPath string
 
 	// Tamano maximo de un mapa subido (D-11).
 	MaxUpload int64
@@ -62,23 +65,24 @@ func Load() (Config, error) {
 	}
 
 	c := Config{
-		Addr:          env("MCVPS_ADDR", ":8080"),
-		DBPath:        env("MCVPS_DB_PATH", "/data/mcvps.db"),
+		Addr:   env("MCVPS_ADDR", ":8080"),
+		DBPath: env("MCVPS_DB_PATH", "/data/mcvps.db"),
 		// Se acepta el nombre viejo a proposito. La variable ya esta puesta
 		// en el .env de la VPS, y el despliegue es automatico al empujar a
 		// main: cambiarle el nombre sin mas dejaria el panel apuntando al
 		// valor por defecto -otra carpeta- y los mundos "desaparecerian" sin
 		// un solo error en el log. Se retirara cuando el .env se actualice.
-		WorldsPath: envAlguno("/data/worlds", "MCVPS_WORLDS_PATH", "MCVPS_MAPS_PATH"),
-		InstancesPath: env("MCVPS_INSTANCES_PATH", "/data/instances"),
-		DockerHost:    os.Getenv("MCVPS_DOCKER_HOST"),
-		GameHost:      env("MCVPS_GAME_HOST", "127.0.0.1"),
-		GameNetwork:   env("MCVPS_GAME_NETWORK", ""),
-		MaxUpload:     1 << 30, // 1 GiB
+		WorldsPath:        envAlguno("/data/worlds", "MCVPS_WORLDS_PATH", "MCVPS_MAPS_PATH"),
+		PluginsPath:       env("MCVPS_PLUGINS_PATH", "/data/plugins"),
+		InstancesPath:     env("MCVPS_INSTANCES_PATH", "/data/instances"),
+		DockerHost:        os.Getenv("MCVPS_DOCKER_HOST"),
+		GameHost:          env("MCVPS_GAME_HOST", "127.0.0.1"),
+		GameNetwork:       env("MCVPS_GAME_NETWORK", ""),
+		MaxUpload:         1 << 30, // 1 GiB
 		SuperuserEmail:    os.Getenv("MCVPS_SUPERUSER_EMAIL"),
 		SuperuserPassword: os.Getenv("MCVPS_SUPERUSER_PASSWORD"),
-		SessionTTL:    12 * time.Hour,
-		SecureCookies: envBool("MCVPS_SECURE_COOKIES", true),
+		SessionTTL:        12 * time.Hour,
+		SecureCookies:     envBool("MCVPS_SECURE_COOKIES", true),
 	}
 
 	if v := os.Getenv("MCVPS_MAX_UPLOAD_MB"); v != "" {

@@ -41,6 +41,11 @@ type paginador struct {
 	Base string
 }
 
+type accessPageData struct {
+	PageData
+	Estado app.Estado
+}
+
 type auditPageData struct {
 	PageData
 	Page    app.AuditPage

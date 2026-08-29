@@ -38,6 +38,15 @@ button:hover, .boton:hover { filter: brightness(1.08); }
   border: var(--borde-fino) solid var(--color-borde);
 }
 
+/* Accion con consecuencias. No es "peligro" de borrar algo: es que cambia
+   quien puede entrar al servidor, y merece no parecerse a guardar un nombre. */
+.boton-peligro {
+  background: var(--color-peligro-texto);
+  color: var(--color-superficie);
+}
+
+.boton-peligro:hover { filter: brightness(1.1); }
+
 .boton-secundario:hover {
   border-color: var(--color-acento);
   color: var(--color-acento);

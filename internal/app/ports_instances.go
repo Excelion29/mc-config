@@ -51,6 +51,9 @@ type ContainerSpec struct {
 	// que escribio.
 	UID int
 	GID int
+	// AuthMode decide si el servidor exige cuenta comprada. Lo pone quien
+	// orquesta, no el sabor: es un ajuste del panel (D-17).
+	AuthMode domain.AuthMode
 	MemoryMB int
 	CPUs     float64
 }

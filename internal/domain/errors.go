@@ -8,6 +8,15 @@ import "errors"
 //
 // El texto va en espanol porque parte de estos mensajes llegan al usuario.
 var (
+	// ErrPluginsMissing: se intento activar el modo sin conexion sin tener los
+	// plugins puestos. Se rechaza y no se avisa: sin ellos ese modo deja el
+	// servidor abierto a que cualquiera use el nombre de otro.
+	ErrPluginsMissing = errors.New("faltan plugins para ese modo")
+	// ErrPluginsUnavailable: el panel no tiene instalador de plugins
+	// configurado.
+	ErrPluginsUnavailable = errors.New("la instalacion de plugins no esta disponible")
+	// ErrNoJavaInstance: no hay ningun servidor de Java donde instalar nada.
+	ErrNoJavaInstance = errors.New("no hay ningun servidor de Java")
 	// ErrJavaNameNotFound: Mojang no conoce ese nombre de Java. Casi siempre
 	// es una errata, y decirlo al darlo de alta evita el "no puedo entrar" de
 	// dentro de una semana.

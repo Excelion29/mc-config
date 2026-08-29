@@ -33,6 +33,12 @@ type Instances struct {
 	// la raiz de composicion, porque Worlds e Instances se necesitan
 	// mutuamente y encadenarlos en el constructor haria un ciclo.
 	rulesOf func(context.Context, int64) (domain.Rules, error)
+	// plugins instala los complementos de servidor. Puede ser nil: sin el, el
+	// panel funciona igual y simplemente no ofrece el modo sin conexion.
+	plugins PluginStore
+	// authMode dice que modo de autenticacion esta vigente. Se inyecta despues
+	// porque Access necesita Instances y al reves.
+	authMode func(context.Context) domain.AuthMode
 	// allowlist devuelve los gamertags de la lista maestra (D-13). Se inyecta
 	// despues de construir, porque Players necesita a Instances y al reves.
 	allowlist func(context.Context) ([]domain.Player, error)
@@ -62,6 +68,57 @@ func NewInstances(
 // SetAllowlistSource cierra el ciclo entre Players e Instances.
 // SetRulesSource cierra el ciclo con Worlds, igual que SetAllowlistSource lo
 // cierra con Players.
+// SetPluginStore conecta el instalador de plugins.
+func (i *Instances) SetPluginStore(p PluginStore) { i.plugins = p }
+
+// SetAuthModeSource cierra el ciclo con Access.
+func (i *Instances) SetAuthModeSource(f func(context.Context) domain.AuthMode) {
+	i.authMode = f
+}
+
+// PluginsPara da los plugins que una edicion necesita en un modo dado.
+func (i *Instances) PluginsPara(e domain.Edition, modo domain.AuthMode) []Plugin {
+	flavor, ok := i.flavors[e]
+	if !ok {
+		return nil
+	}
+	proveedor, ok := flavor.(PluginProvider)
+	if !ok {
+		// La edicion no sabe de plugins. Bedrock esta en este caso: no los
+		// admite, y por eso el modo sin conexion no le aplica.
+		return nil
+	}
+	return proveedor.PluginsFor(modo)
+}
+
+// PluginsQueFaltan compara lo que hace falta con lo que hay en la instancia.
+func (i *Instances) PluginsQueFaltan(inst *domain.Instance, requeridos []Plugin) []Plugin {
+	if i.plugins == nil || len(requeridos) == 0 {
+		return requeridos
+	}
+
+	puestos := map[string]bool{}
+	for _, p := range i.plugins.Installed(i.dataDir(inst), requeridos) {
+		puestos[p.File] = true
+	}
+
+	var faltan []Plugin
+	for _, p := range requeridos {
+		if !puestos[p.File] {
+			faltan = append(faltan, p)
+		}
+	}
+	return faltan
+}
+
+// InstalarPlugins descarga e instala los complementos en una instancia.
+func (i *Instances) InstalarPlugins(ctx context.Context, inst *domain.Instance, lista []Plugin) error {
+	if i.plugins == nil {
+		return domain.ErrPluginsUnavailable
+	}
+	return i.plugins.Install(ctx, i.dataDir(inst), lista)
+}
+
 func (i *Instances) SetRulesSource(f func(context.Context, int64) (domain.Rules, error)) {
 	i.rulesOf = f
 }
@@ -134,7 +191,7 @@ func (i *Instances) ByID(ctx context.Context, actor *domain.User, id int64) (*do
 // La red no es cosa de Bedrock ni de Java: es donde vive ESTE panel. El sabor
 // describe como se levanta un servidor de su edicion; donde se enchufa lo
 // decide quien lo orquesta.
-func (i *Instances) specDe(flavor ServerFlavor, inst *domain.Instance, dir string) ContainerSpec {
+func (i *Instances) specDe(ctx context.Context, flavor ServerFlavor, inst *domain.Instance, dir string) ContainerSpec {
 	spec := flavor.Spec(inst, dir)
 	spec.Network = i.network
 
@@ -149,6 +206,14 @@ func (i *Instances) specDe(flavor ServerFlavor, inst *domain.Instance, dir strin
 	// cualquier imagen y no depende de que dos numeros coincidan por
 	// casualidad, que es justo como funcionaba antes sin que nadie lo supiera.
 	spec.UID, spec.GID = os.Getuid(), os.Getgid()
+
+	// El modo de autenticacion es global y se consulta AHORA, no se guarda en
+	// la instancia: si alguien lo cambia, el siguiente arranque tiene que
+	// obedecer sin que haya que tocar nada mas.
+	spec.AuthMode = domain.AuthOnline
+	if i.authMode != nil {
+		spec.AuthMode = i.authMode(ctx)
+	}
 	return spec
 }
 
@@ -163,6 +228,13 @@ func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, j
 	flavor, ok := i.flavors[inst.Edition]
 	if !ok {
 		return domain.ErrEditionMismatch
+	}
+
+	// WriteConfig reescribe server.properties entero, asi que necesita el modo
+	// vigente. Sin esto, propagar la lista de permitidos volveria a poner
+	// online-mode=true y desactivaria a los no premium sin que nada lo diga.
+	if i.authMode != nil {
+		inst.Auth = i.authMode(ctx)
 	}
 	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, jugadores)); err != nil {
 		return err
@@ -186,7 +258,7 @@ func (i *Instances) ensureContainer(ctx context.Context, inst *domain.Instance) 
 		}
 	}
 
-	id, err := i.runtime.Create(ctx, i.specDe(flavor, inst, i.dataDir(inst)))
+	id, err := i.runtime.Create(ctx, i.specDe(ctx, flavor, inst, i.dataDir(inst)))
 	if err != nil {
 		return err
 	}

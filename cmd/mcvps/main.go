@@ -24,6 +24,7 @@ import (
 	"github.com/Excelion29/mc-config/internal/adapter/java"
 	"github.com/Excelion29/mc-config/internal/adapter/mcworld"
 	"github.com/Excelion29/mc-config/internal/adapter/mojang"
+	"github.com/Excelion29/mc-config/internal/adapter/plugins"
 	"github.com/Excelion29/mc-config/internal/adapter/security"
 	"github.com/Excelion29/mc-config/internal/adapter/sqlite"
 	"github.com/Excelion29/mc-config/internal/adapter/storage"
@@ -80,6 +81,8 @@ type deps struct {
 	// arma aqui, con el resto, para que la raiz de composicion siga siendo el
 	// unico sitio donde se eligen implementaciones concretas.
 	watcher *app.ConnectionWatcher
+	// acceso decide si hace falta cuenta comprada para entrar (D-17).
+	acceso *app.Access
 }
 
 // build cablea todo. Acepta log nil para los comandos que no deben ensuciar la
@@ -151,6 +154,21 @@ func build(log *slog.Logger) (*deps, error) {
 	instances.SetAllowlistSource(players.Permitidos)
 	instances.SetRulesSource(worlds.RulesOf)
 
+	// Acceso: el modo de autenticacion y los plugins que lo hacen posible.
+	// Se cierra el ciclo igual que con Players y Worlds.
+	acceso := app.NewAccess(db.Settings(), instances, audit, log)
+	instances.SetAuthModeSource(acceso.Mode)
+
+	// Instalador de plugins con cache compartida: los mismos .jar valen para
+	// todos los servidores, y bajarlos una vez por instancia seria gastar red
+	// y disco para tener copias identicas (M-2).
+	if store, err := plugins.New(cfg.PluginsPath); err != nil {
+		log.Warn("sin cache de plugins; el modo sin conexion no estara disponible",
+			"ruta", cfg.PluginsPath, "error", err)
+	} else {
+		instances.SetPluginStore(store)
+	}
+
 	return &deps{
 		cfg:        cfg,
 		close:      db.Close,
@@ -158,6 +176,7 @@ func build(log *slog.Logger) (*deps, error) {
 		auth:       auth,
 		audit:      audit,
 		worlds:     worlds,
+		acceso:     acceso,
 		instances:  instances,
 		players:    players,
 		watcher:    watcher,
@@ -195,7 +214,7 @@ func run(log *slog.Logger) error {
 	go d.watcher.Run(ctx)
 
 	// --- Adaptador HTTP ----------------------------------------------------
-	handler, err := web.NewServer(auth, audit, d.worlds, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
+	handler, err := web.NewServer(auth, audit, d.worlds, d.acceso, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
 	if err != nil {
 		return err
 	}

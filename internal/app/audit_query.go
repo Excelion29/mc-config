@@ -74,6 +74,7 @@ func AuditActions() []domain.Action {
 		domain.ActionRoleCreated, domain.ActionRoleUpdated, domain.ActionRoleDeleted,
 		domain.ActionWorldImported, domain.ActionWorldCreated,
 		domain.ActionWorldUpdated, domain.ActionWorldDeleted,
+		domain.ActionAuthModeChanged, domain.ActionPluginsInstalled,
 		domain.ActionInstanceCreated, domain.ActionInstanceStarted,
 		domain.ActionInstanceStopped, domain.ActionInstanceDeleted,
 		domain.ActionPlayerAdded, domain.ActionPlayerRemoved,

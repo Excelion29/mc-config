@@ -25,13 +25,14 @@ var assets embed.FS
 const cookieName = "mcvps_session"
 
 type Server struct {
-	auth     *app.Auth
-	audit    *app.Audit
+	auth      *app.Auth
+	audit     *app.Audit
 	worlds    *app.Worlds
+	acceso    *app.Access
 	instances *app.Instances
 	players   *app.Players
-	renderer *renderer
-	log      *slog.Logger
+	renderer  *renderer
+	log       *slog.Logger
 
 	// secureCookies marca la cookie como Secure. Debe ir a true en produccion,
 	// donde NPM sirve el panel por HTTPS (D-10).
@@ -42,7 +43,8 @@ type Server struct {
 func NewServer(
 	auth *app.Auth,
 	audit *app.Audit,
-	worlds    *app.Worlds,
+	worlds *app.Worlds,
+	acceso *app.Access,
 	instances *app.Instances,
 	players *app.Players,
 	log *slog.Logger,
@@ -54,7 +56,7 @@ func NewServer(
 		return nil, err
 	}
 	return &Server{
-		auth: auth, audit: audit, worlds: worlds, instances: instances, players: players,
+		auth: auth, audit: audit, worlds: worlds, acceso: acceso, instances: instances, players: players,
 		renderer: r, log: log,
 		secureCookies: secureCookies, sessionTTL: sessionTTL,
 	}, nil
@@ -92,6 +94,7 @@ func (s *Server) Routes() http.Handler {
 			g.Use(s.requirePermission(domain.PermServerView))
 			g.Get("/worlds", s.showWorlds)
 			g.Get("/worlds/{id}/icon", s.worldIcon)
+			g.Get("/access", s.showAccess)
 			g.Get("/instances", s.showInstances)
 			g.Get("/instances/{id}/logs", s.instanceLogs)
 			// Flujo en vivo para la consola. Se queda abierto mientras el
@@ -102,6 +105,8 @@ func (s *Server) Routes() http.Handler {
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermServerOperate))
+			g.Post("/access/plugins", s.installPlugins)
+			g.Post("/access/mode", s.setAuthMode)
 			g.Post("/instances/start", s.startInstance)
 			g.Post("/instances/stop", s.stopInstance)
 		})

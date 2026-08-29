@@ -184,7 +184,7 @@ func TestLosBotonesDeCabeceraSeAlinean(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	revisadas := 0
+	revisadas, conAccion := 0, 0
 	for _, ruta := range paginas {
 		datos, err := fs.ReadFile(assets, ruta)
 		if err != nil {
@@ -196,12 +196,58 @@ func TestLosBotonesDeCabeceraSeAlinean(t *testing.T) {
 		}
 		revisadas++
 
-		if !strings.Contains(html, `class="cabecera-acciones"`) {
+		// Solo se exige a las cabeceras que TIENEN una accion. Una pantalla
+		// puede no tener ninguna -la de acceso no la tiene, porque sus botones
+		// van junto a lo que explican- y forzarla a inventarse una para pasar
+		// la prueba seria dejar que la prueba mande sobre el diseno.
+		cab := bloqueCabecera(html)
+		if !strings.Contains(cab, "<button") && !strings.Contains(cab, "boton") {
+			continue
+		}
+		conAccion++
+
+		if !strings.Contains(cab, `class="cabecera-acciones"`) {
 			t.Errorf("%s: tiene cabecera pero el boton no esta en .cabecera-acciones", ruta)
 		}
+	}
+
+	if conAccion == 0 {
+		t.Error("ninguna cabecera tiene accion; la prueba no comprueba nada")
 	}
 
 	if revisadas == 0 {
 		t.Error("no se reviso ninguna cabecera; la prueba no comprueba nada")
 	}
+}
+
+// bloqueCabecera devuelve el <div class="cabecera-pagina"> completo.
+//
+// Se cuentan las aperturas y los cierres en vez de buscar el primer </div>,
+// porque la cabecera lleva un div dentro para el titulo y el subtitulo: con el
+// primer cierre nos quedariamos con la mitad y el boton, que va al final, se
+// escaparia siempre.
+func bloqueCabecera(html string) string {
+	i := strings.Index(html, `class="cabecera-pagina"`)
+	if i < 0 {
+		return ""
+	}
+	// Retrocede hasta el "<div" que abre.
+	inicio := strings.LastIndex(html[:i], "<div")
+	if inicio < 0 {
+		return ""
+	}
+
+	hondura := 0
+	for j := inicio; j < len(html); j++ {
+		switch {
+		case strings.HasPrefix(html[j:], "<div"):
+			hondura++
+		case strings.HasPrefix(html[j:], "</div>"):
+			hondura--
+			if hondura == 0 {
+				return html[inicio : j+len("</div>")]
+			}
+		}
+	}
+	return html[inicio:]
 }

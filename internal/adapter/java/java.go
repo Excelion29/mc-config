@@ -44,10 +44,10 @@ func (*Flavor) Spec(inst *domain.Instance, dataDir string) app.ContainerSpec {
 			"TYPE":    "PAPER",
 			"VERSION": version,
 			"MEMORY":  strconv.Itoa(inst.MemoryMB) + "M",
-			// Mojang autentica. Sin esto cualquiera entra con el nombre que
-			// quiera, incluido el tuyo. Solo se apagara cuando AuthMe este
-			// montado y probado (D-07).
-			"ONLINE_MODE": "TRUE",
+			// Lo decide el modo del panel. En modo normal autentica Mojang;
+			// en modo sin conexion no, y de eso se encargan AuthMe y
+			// FastLogin (D-07, D-17).
+			"ONLINE_MODE": boolEnv(!inst.Auth.SinConexion()),
 		},
 		DataDir:  dataDir,
 		PortHost: inst.Port,
@@ -86,7 +86,12 @@ func (f *Flavor) WriteConfig(inst *domain.Instance, dataDir string, permitidos [
 		"server-port": strconv.Itoa(domain.PortJava),
 		"level-name":  inst.LevelName,
 		"motd":        inst.Name,
-		"online-mode": "true",
+		"online-mode": boolProp(!inst.Auth.SinConexion()),
+		// enforce-secure-profile tiene que APAGARSE en modo sin conexion: exige
+		// que el cliente traiga una firma de Mojang, y una cuenta no premium no
+		// la tiene. Con esto puesto, los no premium no entran ni con AuthMe, y
+		// el rechazo no menciona esta clave por ningun sitio.
+		"enforce-secure-profile": boolProp(!inst.Auth.SinConexion()),
 
 		// La whitelist va SIEMPRE puesta, y con las DOS claves.
 		//
@@ -185,4 +190,13 @@ func levelType(t domain.LevelType) string {
 		return "minecraft:normal"
 	}
 	return ""
+}
+
+// boolEnv escribe un booleano como lo esperan las variables de la imagen, que
+// las quiere en mayusculas.
+func boolEnv(b bool) string {
+	if b {
+		return "TRUE"
+	}
+	return "FALSE"
 }
