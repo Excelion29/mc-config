@@ -28,10 +28,9 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 
 	s.renderer.render(w, http.StatusOK, "players.html", playersPageData{
 		PageData: s.pagina(r, "Jugadores", errMsg, info),
-		Players:  page.Players,
+		Players:  vistasDeJugador(page.Players, s.acceso.Mode(r.Context())),
 		Filtro:   page.Filter,
 		Estados:  app.EstadosDeJugador(),
-		Modo:     s.acceso.Mode(r.Context()),
 		Pag: paginador{
 			Info: page.PageInfo,
 			// Los filtros viajan dentro de la base para no perderlos al
@@ -88,7 +87,8 @@ func (s *Server) responderFila(w http.ResponseWriter, r *http.Request, id int64)
 	}
 
 	s.ponerTotal(w, r, actor)
-	if err := s.renderer.fragment(w, "players.html", "fila-jugador", p); err != nil {
+	fila := vistaDeJugador(p, s.acceso.Mode(r.Context()))
+	if err := s.renderer.fragment(w, "players.html", "fila-jugador", fila); err != nil {
 		s.log.Error("no se pudo pintar la fila", "error", err)
 	}
 }

@@ -94,16 +94,35 @@ type instancesPageData struct {
 	Confirm   *confirmSwitch
 }
 
+// playerView es un jugador con lo que la pantalla necesita ya resuelto.
+//
+// "Puede jugar a Java" depende del modo de acceso, que es un dato de la pagina
+// y no del jugador. La fila se pinta tambien suelta al actualizar sin recargar,
+// y ahi la plantilla NO tiene la pagina delante: dentro de una plantilla, $ es
+// su propio argumento. Resolverlo aqui hace que las dos vias digan lo mismo.
+type playerView struct {
+	domain.Player
+	PuedeJava bool
+}
+
+func vistasDeJugador(jugadores []domain.Player, modo domain.AuthMode) []playerView {
+	out := make([]playerView, 0, len(jugadores))
+	for i := range jugadores {
+		out = append(out, vistaDeJugador(&jugadores[i], modo))
+	}
+	return out
+}
+
+func vistaDeJugador(p *domain.Player, modo domain.AuthMode) playerView {
+	return playerView{Player: *p, PuedeJava: p.PuedeJugarJavaEn(modo)}
+}
+
 type playersPageData struct {
 	PageData
-	Players []domain.Player
+	Players []playerView
 	Filtro  app.PlayerFilter
 	Estados [][2]string
 	Pag     paginador
-	// Modo decide que identidad vale en Java, y por tanto quien puede jugar.
-	// Sin el, la pantalla diria que un amigo sin cuenta comprada no puede
-	// entrar justo cuando si puede.
-	Modo domain.AuthMode
 }
 
 type rolesPageData struct {

@@ -133,11 +133,11 @@ func (m *Worlds) Import(ctx context.Context, actor *domain.User, src io.Reader, 
 	}
 
 	mp := &domain.World{
-		Name:       name,
-		RawName:    insp.RawName,
-		Edition:    insp.Edition,
-		Version:    insp.Version,
-		Origin:     domain.OriginImported,
+		Name:    name,
+		RawName: insp.RawName,
+		Edition: insp.Edition,
+		Version: insp.Version,
+		Origin:  domain.OriginImported,
 		// Un mapa importado trae su terreno hecho, asi que la generacion solo
 		// describe lo que ya es. Las reglas si son nuestras.
 		Gen:        domain.DefaultGeneration(),
@@ -191,9 +191,16 @@ func (m *Worlds) Delete(ctx context.Context, actor *domain.User, id int64, ip st
 	}
 	// Primero la fila, despues los archivos: al reves, un fallo dejaria una
 	// entrada en la biblioteca apuntando a un archivo que ya no existe.
-	if err := m.store.Delete(mp.SHA256); err != nil {
-		m.log.Warn("el mapa se borro de la biblioteca pero quedaron archivos",
-			"sha", mp.SHA256, "error", err)
+	//
+	// Y solo si HAY archivos. Un mundo creado desde una semilla no subio nada,
+	// asi que no tiene hash y no hay nada que borrar (D-16). Pedirlo igual
+	// reventaba el borrado -y solo el de los mundos nuevos-, despues de haber
+	// quitado ya la fila.
+	if mp.Importado() && mp.SHA256 != "" {
+		if err := m.store.Delete(mp.SHA256); err != nil {
+			m.log.Warn("el mapa se borro de la biblioteca pero quedaron archivos",
+				"sha", mp.SHA256, "error", err)
+		}
 	}
 
 	m.audit.Record(ctx, actor, actor.Email, domain.ActionWorldDeleted, mp.Name, ip)
@@ -255,9 +262,9 @@ func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
 	// No se comprueba el disco: un mundo creado no ocupa nada hasta que se
 	// enciende, y quien lo enciende es Instances, que si lo comprueba.
 	mundo := &domain.World{
-		Name:      nombre,
-		RawName:   nombre,
-		Edition:   edicion,
+		Name:    nombre,
+		RawName: nombre,
+		Edition: edicion,
 		Origin:  domain.OriginCreated,
 		IconURL: strings.TrimSpace(portada),
 		Gen:     gen,
@@ -269,7 +276,7 @@ func (m *Worlds) Create(ctx context.Context, actor *domain.User, nombre string,
 		//
 		// Vacia equivale a LATEST, que es lo que ya hace la creacion de
 		// servidores.
-		Version: strings.TrimSpace(version),
+		Version:    strings.TrimSpace(version),
 		UploadedBy: actor.ID,
 		CreatedAt:  m.clock(),
 	}

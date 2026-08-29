@@ -154,7 +154,7 @@
           </td>
           <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
           <td>
-            {{if .PuedeJugarJavaEn $.Modo}}<span class="etiqueta ok">Java</span>{{end}}
+            {{if .PuedeJava}}<span class="etiqueta ok">Java</span>{{end}}
             {{if .PuedeJugarBedrock}}<span class="etiqueta">Bedrock</span>{{end}}
             {{if not .Active}}<span class="etiqueta aviso">bloqueado</span>
             {{else if .HaEntrado}}<span class="etiqueta ok">ha jugado</span>

@@ -24,6 +24,16 @@ func New(root string) (*FileStore, error) {
 }
 
 func (s *FileStore) dir(sha string) string {
+	// Sin hash no hay carpeta. Pasa con los mundos creados desde una semilla,
+	// que no subieron ningun archivo (D-16).
+	//
+	// Devolver la raiz seria mucho peor que devolver vacio: Delete hace un
+	// RemoveAll, asi que borraria la biblioteca ENTERA. Los que llaman
+	// comprueban el vacio.
+	if len(sha) < 2 {
+		return ""
+	}
+
 	// Se parte el hash en dos niveles para no acabar con miles de carpetas
 	// hermanas, que en algunos sistemas de archivos degrada el listado.
 	return filepath.Join(s.root, sha[:2], sha)
@@ -71,7 +81,11 @@ func (s *FileStore) ReadIcon(sha string) ([]byte, error) {
 }
 
 func (s *FileStore) Delete(sha string) error {
-	if err := os.RemoveAll(s.dir(sha)); err != nil {
+	dir := s.dir(sha)
+	if dir == "" {
+		return nil
+	}
+	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("borrando los archivos del mapa: %w", err)
 	}
 	return nil

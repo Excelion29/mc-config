@@ -17,6 +17,10 @@ import (
 // Vive en el dominio y no en el adaptador de Java porque no es hablar con
 // nadie: es la regla de como se identifica una persona sin cuenta comprada. La
 // necesitan tanto el alta de jugadores como la escritura de la lista.
+//
+// VERIFICADO en campo el 2026-08-29: un amigo sin cuenta comprada entro a un
+// servidor con la whitelist puesta. Si este calculo no fuera el que hace
+// Minecraft, el servidor no le habria reconocido en la lista.
 func OfflineUUID(nombre string) string {
 	suma := md5.Sum([]byte("OfflinePlayer:" + nombre))
 
