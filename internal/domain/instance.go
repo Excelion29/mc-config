@@ -67,6 +67,10 @@ type Instance struct {
 	// cambiar sin reescribir cada instancia.
 	Auth AuthMode
 	ContainerID string
+	// Pack es el paquete de texturas que el mundo aplica solo, si lo tiene.
+	// Se relee en cada arranque, como las reglas: lo que vale es lo que dice
+	// el mundo AHORA, no lo que decia el dia que se creo la instancia.
+	Pack PackRef
 	// SpecHash es la huella de la definicion con la que se creo el contenedor.
 	// Si deja de coincidir con la que el panel quiere ahora, hay que rehacerlo:
 	// entorno, puertos y limites no se pueden cambiar en caliente.

@@ -41,6 +41,29 @@ type paginador struct {
 	Base string
 }
 
+// packView es un paquete con lo que la pantalla necesita ya resuelto.
+//
+// "Se puede aplicar solo" depende de si el enlace apunta al archivo, y eso es
+// una regla del dominio, no algo que deba deducir una plantilla mirando el
+// final de una cadena.
+type packView struct {
+	domain.Pack
+	Automatico bool
+}
+
+func vistasDePack(lista []domain.Pack) []packView {
+	out := make([]packView, 0, len(lista))
+	for i := range lista {
+		out = append(out, packView{Pack: lista[i], Automatico: lista[i].Automatico()})
+	}
+	return out
+}
+
+type packsPageData struct {
+	PageData
+	Packs []packView
+}
+
 type accessPageData struct {
 	PageData
 	Estado app.Estado
@@ -63,10 +86,27 @@ type usersPageData struct {
 	Pag   paginador
 }
 
+// packsDeMundo es lo que hace falta para pintar el dialogo de paquetes de UN
+// mundo, con las busquedas ya hechas.
+//
+// Marcados es map[int64]bool y no un conjunto de struct{} a proposito: en una
+// plantilla un struct vacio SIEMPRE es cierto, asi que un conjunto haria que
+// todas las casillas salieran marcadas y sin dar ningun error. Ya paso con los
+// permisos de los roles.
+type packsDeMundo struct {
+	Marcados  map[int64]bool
+	Activo    int64
+	Requerido bool
+}
+
 type worldsPageData struct {
 	PageData
-	Maps      []domain.World
-	MaxUpload string
+	Maps []domain.World
+	// Packs es la biblioteca entera: el dialogo de cada mundo ofrece todos.
+	Packs []packView
+	// PacksPorMundo dice, por mundo, cuales lleva y cual se aplica solo.
+	PacksPorMundo map[int64]packsDeMundo
+	MaxUpload     string
 	// Las versiones de las DOS ediciones viajan juntas porque el formulario
 	// ofrece las dos listas y CSS ensena la que toque. Sin JavaScript no se
 	// puede repoblar un desplegable al cambiar de edicion, asi que se mandan
@@ -76,7 +116,7 @@ type worldsPageData struct {
 	// Los tipos de terreno tambien difieren por edicion.
 	TypesBedrock []domain.LevelType
 	TypesJava    []domain.LevelType
-	Pag             paginador
+	Pag          paginador
 }
 
 type instancesPageData struct {
@@ -86,7 +126,7 @@ type instancesPageData struct {
 	// Current es la instancia encendida, o la que esta arrancando o parando.
 	// Solo puede haber una (D-02), asi que no es una fila mas de la tabla:
 	// es LA informacion de la pantalla y se presenta aparte.
-	Current *domain.Instance
+	Current   *domain.Instance
 	Maps      []domain.World
 	Online    int
 	MaxOnline int

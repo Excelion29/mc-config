@@ -45,6 +45,18 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 	// Reglas frescas del mundo. Si falla, se sigue con las que trae la
 	// instancia: no impedir arrancar un servidor porque no se pudo releer un
 	// ajuste.
+	// El paquete de texturas, tambien fresco y por el mismo motivo. Si falla se
+	// arranca sin el: quedarse sin las texturas bonitas es molesto, no poder
+	// jugar lo es mas.
+	if inst.WorldID > 0 && i.packOf != nil {
+		if pack, err := i.packOf(ctx, inst.WorldID); err == nil {
+			inst.Pack = pack
+		} else {
+			i.log.Warn("no se pudo leer el paquete de texturas; se arranca sin el",
+				"instancia", inst.Name, "error", err)
+		}
+	}
+
 	if inst.WorldID > 0 && i.rulesOf != nil {
 		if reglas, err := i.rulesOf(ctx, inst.WorldID); err == nil {
 			inst.Rules = reglas

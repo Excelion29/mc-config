@@ -26,6 +26,10 @@ const (
 	ActionWorldImported Action = "map_imported"
 	ActionWorldCreated  Action = "world_created"
 	ActionWorldUpdated  Action = "world_updated"
+	ActionPackCreated   Action = "pack_created"
+	ActionPackUpdated   Action = "pack_updated"
+	ActionPackDeleted   Action = "pack_deleted"
+	ActionPackAssigned  Action = "pack_assigned"
 
 	// Cambiar el modo de autenticacion es de las acciones mas delicadas que
 	// existen en el panel: decide si hace falta cuenta comprada para entrar.

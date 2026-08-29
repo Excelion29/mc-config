@@ -28,6 +28,7 @@ type Server struct {
 	auth      *app.Auth
 	audit     *app.Audit
 	worlds    *app.Worlds
+	packs     *app.Packs
 	acceso    *app.Access
 	instances *app.Instances
 	players   *app.Players
@@ -44,6 +45,7 @@ func NewServer(
 	auth *app.Auth,
 	audit *app.Audit,
 	worlds *app.Worlds,
+	packs *app.Packs,
 	acceso *app.Access,
 	instances *app.Instances,
 	players *app.Players,
@@ -56,7 +58,7 @@ func NewServer(
 		return nil, err
 	}
 	return &Server{
-		auth: auth, audit: audit, worlds: worlds, acceso: acceso, instances: instances, players: players,
+		auth: auth, audit: audit, worlds: worlds, packs: packs, acceso: acceso, instances: instances, players: players,
 		renderer: r, log: log,
 		secureCookies: secureCookies, sessionTTL: sessionTTL,
 	}, nil
@@ -94,6 +96,7 @@ func (s *Server) Routes() http.Handler {
 			g.Use(s.requirePermission(domain.PermServerView))
 			g.Get("/worlds", s.showWorlds)
 			g.Get("/worlds/{id}/icon", s.worldIcon)
+			g.Get("/packs", s.showPacks)
 			g.Get("/access", s.showAccess)
 			g.Get("/instances", s.showInstances)
 			g.Get("/instances/{id}/logs", s.instanceLogs)
@@ -126,11 +129,15 @@ func (s *Server) Routes() http.Handler {
 			g.Post("/worlds", s.importWorld)
 			g.Post("/worlds/create", s.createWorld)
 			g.Post("/worlds/update", s.updateWorld)
+			g.Post("/worlds/packs", s.assignPacks)
+			g.Post("/packs", s.createPack)
+			g.Post("/packs/update", s.updatePack)
 		})
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermWorldDelete))
 			g.Post("/worlds/delete", s.deleteWorld)
+			g.Post("/packs/delete", s.deletePack)
 		})
 
 		private.Group(func(g chi.Router) {

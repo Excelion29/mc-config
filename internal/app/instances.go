@@ -33,6 +33,9 @@ type Instances struct {
 	// la raiz de composicion, porque Worlds e Instances se necesitan
 	// mutuamente y encadenarlos en el constructor haria un ciclo.
 	rulesOf func(context.Context, int64) (domain.Rules, error)
+	// packOf relee el paquete de texturas activo del mundo. Se inyecta aparte
+	// por el mismo motivo que rulesOf: Packs y Worlds viven en otro sitio.
+	packOf func(context.Context, int64) (domain.PackRef, error)
 	// plugins instala los complementos de servidor. Puede ser nil: sin el, el
 	// panel funciona igual y simplemente no ofrece el modo sin conexion.
 	plugins PluginStore
@@ -121,6 +124,10 @@ func (i *Instances) InstalarPlugins(ctx context.Context, inst *domain.Instance, 
 
 func (i *Instances) SetRulesSource(f func(context.Context, int64) (domain.Rules, error)) {
 	i.rulesOf = f
+}
+
+func (i *Instances) SetPackSource(f func(context.Context, int64) (domain.PackRef, error)) {
+	i.packOf = f
 }
 
 // RefsPara traduce jugadores a la identidad que entiende cada edicion.

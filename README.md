@@ -24,6 +24,8 @@ binario que sirve la interfaz y habla con Docker.
   abrirlo, el panel instala AuthMe y FastLogin él solo, y se niega a abrirlo si
   no están: sin ellos, ese modo deja entrar a cualquiera con el nombre que
   quiera.
+- **Paquetes de texturas** por enlace, compartidos entre mundos. El panel guarda
+  la URL, no el archivo: Java se lo pide al jugador al entrar.
 - **Registro** de todo lo que se hace, con filtros y paginación.
 
 ## Estado
@@ -36,6 +38,7 @@ binario que sirve la interfaz y habla con Docker.
 | F4 | Lista maestra de jugadores, propagándose a cada servidor | ✅ |
 | F5 | **Minecraft Java** con Paper: mundos, whitelist, ops, consola | ✅ |
 | F6 | AuthMe + FastLogin para cuentas no premium | ✅ |
+| F7 | Paquetes de texturas por enlace, compartidos entre mundos | ✅ |
 
 ## Cómo funciona
 

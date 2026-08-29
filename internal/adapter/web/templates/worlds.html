@@ -59,6 +59,10 @@
       {{if $page.User.Can "map.import"}}
       <a class="accion" href="#editar-{{.ID}}" title="Editar"
          aria-label="Editar {{.Name}}">{{template "ico-editar"}}</a>
+      {{if eq .Edition "java"}}
+      <a class="accion" href="#paquetes-{{.ID}}" title="Paquetes de texturas"
+         aria-label="Paquetes de texturas de {{.Name}}">{{template "ico-texturas"}}</a>
+      {{end}}
       {{end}}
       {{if $page.User.Can "map.delete"}}
       <form method="post" action="/worlds/delete">
@@ -406,4 +410,107 @@
   </div>
 </div>
 {{end}}
+
+{{/*
+  Paquetes de texturas, solo en Java.
+
+  Va en su PROPIO dialogo y no dentro del de editar porque aquel ya es un
+  formulario, y un formulario dentro de otro no es HTML valido: el navegador
+  cierra el de fuera y manda medio formulario sin avisar.
+
+  Bedrock no aparece: no sirve paquetes por enlace, y ofrecer un campo que no
+  hace nada seria peor que no tenerlo (D-18).
+*/}}
+{{if .User.Can "map.import"}}
+{{$page := .}}
+{{range .Maps}}
+{{if eq .Edition "java"}}
+{{$mundo := .}}
+{{$asignados := index $page.PacksPorMundo .ID}}
+<div class="modal" id="paquetes-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-paquetes-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-paquetes-{{.ID}}">Texturas de {{.Name}}</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/worlds/packs">
+      <input type="hidden" name="world_id" value="{{.ID}}">
+      <div class="modal-cuerpo">
+        {{if $page.Packs}}
+        <p class="ayuda">
+          Marca los que lleva este mundo. Solo <strong>uno</strong> puede
+          aplicarse solo al entrar &mdash;el servidor no admite mas de uno&mdash;
+          y el resto quedan listados con su enlace para quien los quiera.
+        </p>
+
+        <fieldset>
+          <legend>Paquetes de este mundo</legend>
+          {{range $page.Packs}}
+          <label class="check">
+            <input type="checkbox" name="pack_id" value="{{.ID}}"
+                   {{if index $asignados.Marcados .ID}}checked{{end}}>
+            <span>
+              {{.Name}}
+              {{if not .Automatico}}<span class="etiqueta aviso">a mano</span>{{end}}
+            </span>
+          </label>
+          {{end}}
+        </fieldset>
+
+        <fieldset>
+          <legend>Cual se aplica solo</legend>
+          <label class="check">
+            <input type="radio" name="activo" value="0"
+                   {{if eq $asignados.Activo 0}}checked{{end}}>
+            <span>Ninguno &mdash; solo se ensenan los enlaces</span>
+          </label>
+          {{range $page.Packs}}
+          {{if .Automatico}}
+          <label class="check">
+            <input type="radio" name="activo" value="{{.ID}}"
+                   {{if eq $asignados.Activo .ID}}checked{{end}}>
+            <span>{{.Name}}</span>
+          </label>
+          {{end}}
+          {{end}}
+          <p class="ayuda">
+            Aqui solo salen los que acaban en <code>.zip</code>. Un enlace a una
+            pagina de descarga no se puede aplicar solo: el juego pediria el
+            archivo y recibiria una pagina web.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Si alguien lo rechaza</legend>
+          <label class="check">
+            <input type="checkbox" name="required" value="1"
+                   {{if $asignados.Requerido}}checked{{end}}>
+            <span>No dejarle entrar sin el paquete</span>
+          </label>
+          <p class="ayuda">
+            Util en un mapa de aventura, que sin sus texturas no se entiende. En
+            un mundo normal deja fuera a quien tenga mala conexion, asi que por
+            defecto se ofrece y no se exige.
+          </p>
+        </fieldset>
+        {{else}}
+        <p class="vacio">
+          No hay ningun paquete en la biblioteca todavia.
+          <a href="/packs">Anade uno</a> y luego vuelve aqui a asignarlo.
+        </p>
+        {{end}}
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        {{if $page.Packs}}<button type="submit">Guardar</button>{{end}}
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+{{end}}
+{{end}}
+
 {{end}}

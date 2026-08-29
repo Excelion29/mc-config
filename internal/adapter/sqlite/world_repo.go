@@ -16,7 +16,7 @@ type WorldRepo struct{ db *sql.DB }
 const worldColumns = `id, name, raw_name, edition, version, origin, file_name,
 	size_bytes, sha256, has_icon, icon_url, seed, level_type, structures, bonus_chest,
 	gamemode, difficulty, allow_commands, pvp, max_players,
-	uploaded_by, created_at`
+	pack_required, uploaded_by, created_at`
 
 func (r *WorldRepo) Create(ctx context.Context, m *domain.World) (int64, error) {
 	var uploadedBy any
@@ -129,22 +129,23 @@ func (r *WorldRepo) scanOne(ctx context.Context, query string, args ...any) (*do
 
 func scanWorld(scan func(...any) error) (*domain.World, error) {
 	var (
-		m          domain.World
-		edition    string
-		origin     string
-		hasIcon    int
-		nivel      string
-		modo       string
-		dificultad string
+		m                                 domain.World
+		edition                           string
+		origin                            string
+		hasIcon                           int
+		nivel                             string
+		modo                              string
+		dificultad                        string
 		estructuras, cofre, comandos, pvp int
-		sha        sql.NullString
-		uploadedBy sql.NullInt64
-		createdAt  string
+		sha                               sql.NullString
+		uploadedBy                        sql.NullInt64
+		createdAt                         string
+		packRequerido                     int
 	)
 	err := scan(&m.ID, &m.Name, &m.RawName, &edition, &m.Version, &origin,
 		&m.FileName, &m.SizeBytes, &sha, &hasIcon, &m.IconURL, &m.Gen.Seed, &nivel,
 		&estructuras, &cofre, &modo, &dificultad, &comandos, &pvp,
-		&m.Rules.MaxPlayers, &uploadedBy, &createdAt)
+		&m.Rules.MaxPlayers, &packRequerido, &uploadedBy, &createdAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err
@@ -156,6 +157,7 @@ func scanWorld(scan func(...any) error) (*domain.World, error) {
 	m.Origin = domain.Origin(origin)
 	m.SHA256 = sha.String // vacio si es NULL, que es lo que queremos
 	m.Gen.LevelType = domain.LevelType(nivel)
+	m.PackRequired = packRequerido == 1
 	m.Gen.Structures = estructuras == 1
 	m.Gen.BonusChest = cofre == 1
 	m.Rules.Gamemode = domain.Gamemode(modo)

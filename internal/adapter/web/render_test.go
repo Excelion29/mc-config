@@ -27,7 +27,7 @@ func TestPlantillasCompilan(t *testing.T) {
 	for _, page := range []string{
 		"home.html", "login.html", "error.html", "audit.html",
 		"worlds.html", "instances.html", "players.html",
-		"users.html", "roles.html", "access.html",
+		"users.html", "roles.html", "access.html", "packs.html",
 	} {
 		if _, ok := r.pages[page]; !ok {
 			t.Errorf("falta la plantilla %s", page)

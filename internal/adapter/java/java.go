@@ -127,6 +127,30 @@ func (f *Flavor) WriteConfig(inst *domain.Instance, dataDir string, permitidos [
 		"management-server-enabled": "false",
 	}
 
+	// --- Paquete de texturas ---
+	//
+	// Se sirve por ENLACE: la clave lleva una URL y es el cliente quien la
+	// descarga al conectarse. El panel no aloja el archivo (M-2).
+	//
+	// Las claves solo se escriben si hay paquete. Dejar "resource-pack" vacio
+	// no es lo mismo que no ponerlo en algunas versiones, y no hace falta
+	// averiguar en cuales.
+	if inst.Pack.URL != "" {
+		props["resource-pack"] = inst.Pack.URL
+
+		// Sin el hash el cliente vuelve a descargar el paquete ENTERO en cada
+		// conexion, porque no tiene forma de saber que el que guarda es el
+		// mismo. Va vacio cuando no se pudo calcular, y entonces mejor no
+		// escribir la clave que escribir un hash falso: uno que no cuadra hace
+		// que el cliente rechace el paquete.
+		if inst.Pack.SHA1 != "" {
+			props["resource-pack-sha1"] = inst.Pack.SHA1
+		}
+
+		// Echa a quien lo rechace. Lo decide cada mundo.
+		props["require-resource-pack"] = boolProp(inst.Pack.Required)
+	}
+
 	// --- Generacion: solo si el mundo nacio vacio ---
 	if inst.Gen.Seed != "" {
 		props["level-seed"] = inst.Gen.Seed

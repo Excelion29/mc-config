@@ -115,3 +115,4 @@ func (d *DB) Worlds() *WorldRepo       { return &WorldRepo{db: d.db} }
 func (d *DB) Settings() *SettingsRepo  { return &SettingsRepo{db: d.db} }
 func (d *DB) Instances() *InstanceRepo { return &InstanceRepo{db: d.db} }
 func (d *DB) Players() *PlayerRepo     { return &PlayerRepo{db: d.db} }
+func (d *DB) Packs() *PackRepo         { return &PackRepo{db: d.db} }

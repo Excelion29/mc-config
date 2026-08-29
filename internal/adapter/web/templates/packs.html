@@ -1,0 +1,180 @@
+{{define "contenido"}}
+<div class="cabecera-pagina">
+  <div>
+    <h1>Paquetes de texturas</h1>
+    <p class="sub">
+      Cambian el aspecto del juego. Aqu&iacute; se guarda el <strong>enlace</strong>,
+      no el archivo: Java se lo pide al jugador cuando entra, as&iacute; que el
+      panel no aloja nada. Un mismo paquete sirve para todos los mundos que
+      quieras, y cada mundo elige los suyos desde su ficha.
+    </p>
+  </div>
+  {{if .User.Can "map.import"}}
+  <div class="cabecera-acciones">
+    <a class="boton" href="#anadir-paquete">A&ntilde;adir paquete</a>
+  </div>
+  {{end}}
+</div>
+
+<section class="tarjeta">
+  <h2>Biblioteca <span class="cuenta">{{len .Packs}}</span></h2>
+
+  {{if .Packs}}
+  <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Paquete</th>
+          <th>C&oacute;mo se instala</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{$page := .}}
+        {{range .Packs}}
+        <tr>
+          <td>
+            <strong>{{.Name}}</strong>
+            {{if .Note}}<br><span class="apagado">{{.Note}}</span>{{end}}
+            <br>
+            <a class="apagado dato" href="{{.URL}}" target="_blank"
+               rel="noopener noreferrer">{{.URL}}</a>
+          </td>
+          <td>
+            {{if .Automatico}}
+            <span class="etiqueta ok">Solo</span>
+            <span class="apagado">
+              El enlace lleva al archivo, as&iacute; que el servidor puede
+              aplic&aacute;rselo al jugador sin que haga nada.
+            </span>
+            {{else}}
+            <span class="etiqueta aviso">A mano</span>
+            <span class="apagado">
+              El enlace lleva a una p&aacute;gina, no al archivo. Se puede poner
+              en un mundo, pero cada jugador tiene que descargarlo e instalarlo.
+            </span>
+            {{end}}
+            {{if not .SHA1}}
+            <br><span class="apagado">
+              Sin huella: el jugador se lo descargar&aacute; entero cada vez que
+              entre.
+            </span>
+            {{end}}
+          </td>
+          <td class="acciones">
+            {{if $page.User.Can "map.import"}}
+            <a class="accion" href="#editar-paquete-{{.ID}}" title="Editar"
+               aria-label="Editar {{.Name}}">{{template "ico-editar"}}</a>
+            {{end}}
+            {{if $page.User.Can "map.delete"}}
+            <form method="post" action="/packs/delete">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <button class="accion accion-peligro" title="Borrar"
+                      aria-label="Borrar el paquete {{.Name}}">{{template "ico-borrar"}}</button>
+            </form>
+            {{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="vacio">
+    A&uacute;n no hay ninguno. A&ntilde;ade el enlace de un paquete y luego
+    as&iacute;gnalo a los mundos donde lo quieras.
+  </p>
+  {{end}}
+</section>
+
+{{if .User.Can "map.import"}}
+{{range .Packs}}
+<div class="modal" id="editar-paquete-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-paquete-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-paquete-{{.ID}}">Editar paquete</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+    <form method="post" action="/packs/update">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <div class="modal-cuerpo">
+        <div class="campos">
+        <div class="campo-ancho">
+          <label for="p-name-{{.ID}}">Nombre</label>
+          <input id="p-name-{{.ID}}" name="name" required autocomplete="off" value="{{.Name}}">
+        </div>
+        <div class="campo-ancho">
+          <label for="p-url-{{.ID}}">Enlace</label>
+          <input id="p-url-{{.ID}}" name="url" type="url" required autocomplete="off" value="{{.URL}}">
+          <span class="ayuda">
+            Si cambias el enlace se vuelve a calcular la huella, y eso tarda lo
+            que tarde en descargarse.
+          </span>
+        </div>
+        <div class="campo-ancho">
+          <label for="p-note-{{.ID}}">Nota</label>
+          <input id="p-note-{{.ID}}" name="note" autocomplete="off" value="{{.Note}}"
+                 placeholder="De d&oacute;nde salio, de qui&eacute;n es, para qu&eacute; mapa">
+        </div>
+        </div>
+      </div>
+      <footer class="modal-pie">
+        <a class="boton boton-secundario" href="#">Cancelar</a>
+        <button type="submit">Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+
+<div class="modal" id="anadir-paquete">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-anadir-paquete">
+    <header class="modal-cabecera">
+      <h2 id="titulo-anadir-paquete">A&ntilde;adir paquete</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+    <form method="post" action="/packs">
+      <div class="modal-cuerpo">
+        <div class="campos">
+        <div class="campo-ancho">
+          <label for="p-name">Nombre</label>
+          <input id="p-name" name="name" required autocomplete="off"
+                 placeholder="Texturas de Lucky Blocks">
+        </div>
+        <div class="campo-ancho">
+          <label for="p-url">Enlace</label>
+          <input id="p-url" name="url" type="url" required autocomplete="off"
+                 placeholder="https://...">
+          <span class="ayuda">
+            Tiene que empezar por <strong>https://</strong>, porque ese archivo
+            acaba dentro del juego de cada persona que entra.
+            <br>
+            Si acaba en <strong>.zip</strong>, el servidor puede
+            aplic&aacute;rselo al jugador solo. Si lleva a una p&aacute;gina de
+            descarga, se guarda igual y cada uno lo instala a mano.
+          </span>
+        </div>
+        <div class="campo-ancho">
+          <label for="p-note">Nota</label>
+          <input id="p-note" name="note" autocomplete="off"
+                 placeholder="De d&oacute;nde salio, de qui&eacute;n es, para qu&eacute; mapa">
+        </div>
+        </div>
+        <p class="ayuda">
+          Al guardarlo el panel <strong>descarga el paquete una vez</strong> para
+          calcular su huella, y tira el archivo. Sirve para que el jugador no se
+          lo baje otra vez en cada conexi&oacute;n. Si no lo consigue, el paquete
+          se guarda igual.
+        </p>
+      </div>
+      <footer class="modal-pie">
+        <a class="boton boton-secundario" href="#">Cancelar</a>
+        <button type="submit">A&ntilde;adir</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+{{end}}

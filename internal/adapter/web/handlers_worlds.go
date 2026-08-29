@@ -214,6 +214,11 @@ func (s *Server) renderWorlds(w http.ResponseWriter, r *http.Request, errMsg, in
 		PageData:  s.pagina(r, "Mapas", errMsg, infoMsg),
 		Maps:      page.Maps,
 		MaxUpload: app.HumanSize(s.worlds.MaxUpload()),
+		// La biblioteca de paquetes y, por mundo, cuales lleva. Si falla se
+		// pinta la pagina sin ellos: no impedir gestionar mundos porque los
+		// paquetes den problemas.
+		Packs:         s.bibliotecaDePacks(r, actor),
+		PacksPorMundo: s.packsPorMundo(r, actor, page.Maps),
 		// Si la consulta falla, la lista queda vacia y la plantilla cae al
 		// campo libre: no impedir crear mundos porque un tercero no responda.
 		VersionsBedrock: s.versionesDe(r, actor, domain.EditionBedrock),
@@ -260,4 +265,53 @@ func (s *Server) worldErrorMessage(err error, dup *domain.World) string {
 		s.log.Error("error inesperado con un mapa", "error", err)
 		return "Ha ocurrido un error al procesar el archivo."
 	}
+}
+
+// bibliotecaDePacks lee la biblioteca entera para el dialogo de cada mundo.
+func (s *Server) bibliotecaDePacks(r *http.Request, actor *domain.User) []packView {
+	lista, err := s.packs.List(r.Context(), actor)
+	if err != nil {
+		s.log.Warn("no se pudo leer la biblioteca de paquetes", "error", err)
+		return nil
+	}
+	return vistasDePack(lista)
+}
+
+// packsPorMundo resuelve, para cada mundo, que paquetes lleva y cual se aplica.
+//
+// Se hace aqui y no en la plantilla porque "esta este paquete en la lista de
+// este mundo" es una busqueda, y una plantilla que busca acaba equivocandose en
+// silencio.
+func (s *Server) packsPorMundo(r *http.Request, actor *domain.User, mundos []domain.World) map[int64]packsDeMundo {
+	out := make(map[int64]packsDeMundo, len(mundos))
+
+	for i := range mundos {
+		m := &mundos[i]
+
+		// Bedrock no sirve paquetes por enlace, asi que el dialogo no aparece
+		// y no hay nada que resolver (D-18).
+		if m.Edition != domain.EditionJava {
+			continue
+		}
+
+		asignados, err := s.packs.DeMundo(r.Context(), actor, m.ID)
+		if err != nil {
+			s.log.Warn("no se pudieron leer los paquetes del mundo",
+				"mundo", m.Name, "error", err)
+			continue
+		}
+
+		datos := packsDeMundo{
+			Marcados:  make(map[int64]bool, len(asignados)),
+			Requerido: m.PackRequired,
+		}
+		for _, a := range asignados {
+			datos.Marcados[a.ID] = true
+			if a.Activo {
+				datos.Activo = a.ID
+			}
+		}
+		out[m.ID] = datos
+	}
+	return out
 }
