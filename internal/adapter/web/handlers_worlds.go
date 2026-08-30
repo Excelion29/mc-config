@@ -43,8 +43,8 @@ func (s *Server) createWorld(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gen := domain.Generation{
-		Seed:      r.PostFormValue("seed"),
-		LevelType: domain.LevelType(r.PostFormValue("level_type_" + r.PostFormValue("edition"))),
+		Seed:       r.PostFormValue("seed"),
+		LevelType:  domain.LevelType(r.PostFormValue("level_type_" + r.PostFormValue("edition"))),
 		Structures: r.PostFormValue("structures") == "1",
 		BonusChest: r.PostFormValue("bonus_chest") == "1",
 	}
@@ -214,18 +214,16 @@ func (s *Server) renderWorlds(w http.ResponseWriter, r *http.Request, errMsg, in
 		PageData:  s.pagina(r, "Mapas", errMsg, infoMsg),
 		Maps:      page.Maps,
 		MaxUpload: app.HumanSize(s.worlds.MaxUpload()),
-		// La biblioteca de paquetes y, por mundo, cuales lleva. Si falla se
-		// pinta la pagina sin ellos: no impedir gestionar mundos porque los
-		// paquetes den problemas.
-		Packs:         s.bibliotecaDePacks(r, actor),
-		PacksPorMundo: s.packsPorMundo(r, actor, page.Maps),
+		// Por mundo, que recursos lleva. Si falla se pinta la pagina sin ellos:
+		// no impedir gestionar mundos porque los recursos den problemas.
+		RecursosPorMundo: s.recursosPorMundo(r, actor, page.Maps),
 		// Si la consulta falla, la lista queda vacia y la plantilla cae al
 		// campo libre: no impedir crear mundos porque un tercero no responda.
 		VersionsBedrock: s.versionesDe(r, actor, domain.EditionBedrock),
 		VersionsJava:    s.versionesDe(r, actor, domain.EditionJava),
 		TypesBedrock:    domain.LevelTypesFor(domain.EditionBedrock),
 		TypesJava:       domain.LevelTypesFor(domain.EditionJava),
-		Pag:       paginador{Info: page.PageInfo, Base: "/maps?"},
+		Pag:             paginador{Info: page.PageInfo, Base: "/maps?"},
 	})
 }
 
@@ -267,51 +265,81 @@ func (s *Server) worldErrorMessage(err error, dup *domain.World) string {
 	}
 }
 
-// bibliotecaDePacks lee la biblioteca entera para el dialogo de cada mundo.
-func (s *Server) bibliotecaDePacks(r *http.Request, actor *domain.User) []packView {
-	lista, err := s.packs.List(r.Context(), actor)
-	if err != nil {
-		s.log.Warn("no se pudo leer la biblioteca de paquetes", "error", err)
-		return nil
-	}
-	return vistasDePack(lista)
-}
-
-// packsPorMundo resuelve, para cada mundo, que paquetes lleva y cual se aplica.
+// recursosPorMundo resuelve, para cada mundo, que lleva y cual se aplica solo.
 //
-// Se hace aqui y no en la plantilla porque "esta este paquete en la lista de
+// Se hace aqui y no en la plantilla porque "esta este recurso en la lista de
 // este mundo" es una busqueda, y una plantilla que busca acaba equivocandose en
 // silencio.
-func (s *Server) packsPorMundo(r *http.Request, actor *domain.User, mundos []domain.World) map[int64]packsDeMundo {
-	out := make(map[int64]packsDeMundo, len(mundos))
+func (s *Server) recursosPorMundo(r *http.Request, actor *domain.User, mundos []domain.World) map[int64]recursosDeMundo {
+	out := make(map[int64]recursosDeMundo, len(mundos))
 
 	for i := range mundos {
 		m := &mundos[i]
 
-		// Bedrock no sirve paquetes por enlace, asi que el dialogo no aparece
-		// y no hay nada que resolver (D-18).
+		// Bedrock no sirve recursos por enlace, asi que el dialogo no aparece y
+		// no hay nada que resolver (D-18).
 		if m.Edition != domain.EditionJava {
 			continue
 		}
 
-		asignados, err := s.packs.DeMundo(r.Context(), actor, m.ID)
+		datos, err := s.recursosDeMundo(r, actor, m)
 		if err != nil {
-			s.log.Warn("no se pudieron leer los paquetes del mundo",
+			s.log.Warn("no se pudieron leer los recursos del mundo",
 				"mundo", m.Name, "error", err)
 			continue
-		}
-
-		datos := packsDeMundo{
-			Marcados:  make(map[int64]bool, len(asignados)),
-			Requerido: m.PackRequired,
-		}
-		for _, a := range asignados {
-			datos.Marcados[a.ID] = true
-			if a.Activo {
-				datos.Activo = a.ID
-			}
 		}
 		out[m.ID] = datos
 	}
 	return out
+}
+
+// recursosDeUnMundo es lo mismo para un solo mundo, releyendolo de la base.
+//
+// Lo usa el repintado sin recargar: lo que vale es lo que quedo guardado, no lo
+// que el navegador creia estar pidiendo.
+func (s *Server) recursosDeUnMundo(r *http.Request, actor *domain.User, worldID int64) (recursosDeMundo, error) {
+	mundo, err := s.worlds.ByID(r.Context(), actor, worldID)
+	if err != nil {
+		return recursosDeMundo{}, err
+	}
+	return s.recursosDeMundo(r, actor, mundo)
+}
+
+// recursosDeMundo resuelve que lleva un mundo y cual se aplica solo.
+//
+// Se hace aqui y no en la plantilla porque "esta este recurso en la lista de
+// este mundo" es una busqueda, y una plantilla que busca acaba equivocandose en
+// silencio.
+func (s *Server) recursosDeMundo(r *http.Request, actor *domain.User, m *domain.World) (recursosDeMundo, error) {
+	asignados, err := s.recursos.DeMundo(r.Context(), actor, m.ID)
+	if err != nil {
+		return recursosDeMundo{}, err
+	}
+
+	disponibles, err := s.recursos.Disponibles(r.Context(), actor, m.ID)
+	if err != nil {
+		s.log.Warn("no se pudo leer la biblioteca de recursos",
+			"mundo", m.Name, "error", err)
+	}
+
+	datos := recursosDeMundo{
+		WorldID:     m.ID,
+		Nombre:      m.Name,
+		Disponibles: vistasDeRecurso(disponibles),
+		Requerido:   m.ResourceRequired,
+		Hueco:       len(asignados) < domain.MaxRecursosPorMundo,
+		Tope:        domain.MaxRecursosPorMundo,
+	}
+	for j := range asignados {
+		a := &asignados[j]
+		vista := vistaDeRecurso(&a.Resource)
+		datos.Lista = append(datos.Lista, vista)
+		if vista.Automatico {
+			datos.HayAutomatico = true
+		}
+		if a.Principal {
+			datos.Principal = a.ID
+		}
+	}
+	return datos, nil
 }

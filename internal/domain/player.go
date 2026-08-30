@@ -24,7 +24,7 @@ type Player struct {
 	// A diferencia del XUID de Bedrock, este SI se puede resolver antes de que
 	// nadie juegue: se le pregunta a Mojang a partir del nombre.
 	JavaUUID string
-	Note string
+	Note     string
 	// XUID es el identificador de Xbox Live. Ya existe antes de que nos
 	// conozca -lo tiene desde que creo su cuenta- pero el panel no lo sabe
 	// hasta que entra por primera vez y el servidor lo escribe en su log.
@@ -48,6 +48,21 @@ type Player struct {
 //
 // Es la frontera del alta en dos fases: antes solo se le puede permitir o
 // bloquear el paso; despues ya se le puede gestionar de verdad.
+// Etiqueta es como se nombra al jugador en pantalla y en el registro.
+//
+// Hace falta porque no todo el mundo tiene gamertag: quien solo juega a Java se
+// da de alta con su nombre de Java y nada mas. Usar el gamertag a secas dejaba
+// lineas del registro sin nombre, diciendo que se dio de alta a nadie.
+func (p *Player) Etiqueta() string {
+	if p == nil {
+		return ""
+	}
+	if p.Gamertag != "" {
+		return p.Gamertag
+	}
+	return p.JavaName
+}
+
 func (p *Player) HaEntrado() bool {
 	return p != nil && p.XUID != ""
 }

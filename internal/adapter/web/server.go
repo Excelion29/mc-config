@@ -28,7 +28,7 @@ type Server struct {
 	auth      *app.Auth
 	audit     *app.Audit
 	worlds    *app.Worlds
-	packs     *app.Packs
+	recursos  *app.Resources
 	acceso    *app.Access
 	instances *app.Instances
 	players   *app.Players
@@ -45,7 +45,7 @@ func NewServer(
 	auth *app.Auth,
 	audit *app.Audit,
 	worlds *app.Worlds,
-	packs *app.Packs,
+	recursos *app.Resources,
 	acceso *app.Access,
 	instances *app.Instances,
 	players *app.Players,
@@ -58,7 +58,7 @@ func NewServer(
 		return nil, err
 	}
 	return &Server{
-		auth: auth, audit: audit, worlds: worlds, packs: packs, acceso: acceso, instances: instances, players: players,
+		auth: auth, audit: audit, worlds: worlds, recursos: recursos, acceso: acceso, instances: instances, players: players,
 		renderer: r, log: log,
 		secureCookies: secureCookies, sessionTTL: sessionTTL,
 	}, nil
@@ -96,8 +96,6 @@ func (s *Server) Routes() http.Handler {
 			g.Use(s.requirePermission(domain.PermServerView))
 			g.Get("/worlds", s.showWorlds)
 			g.Get("/worlds/{id}/icon", s.worldIcon)
-			g.Get("/packs", s.showPacks)
-			g.Get("/access", s.showAccess)
 			g.Get("/instances", s.showInstances)
 			g.Get("/instances/{id}/logs", s.instanceLogs)
 			// Flujo en vivo para la consola. Se queda abierto mientras el
@@ -124,25 +122,42 @@ func (s *Server) Routes() http.Handler {
 			g.Post("/instances/delete", s.deleteInstance)
 		})
 
+		// Ver los recursos va aparte de gestionarlos: es lo que se le da a quien
+		// solo juega, para que pinche el enlace y se instale lo que el mapa pide.
+		private.Group(func(g chi.Router) {
+			g.Use(s.requirePermission(domain.PermResourceView))
+			g.Get("/resources", s.showResources)
+		})
+
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermWorldImport))
 			g.Post("/worlds", s.importWorld)
 			g.Post("/worlds/create", s.createWorld)
 			g.Post("/worlds/update", s.updateWorld)
-			g.Post("/worlds/packs", s.assignPacks)
-			g.Post("/packs", s.createPack)
-			g.Post("/packs/update", s.updatePack)
+			g.Post("/worlds/resources", s.worldResourceAction)
+			g.Post("/worlds/resources/add", s.addResourceToWorld)
+			g.Post("/resources", s.createResource)
+			g.Post("/resources/update", s.updateResource)
 		})
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermWorldDelete))
 			g.Post("/worlds/delete", s.deleteWorld)
-			g.Post("/packs/delete", s.deletePack)
+			g.Post("/resources/delete", s.deleteResource)
+		})
+
+		// Acceso y jugadores son la MISMA pregunta partida en dos: el modo dice
+		// SI pueden entrar los no premium, y la lista dice QUIENES. Se juntan en
+		// una pantalla, y cada mitad la ve quien tiene su permiso.
+		private.Group(func(g chi.Router) {
+			g.Use(s.requireAnyPermission(domain.PermPlayerManage, domain.PermServerOperate))
+			g.Get("/access", s.showAccess)
 		})
 
 		private.Group(func(g chi.Router) {
 			g.Use(s.requirePermission(domain.PermPlayerManage))
-			g.Get("/players", s.showPlayers)
+			g.Get("/players", s.redirectToAccess)
+			g.Post("/players/update", s.updatePlayer)
 			g.Post("/players", s.addPlayer)
 			g.Post("/players/active", s.setPlayerActive)
 			g.Post("/players/op", s.setPlayerOp)

@@ -99,12 +99,12 @@ type World struct {
 	// SI se pueden cambiar despues.
 	Rules Rules
 
-	// PackRequired echa a quien rechace el paquete de texturas activo.
+	// ResourceRequired echa a quien rechace el recurso principal.
 	//
 	// Es del mundo y no del paquete: el mismo paquete puede ser
 	// imprescindible en un mapa de aventura y opcional en cualquier otro sitio
 	// (D-18).
-	PackRequired bool
+	ResourceRequired bool
 
 	UploadedBy int64
 	CreatedAt  time.Time

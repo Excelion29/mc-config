@@ -14,18 +14,19 @@ binario que sirve la interfaz y habla con Docker.
   deduce sola la edición y la versión.
 - **Servidores.** Crear, arrancar y parar. Sólo uno encendido a la vez: arrancar
   otro apaga el actual, avisando de cuánta gente va a desconectar.
-- **Jugadores.** Una sola lista para todos los servidores. Se da de alta a
-  alguien una vez y entra en todos los mundos, presentes y futuros, sin
-  reiniciar nada.
+- **Acceso.** Una sola pantalla para las dos caras de la misma pregunta: si hace
+  falta tener Minecraft comprado, y quién entra. La lista de jugadores es única
+  para todos los servidores —se da de alta a alguien una vez y entra en todos los
+  mundos, presentes y futuros, sin reiniciar nada. Al abrir el acceso a cuentas
+  no premium, el panel instala AuthMe y FastLogin él solo, y se niega a abrirlo
+  si no están: sin ellos, ese modo deja entrar a cualquiera con el nombre que
+  quiera.
 - **Consola en vivo** de cada servidor, dentro de la propia página.
 - **Usuarios y roles** del panel, con permisos editables y jerarquía por
   niveles.
-- **Acceso.** Un interruptor decide si hace falta tener Minecraft comprado. Al
-  abrirlo, el panel instala AuthMe y FastLogin él solo, y se niega a abrirlo si
-  no están: sin ellos, ese modo deja entrar a cualquiera con el nombre que
-  quiera.
-- **Paquetes de texturas** por enlace, compartidos entre mundos. El panel guarda
-  la URL, no el archivo: Java se lo pide al jugador al entrar.
+- **Recursos** por enlace —hoy paquetes de texturas— compartidos entre mundos. El
+  panel guarda la URL, no el archivo: Java se lo pide al jugador al entrar, así
+  que no ocupan sitio en el servidor.
 - **Registro** de todo lo que se hace, con filtros y paginación.
 
 ## Estado
@@ -38,7 +39,7 @@ binario que sirve la interfaz y habla con Docker.
 | F4 | Lista maestra de jugadores, propagándose a cada servidor | ✅ |
 | F5 | **Minecraft Java** con Paper: mundos, whitelist, ops, consola | ✅ |
 | F6 | AuthMe + FastLogin para cuentas no premium | ✅ |
-| F7 | Paquetes de texturas por enlace, compartidos entre mundos | ✅ |
+| F7 | Recursos por enlace, compartidos entre mundos | ✅ |
 
 ## Cómo funciona
 

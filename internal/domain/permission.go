@@ -22,6 +22,17 @@ const (
 	PermWorldImport Permission = "map.import"
 	PermWorldDelete Permission = "map.delete"
 
+	// PermResourceView es solo MIRAR la lista de recursos y abrir sus enlaces.
+	//
+	// Va aparte de anadirlos porque para eso sirve: dar de alta a un amigo que
+	// no administra nada, entra al panel, ve que necesita el mapa y pincha el
+	// enlace para instalarselo. Con map.import tambien podria anadir y editar,
+	// que no es lo que se le quiere dar.
+	//
+	// Sigue el mismo patron que server.view junto a server.operate: uno para
+	// ver, otro para tocar, y quien administra lleva los dos.
+	PermResourceView Permission = "resource.view"
+
 	PermInstanceCreate Permission = "instance.create"
 	PermInstanceDelete Permission = "instance.delete"
 
@@ -54,6 +65,10 @@ var Permissions = []PermissionDef{
 		"Subir archivos .mcworld y anadirlos a la biblioteca.", false},
 	{PermWorldDelete, "Mundos", "Borrar mundos",
 		"Elimina el mapa de la biblioteca y del disco.", true},
+
+	{PermResourceView, "Mundos", "Ver los recursos",
+		"Ver la lista de paquetes de texturas y abrir sus enlaces para instalarlos. " +
+			"Solo mirar: no permite anadirlos ni cambiarlos.", false},
 
 	{PermInstanceCreate, "Instancias", "Crear instancias",
 		"Preparar un servidor con una version y un mapa concretos.", false},

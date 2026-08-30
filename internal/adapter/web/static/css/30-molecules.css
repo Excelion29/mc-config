@@ -207,3 +207,35 @@
    a una limitacion del CSS. */
 form:has(#ed-bedrock:checked) .solo-java,
 form:has(#ed-java:checked) .solo-bedrock { display: none; }
+
+/* --- Lista simple --------------------------------------------------------
+   Un resumen de dos o tres lineas dentro de un panel: los complementos y si
+   estan puestos. Sin vinetas, porque la etiqueta de estado ya hace de marca y
+   dos marcas por linea es una de mas. */
+
+.lista-simple {
+  list-style: none;
+  margin: var(--espacio-3) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  font-size: var(--texto-sm);
+}
+
+.lista-simple li {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+/* --- Grupo de etiquetas ---------------------------------------------------
+   Varias etiquetas seguidas en una celda. Sueltas se pegaban unas a otras y,
+   al no caber, partian por donde les tocaba dejando una sola descolgada. */
+
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}

@@ -23,19 +23,19 @@ const (
 	ActionRoleUpdated Action = "role_updated"
 	ActionRoleDeleted Action = "role_deleted"
 
-	ActionWorldImported Action = "map_imported"
-	ActionWorldCreated  Action = "world_created"
-	ActionWorldUpdated  Action = "world_updated"
-	ActionPackCreated   Action = "pack_created"
-	ActionPackUpdated   Action = "pack_updated"
-	ActionPackDeleted   Action = "pack_deleted"
-	ActionPackAssigned  Action = "pack_assigned"
+	ActionWorldImported    Action = "map_imported"
+	ActionWorldCreated     Action = "world_created"
+	ActionWorldUpdated     Action = "world_updated"
+	ActionResourceCreated  Action = "pack_created"
+	ActionResourceUpdated  Action = "pack_updated"
+	ActionResourceDeleted  Action = "pack_deleted"
+	ActionResourceAssigned Action = "pack_assigned"
 
 	// Cambiar el modo de autenticacion es de las acciones mas delicadas que
 	// existen en el panel: decide si hace falta cuenta comprada para entrar.
 	ActionAuthModeChanged  Action = "auth_mode_changed"
 	ActionPluginsInstalled Action = "plugins_installed"
-	ActionWorldDeleted  Action = "map_deleted"
+	ActionWorldDeleted     Action = "map_deleted"
 
 	ActionInstanceCreated Action = "instance_created"
 	ActionInstanceStarted Action = "instance_started"
@@ -43,6 +43,7 @@ const (
 	ActionInstanceDeleted Action = "instance_deleted"
 
 	ActionPlayerAdded    Action = "player_added"
+	ActionPlayerUpdated  Action = "player_updated"
 	ActionPlayerRemoved  Action = "player_removed"
 	ActionPlayerEnabled  Action = "player_enabled"
 	ActionPlayerDisabled Action = "player_disabled"

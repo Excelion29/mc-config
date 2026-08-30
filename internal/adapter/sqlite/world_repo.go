@@ -16,7 +16,7 @@ type WorldRepo struct{ db *sql.DB }
 const worldColumns = `id, name, raw_name, edition, version, origin, file_name,
 	size_bytes, sha256, has_icon, icon_url, seed, level_type, structures, bonus_chest,
 	gamemode, difficulty, allow_commands, pvp, max_players,
-	pack_required, uploaded_by, created_at`
+	resource_required, uploaded_by, created_at`
 
 func (r *WorldRepo) Create(ctx context.Context, m *domain.World) (int64, error) {
 	var uploadedBy any
@@ -157,7 +157,7 @@ func scanWorld(scan func(...any) error) (*domain.World, error) {
 	m.Origin = domain.Origin(origin)
 	m.SHA256 = sha.String // vacio si es NULL, que es lo que queremos
 	m.Gen.LevelType = domain.LevelType(nivel)
-	m.PackRequired = packRequerido == 1
+	m.ResourceRequired = packRequerido == 1
 	m.Gen.Structures = estructuras == 1
 	m.Gen.BonusChest = cofre == 1
 	m.Rules.Gamemode = domain.Gamemode(modo)

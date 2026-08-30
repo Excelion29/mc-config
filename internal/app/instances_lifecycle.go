@@ -38,33 +38,8 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 		return err
 	}
 
-	// El modo de autenticacion, fresco tambien: es global y tiene que valer
-	// desde el siguiente arranque sin tocar la instancia.
-	inst.Auth = i.modoActual(ctx)
+	i.refrescar(ctx, inst)
 
-	// Reglas frescas del mundo. Si falla, se sigue con las que trae la
-	// instancia: no impedir arrancar un servidor porque no se pudo releer un
-	// ajuste.
-	// El paquete de texturas, tambien fresco y por el mismo motivo. Si falla se
-	// arranca sin el: quedarse sin las texturas bonitas es molesto, no poder
-	// jugar lo es mas.
-	if inst.WorldID > 0 && i.packOf != nil {
-		if pack, err := i.packOf(ctx, inst.WorldID); err == nil {
-			inst.Pack = pack
-		} else {
-			i.log.Warn("no se pudo leer el paquete de texturas; se arranca sin el",
-				"instancia", inst.Name, "error", err)
-		}
-	}
-
-	if inst.WorldID > 0 && i.rulesOf != nil {
-		if reglas, err := i.rulesOf(ctx, inst.WorldID); err == nil {
-			inst.Rules = reglas
-		} else {
-			i.log.Warn("no se pudieron releer las reglas del mundo; se usan las de la instancia",
-				"instancia", inst.Name, "error", err)
-		}
-	}
 	if inst.State.Busy() {
 		return domain.ErrInstanceBusy
 	}

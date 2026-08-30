@@ -66,6 +66,35 @@ func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
 // Se pide el permiso, no el rol: asi crear un rol nuevo desde el panel no
 // obliga a tocar ninguna ruta. La ruta declara QUE hace falta poder hacer; que
 // rol lo concede es un dato editable.
+// requireAnyPermission deja pasar a quien tenga AL MENOS uno de los permisos.
+//
+// Hace falta donde una pantalla junta dos cosas que se gestionan por separado.
+// La de Acceso es el caso: quien administra jugadores entra a la lista, y quien
+// opera el servidor entra al interruptor. Exigir los dos dejaria fuera a la
+// mitad de cada uno; exigir solo uno cerraria la puerta al otro.
+//
+// Lo que cada uno VE dentro sigue decidiendolo la plantilla, y lo que puede
+// HACER lo decide el caso de uso. Esto solo abre la puerta.
+func (s *Server) requireAnyPermission(perms ...domain.Permission) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			u := userFrom(r)
+			if u == nil {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+			for _, p := range perms {
+				if u.Can(p) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			// 404 por el mismo motivo que en requirePermission.
+			s.notFound(w, r)
+		})
+	}
+}
+
 func (s *Server) requirePermission(perm domain.Permission) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -41,32 +41,48 @@ type paginador struct {
 	Base string
 }
 
-// packView es un paquete con lo que la pantalla necesita ya resuelto.
+// recursoView es un recurso con lo que la pantalla necesita ya resuelto.
 //
-// "Se puede aplicar solo" depende de si el enlace apunta al archivo, y eso es
-// una regla del dominio, no algo que deba deducir una plantilla mirando el
-// final de una cadena.
-type packView struct {
-	domain.Pack
+// Etiqueta y "se puede aplicar solo" son reglas del dominio -cual de los tres
+// nombres manda, y si el enlace apunta al archivo- no algo que deba deducir una
+// plantilla mirando el final de una cadena.
+type recursoView struct {
+	domain.Resource
+	Etiqueta   string
+	Bautizado  bool
 	Automatico bool
 }
 
-func vistasDePack(lista []domain.Pack) []packView {
-	out := make([]packView, 0, len(lista))
+func vistasDeRecurso(lista []domain.Resource) []recursoView {
+	out := make([]recursoView, 0, len(lista))
 	for i := range lista {
-		out = append(out, packView{Pack: lista[i], Automatico: lista[i].Automatico()})
+		out = append(out, vistaDeRecurso(&lista[i]))
 	}
 	return out
 }
 
-type packsPageData struct {
+func vistaDeRecurso(r *domain.Resource) recursoView {
+	return recursoView{
+		Resource:   *r,
+		Etiqueta:   r.Etiqueta(),
+		Bautizado:  r.Bautizado(),
+		Automatico: r.Automatico(),
+	}
+}
+
+type resourcesPageData struct {
 	PageData
-	Packs []packView
+	Resources []recursoView
 }
 
 type accessPageData struct {
 	PageData
+	// Estado es el modo y sus complementos. Solo se llena para quien opera el
+	// servidor: el resto no tiene por que saber que ese interruptor existe.
 	Estado app.Estado
+	Puede  bool
+	// Jugadores es la lista de quien puede entrar.
+	Jugadores jugadoresEnAcceso
 }
 
 type auditPageData struct {
@@ -86,27 +102,43 @@ type usersPageData struct {
 	Pag   paginador
 }
 
-// packsDeMundo es lo que hace falta para pintar el dialogo de paquetes de UN
+// recursosDeMundo es lo que hace falta para pintar el dialogo de recursos de UN
 // mundo, con las busquedas ya hechas.
 //
-// Marcados es map[int64]bool y no un conjunto de struct{} a proposito: en una
-// plantilla un struct vacio SIEMPRE es cierto, asi que un conjunto haria que
-// todas las casillas salieran marcadas y sin dar ningun error. Ya paso con los
-// permisos de los roles.
-type packsDeMundo struct {
-	Marcados  map[int64]bool
-	Activo    int64
+// Todo viene resuelto desde Go -que lleva, cual manda, si cabe otro- porque una
+// plantilla que busca acaba equivocandose en silencio. Ya paso con los permisos
+// de los roles: un conjunto de struct{} vacios daba TODAS las casillas marcadas
+// sin dar ningun error.
+type recursosDeMundo struct {
+	// WorldID viaja dentro porque el bloque se pinta tambien SUELTO, al
+	// actualizar sin recargar, y ahi no tiene el mundo delante: dentro de una
+	// plantilla, $ es su propio dato.
+	WorldID int64
+	// Nombre del mundo, para el titulo del dialogo.
+	Nombre string
+	// Lista son los que YA lleva, en orden, con su etiqueta resuelta.
+	Lista []recursoView
+	// Disponibles son los de la biblioteca que este mundo NO lleva, para poder
+	// engancharlos sin ir a buscar su enlace.
+	Disponibles []recursoView
+	// Principal es el que se aplica solo. 0 si ninguno.
+	Principal int64
+	// HayAutomatico dice si alguno PUEDE aplicarse solo. Sin ninguno, la
+	// casilla de "obligatorio" no significa nada y no se ensena.
+	HayAutomatico bool
 	Requerido bool
+	// Hueco dice si todavia cabe otro. El tope no es por espacio -el panel solo
+	// guarda el enlace- sino por lo que se le pide a quien juega.
+	Hueco bool
+	Tope  int
 }
 
 type worldsPageData struct {
 	PageData
 	Maps []domain.World
-	// Packs es la biblioteca entera: el dialogo de cada mundo ofrece todos.
-	Packs []packView
-	// PacksPorMundo dice, por mundo, cuales lleva y cual se aplica solo.
-	PacksPorMundo map[int64]packsDeMundo
-	MaxUpload     string
+	// RecursosPorMundo dice, por mundo, cuales lleva y cual se aplica solo.
+	RecursosPorMundo map[int64]recursosDeMundo
+	MaxUpload        string
 	// Las versiones de las DOS ediciones viajan juntas porque el formulario
 	// ofrece las dos listas y CSS ensena la que toque. Sin JavaScript no se
 	// puede repoblar un desplegable al cambiar de edicion, asi que se mandan
@@ -157,8 +189,13 @@ func vistaDeJugador(p *domain.Player, modo domain.AuthMode) playerView {
 	return playerView{Player: *p, PuedeJava: p.PuedeJugarJavaEn(modo)}
 }
 
-type playersPageData struct {
-	PageData
+// jugadoresEnAcceso es la mitad derecha de la pantalla de Acceso.
+//
+// Puede dice si quien mira gestiona jugadores. Sin el, la plantilla tendria que
+// volver a preguntar por el permiso para saber si pintar la tabla o el hueco, y
+// eso ya se decidio al construir esto.
+type jugadoresEnAcceso struct {
+	Puede   bool
 	Players []playerView
 	Filtro  app.PlayerFilter
 	Estados [][2]string

@@ -24,8 +24,8 @@ import (
 	"github.com/Excelion29/mc-config/internal/adapter/java"
 	"github.com/Excelion29/mc-config/internal/adapter/mcworld"
 	"github.com/Excelion29/mc-config/internal/adapter/mojang"
-	"github.com/Excelion29/mc-config/internal/adapter/packs"
 	"github.com/Excelion29/mc-config/internal/adapter/plugins"
+	"github.com/Excelion29/mc-config/internal/adapter/resources"
 	"github.com/Excelion29/mc-config/internal/adapter/security"
 	"github.com/Excelion29/mc-config/internal/adapter/sqlite"
 	"github.com/Excelion29/mc-config/internal/adapter/storage"
@@ -76,8 +76,9 @@ type deps struct {
 	auth       *app.Auth
 	audit      *app.Audit
 	worlds     *app.Worlds
-	// packs es la biblioteca de paquetes de texturas (D-18).
-	packs     *app.Packs
+	// recursos es la biblioteca de recursos: paquetes de texturas y lo que
+	// venga despues (D-18).
+	recursos  *app.Resources
 	instances *app.Instances
 	players   *app.Players
 	// watcher aprende el XUID de cada jugador la primera vez que entra. Se
@@ -160,8 +161,8 @@ func build(log *slog.Logger) (*deps, error) {
 	// Paquetes de texturas: biblioteca propia porque el mismo paquete vale
 	// para varios mundos y un mundo puede llevar varios (D-18). El hasher baja
 	// el archivo una vez para calcular el SHA-1 y no guarda nada.
-	paquetes := app.NewPacks(db.Packs(), packs.New(), audit, clock, log)
-	instances.SetPackSource(paquetes.ActivoDe)
+	paquetes := app.NewResources(db.Resources(), resources.New(), audit, clock, log)
+	instances.SetPackSource(paquetes.PrincipalDe)
 
 	// Acceso: el modo de autenticacion y los plugins que lo hacen posible.
 	// Se cierra el ciclo igual que con Players y Worlds.
@@ -186,7 +187,7 @@ func build(log *slog.Logger) (*deps, error) {
 		auth:       auth,
 		audit:      audit,
 		worlds:     worlds,
-		packs:      paquetes,
+		recursos:   paquetes,
 		acceso:     acceso,
 		instances:  instances,
 		players:    players,
@@ -225,7 +226,7 @@ func run(log *slog.Logger) error {
 	go d.watcher.Run(ctx)
 
 	// --- Adaptador HTTP ----------------------------------------------------
-	handler, err := web.NewServer(auth, audit, d.worlds, d.packs, d.acceso, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
+	handler, err := web.NewServer(auth, audit, d.worlds, d.recursos, d.acceso, d.instances, d.players, log, cfg.SecureCookies, cfg.SessionTTL)
 	if err != nil {
 		return err
 	}

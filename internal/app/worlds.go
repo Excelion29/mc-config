@@ -43,6 +43,15 @@ func (m *Worlds) List(ctx context.Context, actor *domain.User) ([]domain.World, 
 	return m.repo.List(ctx)
 }
 
+// ByID devuelve un mundo suelto. Lo usa la web para repintar un trozo de
+// pantalla sin recargarla entera.
+func (m *Worlds) ByID(ctx context.Context, actor *domain.User, id int64) (*domain.World, error) {
+	if !actor.Can(domain.PermServerView) {
+		return nil, domain.ErrForbidden
+	}
+	return m.repo.ByID(ctx, id)
+}
+
 func (m *Worlds) Icon(ctx context.Context, actor *domain.User, id int64) ([]byte, error) {
 	if !actor.Can(domain.PermServerView) {
 		return nil, domain.ErrForbidden

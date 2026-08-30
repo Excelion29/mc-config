@@ -10,11 +10,31 @@ import (
 	"github.com/Excelion29/mc-config/internal/domain"
 )
 
-const rutaJugadores = "/players"
+// Todo lo de jugadores vuelve a la pantalla de Acceso: son la misma cosa. Las
+// rutas de escritura siguen bajo /players porque son acciones sobre jugadores,
+// no sobre el modo.
+const rutaJugadores = rutaAcceso
 
-func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
-	actor := userFrom(r)
-	info, errMsg := s.takeFlash(w, r)
+// redirectToAccess manda /players a la pantalla que ahora los contiene.
+//
+// Se conserva la ruta para no romper enlaces guardados ni las vueltas de
+// formularios viejos: es una redireccion, no un 404.
+func (s *Server) redirectToAccess(w http.ResponseWriter, r *http.Request) {
+	destino := rutaAcceso
+	if q := r.URL.RawQuery; q != "" {
+		destino += "?" + q
+	}
+	http.Redirect(w, r, destino, http.StatusMovedPermanently)
+}
+
+// listaDeJugadores arma la mitad derecha de la pantalla de Acceso.
+//
+// Devuelve la parte vacia -y sin error- para quien no gestione jugadores: esa
+// persona entra por el interruptor y no tiene por que ver la lista.
+func (s *Server) listaDeJugadores(r *http.Request, actor *domain.User) (jugadoresEnAcceso, error) {
+	if !actor.Can(domain.PermPlayerManage) {
+		return jugadoresEnAcceso{}, nil
+	}
 
 	q := r.URL.Query()
 	pagina, _ := strconv.Atoi(q.Get("p"))
@@ -22,25 +42,50 @@ func (s *Server) showPlayers(w http.ResponseWriter, r *http.Request) {
 
 	page, err := s.players.SearchPage(r.Context(), actor, filtro, app.Paging{Page: pagina})
 	if err != nil {
-		s.renderFailure(w, actor, "Jugadores", "No se pudo leer la lista de jugadores.", err)
-		return
+		return jugadoresEnAcceso{}, err
 	}
 
-	s.renderer.render(w, http.StatusOK, "players.html", playersPageData{
-		PageData: s.pagina(r, "Jugadores", errMsg, info),
-		Players:  vistasDeJugador(page.Players, s.acceso.Mode(r.Context())),
-		Filtro:   page.Filter,
-		Estados:  app.EstadosDeJugador(),
+	return jugadoresEnAcceso{
+		Puede:   true,
+		Players: vistasDeJugador(page.Players, s.acceso.Mode(r.Context())),
+		Filtro:  page.Filter,
+		Estados: app.EstadosDeJugador(),
 		Pag: paginador{
 			Info: page.PageInfo,
-			// Los filtros viajan dentro de la base para no perderlos al
-			// pasar de pagina. url.Values escapa lo que escriba el usuario.
-			Base: rutaJugadores + "?" + url.Values{
+			// Los filtros viajan dentro de la base para no perderlos al pasar
+			// de pagina. url.Values escapa lo que escriba el usuario.
+			Base: rutaAcceso + "?" + url.Values{
 				"q":      {filtro.Text},
 				"estado": {filtro.Estado},
 			}.Encode() + "&",
 		},
-	})
+	}, nil
+}
+
+// updatePlayer corrige las identidades de alguien ya dado de alta.
+//
+// Existe porque sin esto, anadirle el nombre de Java a quien se dio de alta solo
+// con su gamertag obligaba a borrarlo y volver a crearlo, perdiendo su nota y su
+// historial por el camino.
+func (s *Server) updatePlayer(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		s.redirectError(w, r, rutaJugadores, "No se pudo leer el formulario.")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PostFormValue("id"), 10, 64)
+	if err != nil {
+		s.redirectError(w, r, rutaJugadores, "Jugador invalido.")
+		return
+	}
+
+	if err := s.players.Update(r.Context(), userFrom(r), id,
+		r.PostFormValue("gamertag"), r.PostFormValue("java_name"),
+		r.PostFormValue("note"), clientIP(r)); err != nil {
+		s.redirectError(w, r, rutaJugadores, s.playerError(err))
+		return
+	}
+	s.redirectInfo(w, r, rutaJugadores, "Jugador actualizado.")
 }
 
 func (s *Server) addPlayer(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +133,7 @@ func (s *Server) responderFila(w http.ResponseWriter, r *http.Request, id int64)
 
 	s.ponerTotal(w, r, actor)
 	fila := vistaDeJugador(p, s.acceso.Mode(r.Context()))
-	if err := s.renderer.fragment(w, "players.html", "fila-jugador", fila); err != nil {
+	if err := s.renderer.fragment(w, "access.html", "fila-jugador", fila); err != nil {
 		s.log.Error("no se pudo pintar la fila", "error", err)
 	}
 }

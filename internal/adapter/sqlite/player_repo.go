@@ -36,6 +36,28 @@ func (r *PlayerRepo) Create(ctx context.Context, p *domain.Player) (int64, error
 	return id, nil
 }
 
+// Update cambia las identidades y la nota.
+//
+// NO toca is_op ni active: esos tienen su propio boton en la fila y su propia
+// entrada en el registro. Un formulario que los reescribiera de paso podria
+// desbloquear a alguien sin querer al corregirle una letra del nombre.
+func (r *PlayerRepo) Update(ctx context.Context, p *domain.Player) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE players SET gamertag = ?, java_name = ?, java_uuid = ?, note = ?
+		  WHERE id = ?`,
+		p.Gamertag, p.JavaName, p.JavaUUID, p.Note, p.ID)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.ErrDuplicatePlayer
+		}
+		return fmt.Errorf("actualizando jugador: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return domain.ErrPlayerNotFound
+	}
+	return nil
+}
+
 func (r *PlayerRepo) ByID(ctx context.Context, id int64) (*domain.Player, error) {
 	p, err := scanPlayer(r.db.QueryRowContext(ctx,
 		`SELECT `+playerColumns+` FROM players WHERE id = ?`, id).Scan)

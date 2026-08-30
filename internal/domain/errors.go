@@ -66,21 +66,28 @@ var (
 	ErrWorldNotFound     = errors.New("el mapa no existe")
 
 	// --- Paquetes de texturas ---
-	ErrPackNotFound = errors.New("el paquete no existe")
-	// ErrPackDuplicado: ya hay un paquete con ese mismo enlace. El enlace es
+	ErrResourceNotFound = errors.New("el paquete no existe")
+	// ErrResourceDuplicado: ya hay un paquete con ese mismo enlace. El enlace es
 	// lo que identifica al paquete de verdad -el nombre lo pone quien lo
 	// anade- y tener dos filas con el mismo acabaria en dos entradas que hay
 	// que corregir por separado el dia que el autor lo mueva.
-	ErrPackDuplicado = errors.New("ya existe un paquete con ese enlace")
-	// ErrPackURLInvalida: el enlace no sirve. Solo https, porque ese archivo
+	ErrResourceDuplicado = errors.New("ya existe un paquete con ese enlace")
+	// ErrResourceURLInvalida: el enlace no sirve. Solo https, porque ese archivo
 	// acaba dentro del juego de cada persona que entra.
-	ErrPackURLInvalida = errors.New("el enlace del paquete no es valido")
-	// ErrPackActivoNoAsignado: se marco como activo un paquete que no esta en
+	ErrResourceURLInvalida = errors.New("el enlace del paquete no es valido")
+	// ErrResourcePrincipalNoAsignado: se marco como activo un paquete que no esta en
 	// la lista del mundo. Es un formulario incoherente, no una eleccion.
-	ErrPackActivoNoAsignado = errors.New("el paquete activo no esta asignado al mundo")
-	// ErrPackNoAutomatico: se quiso aplicar solo un paquete cuyo enlace apunta
+	ErrResourcePrincipalNoAsignado = errors.New("el paquete activo no esta asignado al mundo")
+	// ErrDemasiadosRecursos: el mundo ya lleva el maximo. No es por espacio -el
+	// panel solo guarda el enlace- sino por lo que se le pide a quien juega:
+	// cada recurso que no se aplica solo es un enlace que alguien tiene que
+	// abrir, descargar e instalar antes de entrar.
+	ErrDemasiadosRecursos = errors.New("el mundo ya lleva demasiados recursos")
+	// ErrResourceYaEnMundo: ese enlace ya esta en la lista del mundo.
+	ErrResourceYaEnMundo = errors.New("el mundo ya lleva ese recurso")
+	// ErrResourceNoAutomatico: se quiso aplicar solo un paquete cuyo enlace apunta
 	// a una pagina y no al archivo. El cliente recibiria HTML esperando un zip.
-	ErrPackNoAutomatico = errors.New("ese enlace no apunta al archivo del paquete")
+	ErrResourceNoAutomatico = errors.New("ese enlace no apunta al archivo del paquete")
 	ErrEditionMismatch = errors.New("la edicion del mapa no coincide con la de la instancia")
 
 	// Jerarquia de roles.

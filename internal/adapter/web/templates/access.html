@@ -3,138 +3,432 @@
   <div>
     <h1>Acceso</h1>
     <p class="sub">
-      Qui&eacute;n puede entrar a tus servidores de <strong>Java</strong>. Por
-      defecto hace falta tener Minecraft comprado; aqu&iacute; se abre a las
-      cuentas no premium, que es lo que permite jugar a quien no lo ha pagado.
+      Qui&eacute;n puede entrar a tus servidores. Son dos preguntas que van
+      juntas: <strong>c&oacute;mo</strong> se entra &mdash;si hace falta tener
+      Minecraft comprado&mdash; y <strong>qui&eacute;n</strong> entra. Son
+      jugadores de Minecraft, <strong>no usuarios del panel</strong>: tu amigo no
+      necesita cuenta aqu&iacute; para jugar.
     </p>
   </div>
+  {{if .Jugadores.Puede}}
+  <div class="cabecera-acciones">
+    <a class="boton" href="#anadir-jugador">A&ntilde;adir jugador</a>
+  </div>
+  {{end}}
 </div>
 
-{{$e := .Estado}}
+{{$j := .Jugadores}}
+{{$f := $j.Filtro}}
 
-<section class="tarjeta">
-  <h2>Modo actual</h2>
-  <p class="destacado-dato">
-    {{if $e.Mode.SinConexion}}
-    <span class="etiqueta aviso">Tambi&eacute;n cuentas no premium</span>
-    {{else}}
-    <span class="etiqueta ok">Solo cuentas compradas</span>
-    {{end}}
-  </p>
-
-  {{if $e.Mode.SinConexion}}
-  <p class="ayuda">
-    Cualquiera puede escribir el nombre que quiera al conectarse, pero
-    <strong>AuthMe le pedir&aacute; una contrase&ntilde;a</strong> y
-    <strong>FastLogin impide que alguien sin comprar use un nombre que s&iacute;
-    lo est&aacute;</strong>. La lista de permitidos sigue mandando: s&oacute;lo
-    entran los nombres que hayas dado de alta.
-  </p>
-  {{else}}
-  <p class="ayuda">
-    Mojang autentica a cada jugador, as&iacute; que nadie puede usar el nombre
-    de otro. Es el modo seguro y no necesita complementos.
-  </p>
-  {{end}}
-</section>
-
-{{if not $e.Instancias}}
-<section class="tarjeta">
-  <p class="vacio">
-    No hay ning&uacute;n servidor de Java todav&iacute;a. Los complementos se
-    instalan dentro de un servidor, as&iacute; que
-    <a href="/instances">crea uno</a> antes de tocar esto.
-  </p>
-</section>
-{{else}}
-
-<section class="tarjeta">
-  <h2>
-    Complementos
-    {{if $e.Faltan}}<span class="etiqueta aviso">faltan {{len $e.Faltan}}</span>
-    {{else}}<span class="etiqueta ok">instalados</span>{{end}}
-  </h2>
-  <p class="ayuda">
-    Estos dos son los que hacen que abrir el acceso no sea un agujero. Van en
-    <strong>todos</strong> tus servidores de Java, porque el modo se aplica a
-    todos: {{$e.Donde}}.
-  </p>
-
-  <div class="tabla-scroll">
-    <table>
-      <thead>
-        <tr>
-          <th>Complemento</th>
-          <th>Para qu&eacute;</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{range $e.Filas}}
-        <tr>
-          <td><strong>{{.Name}}</strong><br><span class="apagado dato">{{.File}}</span></td>
-          <td class="apagado">{{.Why}}</td>
-          <td>
-            {{if .Puesto}}<span class="etiqueta ok">puesto</span>
-            {{else}}<span class="etiqueta aviso">por instalar</span>{{end}}
-          </td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
+{{if $j.Puede}}
+{{/*
+  Formulario GET, igual que en el registro: lo que buscas acaba en la URL, se
+  puede compartir, y "atras" deshace el filtro.
+*/}}
+<form method="get" action="/access" class="filtros">
+  <div class="campo">
+    <label for="f-jugador">Buscar</label>
+    <input id="f-jugador" name="q" value="{{$f.Text}}" autocomplete="off"
+           placeholder="Nombre o nota">
   </div>
 
-  {{if $e.Faltan}}
-  <form method="post" action="/access/plugins">
-    <button type="submit">Instalar complementos</button>
-  </form>
-  <p class="ayuda">
-    Instalarlos <strong>no cambia nada todav&iacute;a</strong>: el servidor
-    sigue exigiendo cuenta comprada hasta que abras el acceso abajo. Son dos
-    pasos a prop&oacute;sito, para que el momento en que se abre la puerta sea
-    una decisi&oacute;n tuya y no un efecto secundario.
-  </p>
-  {{end}}
-</section>
+  <div class="campo">
+    <label for="f-estado">Estado</label>
+    <select id="f-estado" name="estado">
+      {{range $j.Estados}}
+      <option value="{{index . 0}}" {{if eq (index . 0) $f.Estado}}selected{{end}}>{{index . 1}}</option>
+      {{end}}
+    </select>
+  </div>
 
-<section class="tarjeta">
-  <h2>Cambiar el modo</h2>
-
-  {{if $e.Mode.SinConexion}}
-  <p class="ayuda">
-    Volver al modo seguro deja fuera a quien no tenga Minecraft comprado. Sus
-    cuentas y contrase&ntilde;as no se borran: si vuelves a abrirlo, siguen
-    ah&iacute;.
-  </p>
-  <form method="post" action="/access/mode">
-    <input type="hidden" name="mode" value="online">
-    <button type="submit">Volver a solo cuentas compradas</button>
-  </form>
-
-  {{else if $e.Listo}}
-  <p class="aviso info">
-    Al abrirlo, el servidor <strong>deja de preguntarle a Mojang</strong>. Lo
-    que protege entonces son los dos complementos de arriba y la lista de
-    permitidos. Reinicia el servidor despu&eacute;s para que surta efecto.
-  </p>
-  <p class="ayuda">
-    <strong>Reg&iacute;strate t&uacute; primero.</strong> Al entrar por primera
-    vez, AuthMe te pedir&aacute; crear una contrase&ntilde;a con
-    <code>/register</code>. Hazlo antes de dar la direcci&oacute;n a nadie: el
-    primero que registra un nombre se queda con &eacute;l.
-  </p>
-  <form method="post" action="/access/mode">
-    <input type="hidden" name="mode" value="offline">
-    <button type="submit" class="boton-peligro">Abrir a cuentas no premium</button>
-  </form>
-
-  {{else}}
-  <p class="aviso error">
-    No se puede abrir el acceso mientras falten complementos. Sin ellos, el modo
-    sin conexi&oacute;n deja que <strong>cualquiera entre con el nombre que
-    quiera</strong>, incluido el tuyo con tus permisos.
-  </p>
-  {{end}}
-</section>
+  <div class="campo campo-acciones">
+    <button type="submit">Filtrar</button>
+    {{if or $f.Text $f.Estado}}
+    <a class="enlace" href="/access">Quitar filtros</a>
+    {{end}}
+  </div>
+</form>
 {{end}}
+
+<div class="split">
+  {{/* Izquierda: quienes entran. Es lo que se usa a diario. */}}
+  <section class="tarjeta">
+    {{if $j.Puede}}
+    <h2>Permitidos <span class="cuenta" data-total>{{$j.Pag.Info.Total}}</span></h2>
+    {{if $j.Players}}
+    <div class="tabla-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Jugador</th>
+            <th>Nota</th>
+            <th>Estado</th>
+            <th class="derecha">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range $j.Players}}{{template "fila-jugador" .}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "paginador" $j.Pag}}
+    {{else if or $f.Text $f.Estado}}
+    <p class="vacio">
+      Ning&uacute;n jugador coincide con el filtro.
+      <a href="/access">Ver todos</a>.
+    </p>
+    {{else}}
+    <p class="vacio">
+      La lista est&aacute; vac&iacute;a, y en Bedrock eso <strong>bloquea a
+      todos</strong>, incluido t&uacute;.
+      <a href="#anadir-jugador">A&ntilde;&aacute;dete</a> para poder entrar.
+    </p>
+    {{end}}
+    {{else}}
+    <h2>Permitidos</h2>
+    <p class="ayuda">
+      La lista de jugadores la gestiona quien tenga ese permiso.
+    </p>
+    {{end}}
+  </section>
+
+  {{/*
+    Derecha: como se entra. Resumido, con el detalle en un dialogo.
+
+    Solo aparece para quien opera el servidor. Quien solo gestiona jugadores no
+    tiene por que saber que este interruptor existe.
+  */}}
+  {{if .Puede}}
+  {{$e := .Estado}}
+  <aside class="destacado">
+    <h2>C&oacute;mo se entra</h2>
+
+    <p class="destacado-dato">
+      {{if $e.Mode.SinConexion}}
+      <span class="etiqueta aviso">Tambi&eacute;n cuentas no premium</span>
+      {{else}}
+      <span class="etiqueta ok">Solo cuentas compradas</span>
+      {{end}}
+    </p>
+
+    {{if $e.Mode.SinConexion}}
+    <p class="ayuda">
+      Cualquiera puede escribir el nombre que quiera al conectarse, pero
+      <strong>AuthMe le pide una contrase&ntilde;a</strong> y
+      <strong>FastLogin impide usar un nombre que s&iacute; est&aacute;
+      comprado</strong>. La lista de al lado sigue mandando: solo entran los
+      nombres que hayas dado de alta.
+    </p>
+    {{else}}
+    <p class="ayuda">
+      Mojang autentica a cada jugador, as&iacute; que nadie puede usar el nombre
+      de otro. Es el modo seguro y no necesita complementos.
+    </p>
+    {{end}}
+
+    {{if $e.Instancias}}
+    <ul class="lista-simple">
+      {{range $e.Filas}}
+      <li>
+        {{if .Puesto}}<span class="etiqueta ok">&check;</span>
+        {{else}}<span class="etiqueta aviso">falta</span>{{end}}
+        {{.Name}}
+      </li>
+      {{end}}
+    </ul>
+    {{end}}
+
+    <a class="boton boton-secundario" href="#cambiar-acceso">Cambiar el acceso</a>
+  </aside>
+  {{end}}
+</div>
+
+{{/* --- Dialogos --- */}}
+
+{{if .Puede}}
+{{$e := .Estado}}
+<div class="modal" id="cambiar-acceso">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-acceso">
+    <header class="modal-cabecera">
+      <h2 id="titulo-acceso">C&oacute;mo se entra</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <div class="modal-cuerpo">
+      {{if not $e.Instancias}}
+      <p class="vacio">
+        No hay ning&uacute;n servidor de Java todav&iacute;a. Los complementos se
+        instalan dentro de un servidor, as&iacute; que
+        <a href="/instances">crea uno</a> antes de tocar esto.
+      </p>
+      {{else}}
+
+      <fieldset>
+        <legend>
+          Complementos
+          {{if $e.Faltan}}<span class="etiqueta aviso">faltan {{len $e.Faltan}}</span>
+          {{else}}<span class="etiqueta ok">instalados</span>{{end}}
+        </legend>
+        <p class="ayuda">
+          Son los que hacen que abrir el acceso no sea un agujero. Van en
+          <strong>todos</strong> tus servidores de Java: {{$e.Donde}}.
+        </p>
+
+        <div class="tabla-scroll">
+          <table>
+            <tbody>
+              {{range $e.Filas}}
+              <tr>
+                <td>
+                  <strong>{{.Name}}</strong>
+                  <br><span class="apagado">{{.Why}}</span>
+                </td>
+                <td>
+                  {{if .Puesto}}<span class="etiqueta ok">puesto</span>
+                  {{else}}<span class="etiqueta aviso">por instalar</span>{{end}}
+                </td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </fieldset>
+
+      {{if $e.Faltan}}
+      <form method="post" action="/access/plugins">
+        <button type="submit">Instalar complementos</button>
+        <p class="ayuda">
+          Instalarlos <strong>no cambia nada todav&iacute;a</strong>: el servidor
+          sigue exigiendo cuenta comprada hasta que abras el acceso abajo. Son
+          dos pasos a prop&oacute;sito, para que el momento en que se abre la
+          puerta sea una decisi&oacute;n tuya y no un efecto secundario.
+        </p>
+      </form>
+      {{end}}
+
+      <fieldset>
+        <legend>Cambiar el modo</legend>
+
+        {{if $e.Mode.SinConexion}}
+        <p class="ayuda">
+          Volver al modo seguro deja fuera a quien no tenga Minecraft comprado.
+          Sus cuentas y contrase&ntilde;as no se borran: si vuelves a abrirlo,
+          siguen ah&iacute;.
+        </p>
+        <form method="post" action="/access/mode">
+          <input type="hidden" name="mode" value="online">
+          <button type="submit">Volver a solo cuentas compradas</button>
+        </form>
+
+        {{else if $e.Listo}}
+        <p class="aviso info">
+          Al abrirlo, el servidor <strong>deja de preguntarle a Mojang</strong>.
+          Lo que protege entonces son los complementos de arriba y la lista de
+          permitidos. Reinicia el servidor despu&eacute;s para que surta efecto.
+        </p>
+        <p class="ayuda">
+          <strong>Reg&iacute;strate t&uacute; primero.</strong> Al entrar por
+          primera vez, AuthMe te pedir&aacute; crear una contrase&ntilde;a con
+          <code>/register</code>. Hazlo antes de dar la direcci&oacute;n a nadie:
+          el primero que registra un nombre se queda con &eacute;l.
+        </p>
+        <form method="post" action="/access/mode">
+          <input type="hidden" name="mode" value="offline">
+          <button type="submit" class="boton-peligro">Abrir a cuentas no premium</button>
+        </form>
+
+        {{else}}
+        <p class="aviso error">
+          No se puede abrir el acceso mientras falten complementos. Sin ellos, el
+          modo sin conexi&oacute;n deja que <strong>cualquiera entre con el
+          nombre que quiera</strong>, incluido el tuyo con tus permisos.
+        </p>
+        {{end}}
+      </fieldset>
+      {{end}}
+    </div>
+
+    <footer class="modal-pie">
+      <a class="enlace" href="#">Cerrar</a>
+    </footer>
+  </div>
+</div>
+{{end}}
+
+{{if $j.Puede}}
+{{/* Un dialogo de edicion por jugador: corregir un nombre no puede obligar a
+     borrarlo y volver a crearlo, que se lleva por delante su nota y su
+     historial. */}}
+{{range $j.Players}}
+<div class="modal" id="editar-jugador-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja modal-estrecho" role="dialog" aria-labelledby="titulo-editar-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-editar-{{.ID}}">Editar {{.Etiqueta}}</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/players/update">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <div class="modal-cuerpo">
+        <p class="ayuda" style="margin-top:0">
+          La misma persona tiene <strong>nombres distintos</strong> en cada
+          edici&oacute;n. Con uno basta; pon los dos si juega a las dos.
+        </p>
+
+        <label for="e-gamertag-{{.ID}}">Gamertag de Xbox (Bedrock)</label>
+        <input id="e-gamertag-{{.ID}}" name="gamertag" autocomplete="off"
+               value="{{.Gamertag}}">
+
+        <label for="e-java-{{.ID}}">Nombre de Minecraft Java</label>
+        <input id="e-java-{{.ID}}" name="java_name" autocomplete="off"
+               value="{{.JavaName}}">
+        <p class="ayuda">
+          Si lo cambias se le vuelve a preguntar a Mojang, para tener el
+          identificador que Java necesita.
+        </p>
+
+        <label for="e-note-{{.ID}}">Nota</label>
+        <input id="e-note-{{.ID}}" name="note" autocomplete="off" value="{{.Note}}">
+
+        <p class="ayuda">
+          Bloquear y hacer administrador se cambian desde los botones de la
+          fila, no desde aqu&iacute;.
+        </p>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+
+<div class="modal" id="anadir-jugador">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja modal-estrecho" role="dialog" aria-labelledby="titulo-jugador">
+    <header class="modal-cabecera">
+      <h2 id="titulo-jugador">A&ntilde;adir jugador</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+
+    <form method="post" action="/players">
+      <div class="modal-cuerpo">
+        <p class="ayuda" style="margin-top:0">
+          La misma persona tiene <strong>nombres distintos</strong> en cada
+          edici&oacute;n. Rellena el que uses; puedes poner los dos si juega a
+          las dos, y a&ntilde;adir el otro m&aacute;s tarde sin perder nada.
+        </p>
+
+        <label for="gamertag">Gamertag de Xbox (Bedrock)</label>
+        <input id="gamertag" name="gamertag" autocomplete="off"
+               placeholder="Wronkow29">
+        <p class="ayuda">
+          Tal cual aparece en Minecraft, <strong>respetando may&uacute;sculas y
+          espacios</strong>. Bedrock lo compara exacto: una letra distinta y la
+          persona no entra, sin que nada explique por qu&eacute;.
+        </p>
+
+        <label for="java-name">Nombre de Minecraft Java</label>
+        <input id="java-name" name="java_name" autocomplete="off"
+               placeholder="Areku29">
+        <p class="ayuda">
+          Se le pregunta a Mojang <strong>al guardarlo</strong>, as&iacute; que
+          si est&aacute; mal escrito te enteras ahora y no la semana que viene
+          cuando alguien no pueda entrar.
+        </p>
+
+        <label for="note">Nota (opcional)</label>
+        <input id="note" name="note" autocomplete="off"
+               placeholder="Para acordarte de qui&eacute;n es">
+
+        <p class="ayuda">
+          <strong>&iquest;Y hacerle admin del juego?</strong> Eso se hace
+          despu&eacute;s, desde la lista. Minecraft identifica a sus
+          administradores por un n&uacute;mero de cuenta de Xbox que
+          <strong>no conocemos hasta que entra la primera vez</strong>, as&iacute;
+          que primero le das paso, entra, y entonces aparece la opci&oacute;n.
+        </p>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">A&ntilde;adir</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+{{end}}
+
+{{/*
+  La fila, aparte, porque se pinta desde DOS sitios: el listado completo y la
+  respuesta a una accion suelta. Que sea una sola plantilla es justamente el
+  punto -si hubiera dos, una fila recién cambiada y una recien cargada
+  acabarian enseñando cosas distintas-.
+
+  Los atributos hx-* son los de HTMX. Sin JavaScript el navegador ignora los
+  hx-* y usa el action/method de siempre.
+*/}}
+{{define "fila-jugador"}}
+        <tr>
+          <td>
+            <strong class="dato">{{.Etiqueta}}</strong>
+            {{if and .Gamertag .JavaName}}
+            <span class="apagado dato">&middot; {{.JavaName}}</span>
+            {{end}}
+            {{if and .IsOp .HaEntrado}}
+            <span class="etiqueta ok" title="Puede usar comandos dentro del juego">admin del juego</span>
+            {{end}}
+          </td>
+          <td class="apagado">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
+          <td>
+            {{if .PuedeJava}}<span class="etiqueta ok">Java</span>{{end}}
+            {{if .PuedeJugarBedrock}}<span class="etiqueta">Bedrock</span>{{end}}
+            {{if not .Active}}<span class="etiqueta aviso">bloqueado</span>
+            {{else if .HaEntrado}}<span class="etiqueta ok">ha jugado</span>
+            {{else}}
+            <span class="etiqueta" title="Puede entrar, pero aun no lo ha hecho. Hasta entonces no se le puede hacer admin del juego.">
+              sin estrenar
+            </span>
+            {{end}}
+          </td>
+          <td>
+            <div class="acciones-fila">
+              {{/* Editar va enlazado a su dialogo y no es un formulario: no
+                   cambia nada por si solo. */}}
+              <a class="accion" href="#editar-jugador-{{.ID}}" title="Editar"
+                 aria-label="Editar a {{.Etiqueta}}">{{template "ico-editar"}}</a>
+              {{if .HaEntrado}}
+              <form method="post" action="/players/op"
+                    hx-post="/players/op" hx-target="closest tr" hx-swap="outerHTML">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <input type="hidden" name="is_op" value="{{if .IsOp}}0{{else}}1{{end}}">
+                <button class="accion accion-destacar{{if .IsOp}} activa{{end}}"
+                        title="{{if .IsOp}}Quitar admin del juego{{else}}Hacer admin del juego{{end}}"
+                        aria-label="{{if .IsOp}}Quitar admin del juego a{{else}}Hacer admin del juego a{{end}} {{.Etiqueta}}">{{template "ico-op"}}</button>
+              </form>
+              {{end}}
+              <form method="post" action="/players/active"
+                    hx-post="/players/active" hx-target="closest tr" hx-swap="outerHTML">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
+                {{if .Active}}
+                <button class="accion accion-atencion" title="Bloquear"
+                        aria-label="Bloquear a {{.Etiqueta}}">{{template "ico-bloquear"}}</button>
+                {{else}}
+                <button class="accion accion-positiva" title="Permitir"
+                        aria-label="Permitir a {{.Etiqueta}}">{{template "ico-permitir"}}</button>
+                {{end}}
+              </form>
+              <form method="post" action="/players/delete"
+                    hx-post="/players/delete" hx-target="closest tr" hx-swap="delete">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="accion accion-peligro" title="Borrar"
+                        aria-label="Borrar a {{.Etiqueta}} de la lista">{{template "ico-borrar"}}</button>
+              </form>
+            </div>
+          </td>
+        </tr>
 {{end}}

@@ -9,20 +9,40 @@ import (
 
 const rutaAcceso = "/access"
 
+// showAccess junta las dos mitades de una misma pregunta.
+//
+// El modo dice SI pueden entrar cuentas no premium; la lista dice QUIENES
+// entran. Tenerlas en pantallas distintas obligaba a ir y volver para algo que
+// se decide de una vez.
+//
+// Cada mitad la ve quien tiene su permiso, y quien tenga uno solo ve media
+// pantalla sin enterarse de que existe la otra.
 func (s *Server) showAccess(w http.ResponseWriter, r *http.Request) {
 	actor := userFrom(r)
 	info, errMsg := s.takeFlash(w, r)
 
-	estado, err := s.acceso.Estado(r.Context(), actor)
-	if err != nil {
-		s.renderFailure(w, actor, "Acceso", "No se pudo leer el estado del acceso.", err)
-		return
+	datos := accessPageData{
+		PageData: s.pagina(r, "Acceso", errMsg, info),
+		Puede:    actor.Can(domain.PermServerOperate),
 	}
 
-	s.renderer.render(w, http.StatusOK, "access.html", accessPageData{
-		PageData: s.pagina(r, "Acceso", errMsg, info),
-		Estado:   estado,
-	})
+	if datos.Puede {
+		estado, err := s.acceso.Estado(r.Context(), actor)
+		if err != nil {
+			s.renderFailure(w, actor, "Acceso", "No se pudo leer el estado del acceso.", err)
+			return
+		}
+		datos.Estado = estado
+	}
+
+	jugadores, err := s.listaDeJugadores(r, actor)
+	if err != nil {
+		s.renderFailure(w, actor, "Acceso", "No se pudo leer la lista de jugadores.", err)
+		return
+	}
+	datos.Jugadores = jugadores
+
+	s.renderer.render(w, http.StatusOK, "access.html", datos)
 }
 
 // installPlugins descarga e instala lo que hace falta, SIN activar nada.

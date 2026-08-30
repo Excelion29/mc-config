@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 
 	"github.com/Excelion29/mc-config/internal/domain"
 )
@@ -141,9 +142,74 @@ func (p *Players) Add(ctx context.Context, actor *domain.User, gamertag, javaNam
 	}
 	player.ID = id
 
-	p.audit.Record(ctx, actor, actor.Email, domain.ActionPlayerAdded, gamertag, ip)
+	p.audit.Record(ctx, actor, actor.Email, domain.ActionPlayerAdded, player.Etiqueta(), ip)
 	p.propagate(ctx)
 	return player, nil
+}
+
+// Update corrige las identidades de alguien que ya esta dado de alta.
+//
+// Existe porque sin esto, anadir el nombre de Java a quien se dio de alta solo
+// con su gamertag obligaba a BORRARLO y volver a crearlo. Y borrarlo no es
+// gratis: se lleva por delante su nota, cuando se le dio de alta y si era
+// operador.
+//
+// No toca ni el bloqueo ni el rango de operador. Esos tienen su propio boton y
+// su propia linea en el registro; reescribirlos de paso podria desbloquear a
+// alguien sin querer al corregirle una letra.
+func (p *Players) Update(ctx context.Context, actor *domain.User, id int64,
+	gamertag, javaName, note, ip string) error {
+
+	if !actor.Can(domain.PermPlayerManage) {
+		return domain.ErrForbidden
+	}
+
+	jugador, err := p.repo.ByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	gamertag = domain.NormalizeGamertag(gamertag)
+	javaName = domain.NormalizeGamertag(javaName)
+	if gamertag == "" && javaName == "" {
+		return domain.ErrEmptyGamertag
+	}
+
+	// El UUID se vuelve a pedir solo si el nombre de Java CAMBIO. Es lo unico
+	// que obliga a salir a la red, y hacerlo por corregir una nota seria
+	// preguntarle a Mojang por gusto.
+	if javaName != jugador.JavaName {
+		jugador.JavaUUID = ""
+		if javaName != "" && p.java != nil {
+			uuid, err := p.java.ResolveJavaUUID(ctx, javaName)
+			switch {
+			case err == nil:
+				jugador.JavaUUID = uuid
+			case errors.Is(err, domain.ErrJavaNameNotFound):
+				// Con el acceso abierto, que Mojang no lo conozca es lo normal:
+				// el UUID de un no premium se calcula del nombre al escribir la
+				// lista (D-17).
+				if !p.modoActual(ctx).SinConexion() {
+					return err
+				}
+			default:
+				p.log.Warn("no se pudo resolver el UUID de Java al editar",
+					"nombre", javaName, "error", err)
+			}
+		}
+	}
+
+	jugador.Gamertag, jugador.JavaName, jugador.Note = gamertag, javaName, strings.TrimSpace(note)
+	if err := p.repo.Update(ctx, jugador); err != nil {
+		return err
+	}
+
+	// La lista de permitidos se rehace: si acaba de ganar identidad en Java, ya
+	// puede entrar sin esperar a un reinicio.
+	p.propagate(ctx)
+
+	p.audit.Record(ctx, actor, actor.Email, domain.ActionPlayerUpdated, jugador.Etiqueta(), ip)
+	return nil
 }
 
 func (p *Players) SetActive(ctx context.Context, actor *domain.User, id int64, active bool, ip string) error {

@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"os"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -253,10 +253,7 @@ func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, j
 		return domain.ErrEditionMismatch
 	}
 
-	// WriteConfig reescribe server.properties entero, asi que necesita el modo
-	// vigente. Sin esto, propagar la lista de permitidos volveria a poner
-	// online-mode=true y desactivaria a los no premium sin que nada lo diga.
-	inst.Auth = i.modoActual(ctx)
+	i.refrescar(ctx, inst)
 	if err := flavor.WriteConfig(inst, i.dataDir(inst), RefsPara(inst.Edition, inst.Auth, jugadores)); err != nil {
 		return err
 	}
@@ -264,6 +261,52 @@ func (i *Instances) ApplyAllowlist(ctx context.Context, inst *domain.Instance, j
 		return flavor.ReloadAllowlist(ctx, i.runtime, inst.ContainerID)
 	}
 	return nil
+}
+
+// refrescar relee de sus fuentes todo lo que WriteConfig va a escribir.
+//
+// WriteConfig reescribe server.properties ENTERO. Lo que no se refresque aqui
+// se escribe con lo que la instancia trajera de la base -que para el modo, las
+// reglas y el paquete es el valor cero- y desaparece del archivo sin que nada
+// lo diga.
+//
+// Ya paso dos veces. Primero con el modo: propagar la lista de permitidos
+// volvia a poner online-mode=true y dejaba fuera a los no premium. Despues con
+// el paquete de texturas: dar de alta a un jugador borraba el resource-pack de
+// la configuracion, y las texturas desaparecian en el siguiente arranque.
+//
+// Por eso esta en UN sitio y lo llaman los dos caminos que escriben la
+// configuracion. Anadir un ajuste nuevo y olvidarse de refrescarlo en el otro
+// sitio era el fallo, no un descuido puntual.
+//
+// Los fallos al releer no cortan nada: se sigue con lo que traiga la instancia.
+// No impedir arrancar un servidor porque no se pudo consultar un ajuste.
+func (i *Instances) refrescar(ctx context.Context, inst *domain.Instance) {
+	// El modo es global: tiene que valer desde el siguiente arranque sin tener
+	// que tocar la instancia.
+	inst.Auth = i.modoActual(ctx)
+
+	if inst.WorldID == 0 {
+		return
+	}
+
+	if i.rulesOf != nil {
+		if reglas, err := i.rulesOf(ctx, inst.WorldID); err == nil {
+			inst.Rules = reglas
+		} else {
+			i.log.Warn("no se pudieron releer las reglas del mundo; se usan las de la instancia",
+				"instancia", inst.Name, "error", err)
+		}
+	}
+
+	if i.packOf != nil {
+		if pack, err := i.packOf(ctx, inst.WorldID); err == nil {
+			inst.Pack = pack
+		} else {
+			i.log.Warn("no se pudo leer el paquete de texturas; se sigue sin el",
+				"instancia", inst.Name, "error", err)
+		}
+	}
 }
 
 // ensureContainer recrea el contenedor si desaparecio.

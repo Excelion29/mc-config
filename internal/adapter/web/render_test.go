@@ -26,8 +26,8 @@ func TestPlantillasCompilan(t *testing.T) {
 	// Renombrar un archivo y olvidar una referencia da un 500 en produccion.
 	for _, page := range []string{
 		"home.html", "login.html", "error.html", "audit.html",
-		"worlds.html", "instances.html", "players.html",
-		"users.html", "roles.html", "access.html", "packs.html",
+		"worlds.html", "instances.html",
+		"users.html", "roles.html", "access.html", "resources.html",
 	} {
 		if _, ok := r.pages[page]; !ok {
 			t.Errorf("falta la plantilla %s", page)
@@ -88,7 +88,10 @@ func TestLaPaginaDeAccesoSePinta(t *testing.T) {
 			w := httptest.NewRecorder()
 			r.render(w, 200, "access.html", accessPageData{
 				PageData: PageData{Title: "Acceso", User: &domain.User{}},
-				Estado:   c.estado,
+				// Puede: quien opera el servidor. Sin esto no se pinta la mitad
+				// del modo, que es justo lo que esta prueba mira.
+				Puede:  true,
+				Estado: c.estado,
 			})
 
 			if w.Code != 200 {

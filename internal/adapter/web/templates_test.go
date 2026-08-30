@@ -49,8 +49,8 @@ func TestBotonesAbrenUnModalQueExiste(t *testing.T) {
 // misma: la lista se ve, pero no hay forma de anadir nada.
 func TestCadaPantallaTieneSuAccion(t *testing.T) {
 	for _, pagina := range []string{
-		"instances.html", "worlds.html", "players.html",
-		"users.html", "roles.html",
+		"instances.html", "worlds.html", "access.html",
+		"users.html", "roles.html", "resources.html",
 	} {
 		datos, err := fs.ReadFile(assets, "templates/"+pagina)
 		if err != nil {
@@ -250,4 +250,42 @@ func bloqueCabecera(html string) string {
 		}
 	}
 	return html[inicio:]
+}
+
+// TestLasAccionesDeUnaTablaSeAlinean protege un desajuste que solo se ve mirando.
+//
+// La cabecera "Acciones" va alineada a la derecha con .derecha. Si las celdas no
+// llevan .acciones-fila -que es lo que las empuja al mismo borde- los iconos se
+// quedan a media tabla y el titulo apunta a un hueco vacio.
+//
+// Paso justo eso en la biblioteca de recursos: se uso .acciones, que agrupa pero
+// no alinea. No da error, no rompe nada, y queda torcido.
+func TestLasAccionesDeUnaTablaSeAlinean(t *testing.T) {
+	paginas, err := fs.Glob(assets, "templates/*.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	revisadas := 0
+	for _, ruta := range paginas {
+		datos, err := fs.ReadFile(assets, ruta)
+		if err != nil {
+			t.Fatal(err)
+		}
+		html := string(datos)
+
+		if !strings.Contains(html, `class="derecha">Acciones`) {
+			continue
+		}
+		revisadas++
+
+		if !strings.Contains(html, `class="acciones-fila"`) {
+			t.Errorf("%s: la cabecera de acciones va a la derecha pero las celdas "+
+				"no usan .acciones-fila, asi que los iconos no llegan al borde", ruta)
+		}
+	}
+
+	if revisadas == 0 {
+		t.Error("ninguna tabla tiene cabecera de acciones; la prueba no comprueba nada")
+	}
 }

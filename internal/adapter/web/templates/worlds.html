@@ -60,8 +60,8 @@
       <a class="accion" href="#editar-{{.ID}}" title="Editar"
          aria-label="Editar {{.Name}}">{{template "ico-editar"}}</a>
       {{if eq .Edition "java"}}
-      <a class="accion" href="#paquetes-{{.ID}}" title="Paquetes de texturas"
-         aria-label="Paquetes de texturas de {{.Name}}">{{template "ico-texturas"}}</a>
+      <a class="accion" href="#recursos-{{.ID}}" title="Recursos"
+         aria-label="Recursos de {{.Name}}">{{template "ico-texturas"}}</a>
       {{end}}
       {{end}}
       {{if $page.User.Can "map.delete"}}
@@ -412,105 +412,189 @@
 {{end}}
 
 {{/*
-  Paquetes de texturas, solo en Java.
+  Recursos del mundo, solo en Java.
+
+  Una sola lista y dos controles por fila: si lo lleva, y si es el que se aplica
+  solo. Estuvo repartido en tres bloques con un parrafo cada uno, y era
+  ilegible: para saber que llevaba un mundo habia que leer media pantalla.
 
   Va en su PROPIO dialogo y no dentro del de editar porque aquel ya es un
   formulario, y un formulario dentro de otro no es HTML valido: el navegador
   cierra el de fuera y manda medio formulario sin avisar.
 
-  Bedrock no aparece: no sirve paquetes por enlace, y ofrecer un campo que no
-  hace nada seria peor que no tenerlo (D-18).
+  Bedrock no aparece: no sirve recursos por enlace (D-18).
 */}}
 {{if .User.Can "map.import"}}
 {{$page := .}}
 {{range .Maps}}
 {{if eq .Edition "java"}}
-{{$mundo := .}}
-{{$asignados := index $page.PacksPorMundo .ID}}
-<div class="modal" id="paquetes-{{.ID}}">
+{{$r := index $page.RecursosPorMundo .ID}}
+<div class="modal" id="recursos-{{.ID}}">
   <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
-  <div class="modal-caja" role="dialog" aria-labelledby="titulo-paquetes-{{.ID}}">
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-recursos-{{.ID}}">
     <header class="modal-cabecera">
-      <h2 id="titulo-paquetes-{{.ID}}">Texturas de {{.Name}}</h2>
+      <h2 id="titulo-recursos-{{.ID}}">Recursos de {{.Name}}</h2>
       <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
     </header>
 
-    <form method="post" action="/worlds/packs">
-      <input type="hidden" name="world_id" value="{{.ID}}">
-      <div class="modal-cuerpo">
-        {{if $page.Packs}}
-        <p class="ayuda">
-          Marca los que lleva este mundo. Solo <strong>uno</strong> puede
-          aplicarse solo al entrar &mdash;el servidor no admite mas de uno&mdash;
-          y el resto quedan listados con su enlace para quien los quiera.
-        </p>
+    {{template "recursos-cuerpo" $r}}
 
-        <fieldset>
-          <legend>Paquetes de este mundo</legend>
-          {{range $page.Packs}}
-          <label class="check">
-            <input type="checkbox" name="pack_id" value="{{.ID}}"
-                   {{if index $asignados.Marcados .ID}}checked{{end}}>
-            <span>
-              {{.Name}}
-              {{if not .Automatico}}<span class="etiqueta aviso">a mano</span>{{end}}
-            </span>
-          </label>
-          {{end}}
-        </fieldset>
-
-        <fieldset>
-          <legend>Cual se aplica solo</legend>
-          <label class="check">
-            <input type="radio" name="activo" value="0"
-                   {{if eq $asignados.Activo 0}}checked{{end}}>
-            <span>Ninguno &mdash; solo se ensenan los enlaces</span>
-          </label>
-          {{range $page.Packs}}
-          {{if .Automatico}}
-          <label class="check">
-            <input type="radio" name="activo" value="{{.ID}}"
-                   {{if eq $asignados.Activo .ID}}checked{{end}}>
-            <span>{{.Name}}</span>
-          </label>
-          {{end}}
-          {{end}}
-          <p class="ayuda">
-            Aqui solo salen los que acaban en <code>.zip</code>. Un enlace a una
-            pagina de descarga no se puede aplicar solo: el juego pediria el
-            archivo y recibiria una pagina web.
-          </p>
-        </fieldset>
-
-        <fieldset>
-          <legend>Si alguien lo rechaza</legend>
-          <label class="check">
-            <input type="checkbox" name="required" value="1"
-                   {{if $asignados.Requerido}}checked{{end}}>
-            <span>No dejarle entrar sin el paquete</span>
-          </label>
-          <p class="ayuda">
-            Util en un mapa de aventura, que sin sus texturas no se entiende. En
-            un mundo normal deja fuera a quien tenga mala conexion, asi que por
-            defecto se ofrece y no se exige.
-          </p>
-        </fieldset>
-        {{else}}
-        <p class="vacio">
-          No hay ningun paquete en la biblioteca todavia.
-          <a href="/packs">Anade uno</a> y luego vuelve aqui a asignarlo.
-        </p>
-        {{end}}
-      </div>
-      <footer class="modal-pie">
-        <a class="enlace" href="#">Cancelar</a>
-        {{if $page.Packs}}<button type="submit">Guardar</button>{{end}}
-      </footer>
-    </form>
+    <footer class="modal-pie">
+      <a class="enlace" href="#">Cerrar</a>
+    </footer>
   </div>
 </div>
 {{end}}
 {{end}}
 {{end}}
+{{end}}
 
+{{define "recursos-cuerpo"}}
+{{$r := .}}
+<div class="modal-cuerpo" id="recursos-cuerpo-{{$r.WorldID}}">
+      {{if $r.Lista}}
+      {{/*
+        Una fila por recurso, con sus acciones en iconos, como en el resto de
+        las tablas del panel. Cada boton es su propio formulario: no se pueden
+        anidar, y ademas cada accion merece su linea en el registro.
+      */}}
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Recurso</th>
+              <th>Instalaci&oacute;n</th>
+              <th class="derecha">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $r.Lista}}
+            <tr>
+              <td>
+                <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Etiqueta}}</a>
+              </td>
+              <td>
+                <div class="etiquetas">
+                {{if .Automatico}}
+                  {{if eq $r.Principal .ID}}
+                  <span class="etiqueta ok" title="El servidor se lo manda al jugador al entrar.">se aplica solo</span>
+                  {{else}}
+                  <span class="etiqueta" title="Puede aplicarse solo, pero ahora mismo no es el elegido.">disponible</span>
+                  {{end}}
+                {{else}}
+                <span class="etiqueta aviso"
+                      title="Al abrirlo devuelve una pagina, no el archivo. Hace falta el enlace que empieza la descarga: el del release en GitHub, el de descarga directa en CurseForge, o el archivo en tu dominio.">
+                  a mano
+                </span>
+                {{end}}
+                </div>
+              </td>
+              <td>
+                <div class="acciones-fila">
+                  {{if and .Automatico (ne $r.Principal .ID)}}
+                  <form method="post" action="/worlds/resources"
+                        hx-post="/worlds/resources"
+                        hx-target="#recursos-cuerpo-{{$r.WorldID}}" hx-swap="outerHTML">
+                    <input type="hidden" name="world_id" value="{{$r.WorldID}}">
+                    <input type="hidden" name="resource_id" value="{{.ID}}">
+                    <input type="hidden" name="accion" value="principal">
+                    <button class="accion accion-destacar" title="Que se aplique al entrar, en vez del actual"
+                            aria-label="Aplicar {{.Etiqueta}} automaticamente">{{template "ico-aplicar"}}</button>
+                  </form>
+                  {{end}}
+                  {{if eq $r.Principal .ID}}
+                  <form method="post" action="/worlds/resources"
+                        hx-post="/worlds/resources"
+                        hx-target="#recursos-cuerpo-{{$r.WorldID}}" hx-swap="outerHTML">
+                    <input type="hidden" name="world_id" value="{{$r.WorldID}}">
+                    <input type="hidden" name="resource_id" value="0">
+                    <input type="hidden" name="accion" value="principal">
+                    {{/* Icono DISTINTO, no el mismo relleno: dos acciones
+                         opuestas con el mismo dibujo no se distinguen de un
+                         vistazo, y aqui una deshace lo que hace la otra. */}}
+                    <button class="accion accion-atencion" title="Dejar de aplicarlo al entrar"
+                            aria-label="Dejar de aplicar {{.Etiqueta}} automaticamente">{{template "ico-no-aplicar"}}</button>
+                  </form>
+                  {{end}}
+                  <form method="post" action="/worlds/resources"
+                        hx-post="/worlds/resources"
+                        hx-target="#recursos-cuerpo-{{$r.WorldID}}" hx-swap="outerHTML">
+                    <input type="hidden" name="world_id" value="{{$r.WorldID}}">
+                    <input type="hidden" name="resource_id" value="{{.ID}}">
+                    <input type="hidden" name="accion" value="quitar">
+                    <button class="accion accion-peligro" title="Quitar de este mundo"
+                            aria-label="Quitar {{.Etiqueta}} de este mundo">{{template "ico-borrar"}}</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+
+      {{if $r.Principal}}
+      <form method="post" action="/worlds/resources"
+                        hx-post="/worlds/resources"
+                        hx-target="#recursos-cuerpo-{{$r.WorldID}}" hx-swap="outerHTML">
+        <input type="hidden" name="world_id" value="{{$r.WorldID}}">
+        <input type="hidden" name="accion" value="obligatorio">
+        <label class="check">
+          <input type="checkbox" name="required" value="1"
+                 {{if $r.Requerido}}checked{{end}}>
+          <span>No dejar entrar a quien lo rechace</span>
+        </label>
+        <button type="submit" class="boton-secundario">Guardar</button>
+      </form>
+      {{end}}
+
+      <p class="ayuda">
+        Quitar uno de aqu&iacute; no lo borra: sigue en la
+        <a href="/resources">biblioteca</a> para otros mapas. Un paquete de
+        texturas es una capa por encima, no toca el mundo.
+      </p>
+      {{else}}
+      <p class="vacio">Este mundo no lleva ning&uacute;n recurso.</p>
+      {{end}}
+
+      {{if $r.Hueco}}
+      <form method="post" action="/worlds/resources/add" class="filtros"
+            hx-post="/worlds/resources/add"
+            hx-target="#recursos-cuerpo-{{$r.WorldID}}" hx-swap="outerHTML">
+        <input type="hidden" name="world_id" value="{{$r.WorldID}}">
+        <div class="campo">
+          <label for="add-url-{{$r.WorldID}}">A&ntilde;adir por enlace</label>
+          <input id="add-url-{{$r.WorldID}}" name="url" type="url" required
+                 autocomplete="off" placeholder="https://...">
+        </div>
+        <div class="campo campo-acciones">
+          <button type="submit">A&ntilde;adir</button>
+        </div>
+      </form>
+
+      {{if $r.Disponibles}}
+      <form method="post" action="/worlds/resources/add" class="filtros"
+            hx-post="/worlds/resources/add"
+            hx-target="#recursos-cuerpo-{{$r.WorldID}}" hx-swap="outerHTML">
+        <input type="hidden" name="world_id" value="{{$r.WorldID}}">
+        <div class="campo">
+          <label for="add-id-{{$r.WorldID}}">O uno que ya tienes</label>
+          <select id="add-id-{{$r.WorldID}}" name="resource_id">
+            {{range $r.Disponibles}}
+            <option value="{{.ID}}">{{.Etiqueta}}</option>
+            {{end}}
+          </select>
+        </div>
+        <div class="campo campo-acciones">
+          <button type="submit" class="boton-secundario">Usar</button>
+        </div>
+      </form>
+      {{end}}
+      {{else}}
+      <p class="ayuda">
+        Ya lleva {{$r.Tope}}, que es el m&aacute;ximo. Quita alguno para
+        a&ntilde;adir otro.
+      </p>
+      {{end}}
+    </div>
 {{end}}

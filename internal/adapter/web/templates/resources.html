@@ -1,0 +1,219 @@
+{{define "contenido"}}
+<div class="cabecera-pagina">
+  <div>
+    <h1>Recursos</h1>
+    <p class="sub">
+      Cosas de fuera que un mundo necesita &mdash;hoy, <strong>paquetes de
+      texturas</strong>. Se guarda el <strong>enlace</strong>, no el archivo:
+      Java se lo pide al jugador cuando entra, as&iacute; que
+      <strong>no ocupan sitio en el servidor</strong>.
+      <br>
+      Se asignan desde la ficha de cada mundo. Aqu&iacute; se ven todos, se les
+      cambia el nombre y se borran los que ya no uses.
+    </p>
+  </div>
+  {{if .User.Can "map.import"}}
+  <div class="cabecera-acciones">
+    <a class="boton" href="#anadir-recurso">A&ntilde;adir recurso</a>
+  </div>
+  {{end}}
+</div>
+
+<section class="tarjeta">
+  <h2>Biblioteca <span class="cuenta">{{len .Resources}}</span></h2>
+
+  {{if .Resources}}
+  <div class="tabla-scroll">
+    <table>
+      {{/*
+        Una columna, no tres. El tipo y como se instala eran dos parrafos que
+        decian siempre lo mismo y llenaban la fila de texto para no aportar
+        nada nuevo. Ahora son etiquetas, y lo que explican vive en su tooltip:
+        se lee cuando hace falta y no estorba cuando no.
+      */}}
+      {{/*
+        Tres columnas: quien es, como esta, y que se puede hacer con el.
+
+        El tipo y la forma de instalarse eran dos parrafos que decian siempre lo
+        mismo. Son etiquetas, y lo que explican vive en su tooltip: se lee
+        cuando hace falta y no llena la fila cuando no.
+      */}}
+      {{/*
+        Cuatro columnas, cada una con una pregunta distinta: quien es, que es,
+        como llega al jugador, y que puedes hacer con el.
+
+        "Que es" y "como se instala" son cosas separadas -un mod tambien podria
+        aplicarse solo o no- asi que van en columnas distintas y no amontonadas
+        bajo un titulo vago. Lo que cada etiqueta significa vive en su tooltip:
+        se lee cuando hace falta y no llena la fila cuando no.
+      */}}
+      <thead>
+        <tr>
+          <th>Recurso</th>
+          <th>Tipo</th>
+          <th>Instalaci&oacute;n</th>
+          <th class="derecha">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{$page := .}}
+        {{range .Resources}}
+        <tr>
+          <td>
+            {{/* El nombre es una mascara del enlace: se ensena, y al pulsarlo
+                 se va a la URL. */}}
+            <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">
+              <strong>{{.Etiqueta}}</strong>
+            </a>
+            {{if not .Bautizado}}
+            <span class="etiqueta"
+                  title="Nadie le puso nombre: esto es lo que se dedujo del propio enlace.">sin nombre</span>
+            {{end}}
+            {{if .Note}}<br><span class="apagado">{{.Note}}</span>{{end}}
+          </td>
+          <td>
+            <span class="etiqueta" title="{{.Kind.Impacto}}">{{.Kind.Label}}</span>
+          </td>
+          <td>
+            <div class="etiquetas">
+              {{if .Automatico}}
+              <span class="etiqueta ok"
+                    title="El enlace devuelve el archivo, asi que el servidor puede aplicarselo al jugador sin que haga nada.">se aplica solo</span>
+              {{else}}
+              <span class="etiqueta aviso"
+                    title="Al abrirlo devuelve una pagina, no el archivo. Para que se aplique solo hace falta el enlace que empieza la descarga: el del release en GitHub, el de descarga directa en CurseForge, o el archivo subido a tu dominio.">a mano</span>
+              {{end}}
+              {{if and .Automatico (not .SHA1)}}
+              <span class="etiqueta aviso"
+                    title="Sin huella el jugador se lo descarga entero cada vez que entra, porque no puede saber que el que guarda es el mismo.">sin huella</span>
+              {{end}}
+            </div>
+          </td>
+          <td>
+            <div class="acciones-fila">
+              {{if $page.User.Can "map.import"}}
+              <a class="accion" href="#editar-recurso-{{.ID}}" title="Editar"
+                 aria-label="Editar {{.Etiqueta}}">{{template "ico-editar"}}</a>
+              {{end}}
+              {{if $page.User.Can "map.delete"}}
+              <form method="post" action="/resources/delete">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="accion accion-peligro" title="Borrar"
+                        aria-label="Borrar {{.Etiqueta}}">{{template "ico-borrar"}}</button>
+              </form>
+              {{end}}
+            </div>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="vacio">
+    A&uacute;n no hay ninguno. Lo normal es a&ntilde;adirlos desde la ficha del
+    mundo &mdash;pegando el enlace ah&iacute; mismo&mdash; y esta p&aacute;gina
+    sirve para reutilizarlos y corregirlos despu&eacute;s.
+  </p>
+  {{end}}
+</section>
+
+{{if .User.Can "map.import"}}
+{{range .Resources}}
+<div class="modal" id="editar-recurso-{{.ID}}">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-recurso-{{.ID}}">
+    <header class="modal-cabecera">
+      <h2 id="titulo-recurso-{{.ID}}">Editar recurso</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+    <form method="post" action="/resources/update">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <div class="modal-cuerpo">
+        <div class="campos">
+          <div class="campo-ancho">
+            <label for="r-url-{{.ID}}">Enlace</label>
+            <input id="r-url-{{.ID}}" name="url" type="url" required
+                   autocomplete="off" value="{{.URL}}">
+            <span class="ayuda">
+              Si lo cambias se vuelve a mirar el enlace, y eso tarda lo que
+              tarde en responder.
+            </span>
+          </div>
+          <div class="campo-ancho">
+            <label for="r-name-{{.ID}}">Nombre <span class="apagado">&mdash; opcional</span></label>
+            <input id="r-name-{{.ID}}" name="name" autocomplete="off" value="{{.Name}}"
+                   placeholder="{{.Etiqueta}}">
+            <span class="ayuda">
+              {{if .AutoName}}
+              Si lo dejas vac&iacute;o se ense&ntilde;a
+              &laquo;{{.AutoName}}&raquo;, que es lo que dice la propia
+              p&aacute;gina.
+              {{else}}
+              Si lo dejas vac&iacute;o se ense&ntilde;a el enlace tal cual.
+              {{end}}
+            </span>
+          </div>
+          <div class="campo-ancho">
+            <label for="r-note-{{.ID}}">Nota</label>
+            <input id="r-note-{{.ID}}" name="note" autocomplete="off" value="{{.Note}}"
+                   placeholder="De d&oacute;nde salio, de qui&eacute;n es">
+          </div>
+        </div>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+
+<div class="modal" id="anadir-recurso">
+  <a class="modal-fondo" href="#" aria-label="Cerrar"></a>
+  <div class="modal-caja" role="dialog" aria-labelledby="titulo-anadir-recurso">
+    <header class="modal-cabecera">
+      <h2 id="titulo-anadir-recurso">A&ntilde;adir recurso</h2>
+      <a class="modal-cerrar" href="#" aria-label="Cerrar">&times;</a>
+    </header>
+    <form method="post" action="/resources">
+      <div class="modal-cuerpo">
+        <div class="campos">
+          <div class="campo-ancho">
+            <label for="r-url">Enlace</label>
+            <input id="r-url" name="url" type="url" required autocomplete="off"
+                   placeholder="https://...">
+            <span class="ayuda">
+              Es lo &uacute;nico que hace falta. Tiene que empezar por
+              <strong>https://</strong>, porque ese archivo acaba dentro del
+              juego de cada persona que entra.
+            </span>
+          </div>
+          <div class="campo-ancho">
+            <label for="r-name">Nombre <span class="apagado">&mdash; opcional</span></label>
+            <input id="r-name" name="name" autocomplete="off"
+                   placeholder="Se saca solo del enlace">
+          </div>
+          <div class="campo-ancho">
+            <label for="r-note">Nota</label>
+            <input id="r-note" name="note" autocomplete="off"
+                   placeholder="De d&oacute;nde salio, de qui&eacute;n es">
+          </div>
+        </div>
+        <p class="ayuda">
+          Al guardarlo el panel <strong>mira el enlace una vez</strong>: si lleva
+          al archivo lo descarga para calcular su huella y tira los bytes, y si
+          lleva a una p&aacute;gina le saca el t&iacute;tulo para ponerle nombre.
+          Si no lo consigue, el recurso se guarda igual.
+        </p>
+      </div>
+      <footer class="modal-pie">
+        <a class="enlace" href="#">Cancelar</a>
+        <button type="submit">A&ntilde;adir</button>
+      </footer>
+    </form>
+  </div>
+</div>
+{{end}}
+{{end}}

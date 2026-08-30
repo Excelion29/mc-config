@@ -13,6 +13,7 @@ import (
 type PlayerRepo interface {
 	Create(ctx context.Context, p *domain.Player) (int64, error)
 	ByID(ctx context.Context, id int64) (*domain.Player, error)
+	Update(ctx context.Context, p *domain.Player) error
 	List(ctx context.Context) ([]domain.Player, error)
 	ListPage(ctx context.Context, limit, offset int) ([]domain.Player, int, error)
 	// SearchPage filtra por texto libre y por estado.
