@@ -113,11 +113,15 @@
 
     {{if $e.Mode.SinConexion}}
     <p class="ayuda">
-      Cualquiera puede escribir el nombre que quiera al conectarse, pero
-      <strong>AuthMe le pide una contrase&ntilde;a</strong> y
-      <strong>FastLogin impide usar un nombre que s&iacute; est&aacute;
-      comprado</strong>. La lista de al lado sigue mandando: solo entran los
-      nombres que hayas dado de alta.
+      Nadie necesita tener Minecraft comprado, pero <strong>todos entran con una
+      contrase&ntilde;a</strong> de AuthMe &mdash; t&uacute; tambi&eacute;n. La
+      primera vez se crea con <code>/register</code>, y despu&eacute;s se escribe
+      al entrar.
+      <br>
+      La lista de al lado sigue mandando por encima de todo: solo entran los
+      nombres que hayas dado de alta. Entre ellos, el primero que registre un
+      nombre se queda con &eacute;l, as&iacute; que conviene que cada uno lo haga
+      pronto.
     </p>
     {{else}}
     <p class="ayuda">
@@ -230,8 +234,9 @@
         <p class="ayuda">
           <strong>Reg&iacute;strate t&uacute; primero.</strong> Al entrar por
           primera vez, AuthMe te pedir&aacute; crear una contrase&ntilde;a con
-          <code>/register</code>. Hazlo antes de dar la direcci&oacute;n a nadie:
-          el primero que registra un nombre se queda con &eacute;l.
+          <code>/register</code>, tengas el juego comprado o no. Hazlo antes de
+          dar la direcci&oacute;n a nadie: el primero que registra un nombre se
+          queda con &eacute;l.
         </p>
         <form method="post" action="/access/mode">
           <input type="hidden" name="mode" value="offline">

@@ -350,32 +350,5 @@ func (i *Instances) asegurarPlugins(ctx context.Context, inst *domain.Instance) 
 		}
 	}
 
-	return i.ajustarPlugins(inst)
-}
-
-// ajustarPlugins deja la configuracion de los complementos como debe.
-//
-// Va en CADA arranque, como la instalacion, y por el mismo motivo: el archivo
-// de configuracion lo crea el plugin la primera vez que arranca, asi que la
-// primera pasada no tiene nada que tocar y la segunda si.
-//
-// Un fallo aqui no impide arrancar. A diferencia de que falten los plugins
-// -que dejaria el servidor abierto de par en par- esto solo significa que
-// alguien premium tendra que escribir una contrasena de mas.
-func (i *Instances) ajustarPlugins(inst *domain.Instance) error {
-	flavor, ok := i.flavors[inst.Edition]
-	if !ok {
-		return nil
-	}
-
-	tuner, ok := flavor.(PluginTuner)
-	if !ok {
-		return nil
-	}
-
-	if err := tuner.AjustarPlugins(i.dataDir(inst), inst.Auth); err != nil {
-		i.log.Warn("no se pudo ajustar la configuracion de los complementos",
-			"instancia", inst.Name, "error", err)
-	}
 	return nil
 }
