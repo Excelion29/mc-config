@@ -55,3 +55,16 @@ type PluginProvider interface {
 	// PluginsFor da los plugins que exige ese modo. En modo normal, ninguno.
 	PluginsFor(mode domain.AuthMode) []Plugin
 }
+
+// PluginTuner ajusta la configuracion de los plugins ya instalados.
+//
+// Instalar un .jar no basta: sus valores por defecto son los que decidio otro
+// proyecto, y alguno contradice lo que el panel promete. FastLogin es el caso:
+// viene con autoRegister apagado, y con eso una cuenta comprada tiene que
+// registrarse con contrasena igual que una que no lo esta.
+//
+// Es opcional: una edicion que no lo implemente simplemente no tiene nada que
+// ajustar.
+type PluginTuner interface {
+	AjustarPlugins(dataDir string, mode domain.AuthMode) error
+}
