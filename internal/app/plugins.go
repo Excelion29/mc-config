@@ -38,6 +38,14 @@ type Plugin struct {
 	// Why explica, en una frase, para que hace falta. Se ensena en el panel:
 	// quien administra tiene derecho a saber que se le esta instalando.
 	Why string
+	// Esencial distingue lo que PROTEGE de lo que solo mejora.
+	//
+	// Sin un plugin esencial, el modo sin conexion es un agujero: el panel se
+	// niega a abrirlo. Sin uno que no lo es, lo que se pierde es comodidad
+	// -las skins, por ejemplo- y negarse seria confundir las dos cosas.
+	//
+	// Se instalan todos igual. Lo que cambia es si su ausencia BLOQUEA.
+	Esencial bool
 	// DeFabrica dice si lleva la version que trae el codigo, o una que alguien
 	// eligio desde el panel.
 	DeFabrica bool

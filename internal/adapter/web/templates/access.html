@@ -190,7 +190,11 @@
           <div class="etiquetas">
             <strong>{{.Name}}</strong>
             {{if .Puesto}}<span class="etiqueta ok">puesto</span>
-            {{else}}<span class="etiqueta aviso">por instalar</span>{{end}}
+            {{else if .Esencial}}<span class="etiqueta aviso">hace falta</span>
+            {{else}}<span class="etiqueta">opcional, por instalar</span>{{end}}
+            {{if .Esencial}}
+            <span class="etiqueta" title="Sin este no se puede abrir el acceso: es lo que impide que alguien use el nombre de otro.">protege</span>
+            {{end}}
             {{if not .DeFabrica}}
             <span class="etiqueta aviso"
                   title="Lleva una version elegida desde el panel, no la que trae el codigo.">version propia</span>
@@ -271,9 +275,11 @@
 
         {{else}}
         <p class="aviso error">
-          No se puede abrir el acceso mientras falten complementos. Sin ellos, el
-          modo sin conexi&oacute;n deja que <strong>cualquiera entre con el
-          nombre que quiera</strong>, incluido el tuyo con tus permisos.
+          No se puede abrir el acceso mientras falte
+          {{range $e.FaltanEsenciales}}<strong>{{.Name}}</strong>{{end}}. Sin
+          &eacute;l, el modo sin conexi&oacute;n deja que <strong>cualquiera
+          entre con el nombre que quiera</strong>, incluido el tuyo con tus
+          permisos.
         </p>
         {{end}}
       </fieldset>

@@ -160,9 +160,15 @@ type Estado struct {
 	// Requeridos son los plugins que hace falta tener para el modo sin
 	// conexion.
 	Requeridos []Plugin
-	// Faltan son los que NO estan instalados en la instancia. Mientras haya
-	// alguno, el modo sin conexion no se puede activar.
+	// Faltan son los que NO estan instalados en la instancia.
 	Faltan []Plugin
+	// FaltanEsenciales son los que ademas PROTEGEN. Mientras haya alguno, el
+	// modo sin conexion no se puede activar.
+	//
+	// Van aparte de Faltan porque no es lo mismo quedarse sin skins que sin
+	// contrasena: lo primero es una molestia y lo segundo es una puerta
+	// abierta.
+	FaltanEsenciales []Plugin
 	// Instancias son TODOS los servidores donde tiene que estar puesto.
 	//
 	// Son todos y no el primero a proposito: el modo es global y se aplica a
@@ -184,7 +190,12 @@ type PluginRow struct {
 }
 
 // Listo indica si se puede activar el modo sin conexion.
-func (e Estado) Listo() bool { return len(e.Faltan) == 0 && len(e.Instancias) > 0 }
+//
+// Solo miran los ESENCIALES. Que falte SkinsRestorer no puede impedir abrir el
+// acceso: sin el se pierden las skins, no la seguridad.
+func (e Estado) Listo() bool {
+	return len(e.FaltanEsenciales) == 0 && len(e.Instancias) > 0
+}
 
 // Donde nombra los servidores afectados, para poder decirlo en pantalla.
 func (e Estado) Donde() string { return strings.Join(e.Instancias, ", ") }
@@ -220,8 +231,12 @@ func (a *Access) Estado(ctx context.Context, actor *domain.User) (Estado, error)
 	for _, p := range plugins {
 		puesto := faltaEn[p.File] == 0
 		est.Filas = append(est.Filas, PluginRow{Plugin: p, Puesto: puesto})
-		if !puesto {
-			est.Faltan = append(est.Faltan, p)
+		if puesto {
+			continue
+		}
+		est.Faltan = append(est.Faltan, p)
+		if p.Esencial {
+			est.FaltanEsenciales = append(est.FaltanEsenciales, p)
 		}
 	}
 	return est, nil
