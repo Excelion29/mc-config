@@ -48,7 +48,12 @@ func TestLaPaginaDeAccesoSePinta(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plugins := []app.Plugin{{Name: "AuthMe", File: "AuthMe.jar", Why: "pide contrasena"}}
+	plugins := []app.Plugin{{
+		ID: "authme", Name: "AuthMe", File: "AuthMe-6.0.0-Paper.jar",
+		URL:  "https://github.com/AuthMe/AuthMeReloaded/releases/download/6.0.0/AuthMe-6.0.0-Paper.jar",
+		Docs: "https://github.com/AuthMe/AuthMeReloaded",
+		Why:  "pide contrasena", DeFabrica: true,
+	}}
 
 	casos := []struct {
 		nombre string
@@ -99,6 +104,77 @@ func TestLaPaginaDeAccesoSePinta(t *testing.T) {
 			}
 			if !strings.Contains(w.Body.String(), c.espera) {
 				t.Errorf("no aparece %q en la pagina", c.espera)
+			}
+		})
+	}
+}
+
+// TestLaFichaDelComplementoEnsenaSuVersion protege lo que hace falta para poder
+// decidir si subirlo.
+//
+// Sin ver que archivo lleva puesto ni poder abrir su documentacion, cambiar de
+// version seria pegar un enlace a ciegas. Y sin el campo, habria que desplegar
+// para subir un plugin, que es la forma de no subirlo nunca.
+func TestLaFichaDelComplementoEnsenaSuVersion(t *testing.T) {
+	r, err := newRenderer(assets)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fabrica := app.Plugin{
+		ID: "authme", Name: "AuthMe", File: "AuthMe-6.0.0-Paper.jar",
+		URL:  "https://github.com/AuthMe/AuthMeReloaded/releases/download/6.0.0/AuthMe-6.0.0-Paper.jar",
+		Docs: "https://github.com/AuthMe/AuthMeReloaded",
+		Why:  "pide contrasena", DeFabrica: true,
+	}
+	propia := fabrica
+	propia.File, propia.DeFabrica = "AuthMe-6.1.0-Paper.jar", false
+
+	casos := []struct {
+		nombre  string
+		plugin  app.Plugin
+		esperar []string
+		evitar  []string
+	}{
+		{
+			nombre:  "con la version de fabrica",
+			plugin:  fabrica,
+			esperar: []string{"AuthMe-6.0.0-Paper.jar", "github.com/AuthMe/AuthMeReloaded", "/access/plugin-version"},
+			evitar:  []string{"version propia"},
+		},
+		{
+			nombre: "con una version elegida a mano",
+			plugin: propia,
+			// Que la version no es la de fabrica tiene que verse: es lo que
+			// explica por que este panel no se comporta como otro igual.
+			esperar: []string{"AuthMe-6.1.0-Paper.jar", "version propia"},
+		},
+	}
+
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r.render(w, 200, "access.html", accessPageData{
+				PageData: PageData{Title: "Acceso", User: &domain.User{}},
+				Puede:    true,
+				Estado: app.Estado{
+					Mode:       domain.AuthOnline,
+					Instancias: []string{"LosDelSotano"},
+					Requeridos: []app.Plugin{c.plugin},
+					Filas:      []app.PluginRow{{Plugin: c.plugin, Puesto: true}},
+				},
+			})
+
+			cuerpo := w.Body.String()
+			for _, quiero := range c.esperar {
+				if !strings.Contains(cuerpo, quiero) {
+					t.Errorf("falta %q en la pantalla", quiero)
+				}
+			}
+			for _, sobra := range c.evitar {
+				if strings.Contains(cuerpo, sobra) {
+					t.Errorf("no deberia aparecer %q", sobra)
+				}
 			}
 		})
 	}

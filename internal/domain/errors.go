@@ -12,6 +12,12 @@ var (
 	// plugins puestos. Se rechaza y no se avisa: sin ellos ese modo deja el
 	// servidor abierto a que cualquiera use el nombre de otro.
 	ErrPluginsMissing = errors.New("faltan plugins para ese modo")
+	// ErrPluginDesconocido: se intento cambiar la version de algo que el panel
+	// no gestiona. La lista la decide el codigo, no quien manda el formulario.
+	ErrPluginDesconocido = errors.New("ese complemento no existe")
+	// ErrJarInvalido: el enlace no lleva a un .jar. Instalar otra cosa en
+	// plugins/ no da error: el servidor la ignora y el plugin no esta.
+	ErrJarInvalido = errors.New("el enlace tiene que apuntar a un archivo .jar")
 	// ErrPluginsUnavailable: el panel no tiene instalador de plugins
 	// configurado.
 	ErrPluginsUnavailable = errors.New("la instalacion de plugins no esta disponible")
@@ -106,6 +112,9 @@ var (
 
 	// Lista maestra de jugadores (F4).
 	ErrPlayerNotFound  = errors.New("el jugador no existe")
+	// ErrNeedsRestart: el cambio esta guardado, pero el servidor solo lo lee al
+	// arrancar. No es un fallo: es algo que hay que contarle a quien lo hizo.
+	ErrNeedsRestart = errors.New("hace falta reiniciar el servidor para que surta efecto")
 	ErrDuplicatePlayer = errors.New("ese gamertag ya esta en la lista")
 	ErrEmptyGamertag   = errors.New("el gamertag es obligatorio")
 )

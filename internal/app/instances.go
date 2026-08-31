@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/Excelion29/mc-config/internal/domain"
@@ -39,12 +41,21 @@ type Instances struct {
 	// plugins instala los complementos de servidor. Puede ser nil: sin el, el
 	// panel funciona igual y simplemente no ofrece el modo sin conexion.
 	plugins PluginStore
+	// pluginVersions da las versiones que alguien eligio desde el panel. Se
+	// inyecta despues, como las demas fuentes.
+	pluginVersions func(context.Context) map[string]PluginVersion
 	// authMode dice que modo de autenticacion esta vigente. Se inyecta despues
 	// porque Access necesita Instances y al reves.
 	authMode func(context.Context) domain.AuthMode
 	// allowlist devuelve los gamertags de la lista maestra (D-13). Se inyecta
 	// despues de construir, porque Players necesita a Instances y al reves.
 	allowlist func(context.Context) ([]domain.Player, error)
+	// mu protege lo que se recuerda en memoria entre peticiones.
+	mu sync.Mutex
+	// reinicioPendiente marca las instancias con un cambio guardado que el
+	// servidor encendido no ha leido: en Java los operadores solo se leen al
+	// arrancar.
+	reinicioPendiente map[int64]bool
 	// stopTimeout es lo que se espera a un apagado limpio antes de forzar.
 	// Medido en F0: ~2 s con el mundo vacio, pero un mundo jugado tarda mas.
 	stopTimeout time.Duration
@@ -79,7 +90,17 @@ func (i *Instances) SetAuthModeSource(f func(context.Context) domain.AuthMode) {
 	i.authMode = f
 }
 
+// SetPluginVersions cierra el ciclo con el repositorio de versiones elegidas.
+func (i *Instances) SetPluginVersions(f func(context.Context) map[string]PluginVersion) {
+	i.pluginVersions = f
+}
+
 // PluginsPara da los plugins que una edicion necesita en un modo dado.
+//
+// La lista y el porque los decide la edicion; la VERSION puede haberla cambiado
+// alguien desde el panel. Se aplica aqui, en el unico sitio por el que pasan
+// todos los caminos, para que instalar, comprobar y ensenar hablen siempre de
+// la misma version.
 func (i *Instances) PluginsPara(e domain.Edition, modo domain.AuthMode) []Plugin {
 	flavor, ok := i.flavors[e]
 	if !ok {
@@ -91,7 +112,22 @@ func (i *Instances) PluginsPara(e domain.Edition, modo domain.AuthMode) []Plugin
 		// admite, y por eso el modo sin conexion no le aplica.
 		return nil
 	}
-	return proveedor.PluginsFor(modo)
+	lista := proveedor.PluginsFor(modo)
+	for k := range lista {
+		lista[k].DeFabrica = true
+	}
+	if i.pluginVersions == nil {
+		return lista
+	}
+
+	elegidas := i.pluginVersions(context.Background())
+	for k := range lista {
+		if v, ok := elegidas[lista[k].ID]; ok {
+			lista[k].URL, lista[k].File = v.URL, v.File
+			lista[k].DeFabrica = false
+		}
+	}
+	return lista
 }
 
 // PluginsQueFaltan compara lo que hace falta con lo que hay en la instancia.
@@ -120,6 +156,14 @@ func (i *Instances) InstalarPlugins(ctx context.Context, inst *domain.Instance, 
 		return domain.ErrPluginsUnavailable
 	}
 	return i.plugins.Install(ctx, i.dataDir(inst), lista)
+}
+
+// RetirarPlugin borra un .jar de una instancia.
+func (i *Instances) RetirarPlugin(inst *domain.Instance, archivo string) error {
+	if i.plugins == nil {
+		return nil
+	}
+	return i.plugins.Remove(i.dataDir(inst), archivo)
 }
 
 func (i *Instances) SetRulesSource(f func(context.Context, int64) (domain.Rules, error)) {
@@ -309,6 +353,46 @@ func (i *Instances) refrescar(ctx context.Context, inst *domain.Instance) {
 	}
 }
 
+// pendienteDeReinicio recuerda que hay un cambio guardado que el servidor
+// encendido todavia no ha leido.
+//
+// Se guarda en memoria y no en la base porque muere con el proceso, igual que
+// el propio servidor: al arrancar de nuevo se lee todo, asi que un aviso que
+// sobreviviera al reinicio seria mentira.
+func (i *Instances) pendienteDeReinicio(inst *domain.Instance) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if i.reinicioPendiente == nil {
+		i.reinicioPendiente = map[int64]bool{}
+	}
+	i.reinicioPendiente[inst.ID] = true
+	i.log.Info("cambio guardado que necesita reinicio", "instancia", inst.Name)
+}
+
+// NecesitaReinicio dice si una instancia tiene cambios sin aplicar.
+func (i *Instances) NecesitaReinicio(id int64) bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.reinicioPendiente[id]
+}
+
+// HayReinicioPendiente dice si ALGUNA instancia encendida tiene cambios sin
+// aplicar. Es lo que necesita la pantalla, que no habla de una instancia
+// concreta sino del servidor que este en marcha.
+func (i *Instances) HayReinicioPendiente() bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return len(i.reinicioPendiente) > 0
+}
+
+// olvidarReinicio se llama al arrancar: ahi se relee todo.
+func (i *Instances) olvidarReinicio(id int64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	delete(i.reinicioPendiente, id)
+}
+
 // ensureContainer recrea el contenedor si desaparecio.
 func (i *Instances) ensureContainer(ctx context.Context, inst *domain.Instance) error {
 	flavor, ok := i.flavors[inst.Edition]
@@ -431,7 +515,7 @@ func (i *Instances) RawLogs(ctx context.Context, inst *domain.Instance, lines in
 // en la base. No devuelve error a proposito -el alta ya esta guardada- y las
 // instancias paradas lo recogeran al arrancar.
 func (i *Instances) ApplyOps(ctx context.Context, jugadores []domain.Player) {
-	ops := OpsFrom(jugadores)
+	modo := i.modoActual(ctx)
 
 	list, err := i.repo.List(ctx)
 	if err != nil {
@@ -445,13 +529,23 @@ func (i *Instances) ApplyOps(ctx context.Context, jugadores []domain.Player) {
 		if !ok {
 			continue
 		}
+		// Los operadores dependen de la EDICION y del modo, igual que la lista
+		// de permitidos: en Java la identidad es un UUID y en Bedrock un XUID.
+		ops := OpsPara(inst.Edition, modo, jugadores)
 		if err := flavor.WritePermissions(i.dataDir(inst), ops); err != nil {
 			i.log.Warn("no se pudo escribir permissions.json",
 				"instancia", inst.Name, "error", err)
 			continue
 		}
 		if inst.State == domain.StateRunning {
-			if err := flavor.ReloadPermissions(ctx, i.runtime, inst.ContainerID); err != nil {
+			err := flavor.ReloadPermissions(ctx, i.runtime, inst.ContainerID)
+			switch {
+			case errors.Is(err, domain.ErrNeedsRestart):
+				// No es un fallo: esa edicion lee los operadores al arrancar y
+				// ya esta. Se anota para poder decirselo a quien lo hizo, en
+				// vez de dejarle esperando un cambio que no va a pasar.
+				i.pendienteDeReinicio(inst)
+			case err != nil:
 				i.log.Warn("no se pudo recargar permissions.json",
 					"instancia", inst.Name, "error", err)
 			}

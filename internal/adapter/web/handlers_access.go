@@ -59,6 +59,25 @@ func (s *Server) installPlugins(w http.ResponseWriter, r *http.Request) {
 		"Complementos instalados. Se cargaran la proxima vez que arranques el servidor.")
 }
 
+// setPluginVersion cambia la version de un complemento sin desplegar.
+//
+// La de fabrica sigue en el codigo y manda mientras nadie toque nada. Con el
+// campo vacio se vuelve a ella.
+func (s *Server) setPluginVersion(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		s.redirectError(w, r, rutaAcceso, "No se pudo leer el formulario.")
+		return
+	}
+
+	if err := s.acceso.CambiarVersion(r.Context(), userFrom(r),
+		r.PostFormValue("plugin_id"), r.PostFormValue("url"), clientIP(r)); err != nil {
+		s.redirectError(w, r, rutaAcceso, s.accessError(err))
+		return
+	}
+	s.redirectInfo(w, r, rutaAcceso,
+		"Version guardada. Se instala en el proximo arranque del servidor.")
+}
+
 func (s *Server) setAuthMode(w http.ResponseWriter, r *http.Request) {
 	modo := domain.AuthMode(r.PostFormValue("mode"))
 
@@ -81,6 +100,11 @@ func (s *Server) accessError(err error) string {
 		return "Faltan complementos. Instalalos antes de abrir el acceso."
 	case errors.Is(err, domain.ErrNoJavaInstance):
 		return "No hay ningun servidor de Java. Crea uno primero."
+	case errors.Is(err, domain.ErrJarInvalido):
+		return "El enlace tiene que apuntar a un archivo .jar por https. " +
+			"En GitHub es el del release, no el de la pagina."
+	case errors.Is(err, domain.ErrPluginDesconocido):
+		return "Ese complemento no lo gestiona el panel."
 	case errors.Is(err, domain.ErrPluginsUnavailable):
 		return "El panel no puede instalar complementos: revisa MCVPS_PLUGINS_PATH."
 	case errors.Is(err, domain.ErrForbidden):

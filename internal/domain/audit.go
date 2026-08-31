@@ -33,9 +33,10 @@ const (
 
 	// Cambiar el modo de autenticacion es de las acciones mas delicadas que
 	// existen en el panel: decide si hace falta cuenta comprada para entrar.
-	ActionAuthModeChanged  Action = "auth_mode_changed"
-	ActionPluginsInstalled Action = "plugins_installed"
-	ActionWorldDeleted     Action = "map_deleted"
+	ActionAuthModeChanged      Action = "auth_mode_changed"
+	ActionPluginVersionChanged Action = "plugin_version_changed"
+	ActionPluginsInstalled     Action = "plugins_installed"
+	ActionWorldDeleted         Action = "map_deleted"
 
 	ActionInstanceCreated Action = "instance_created"
 	ActionInstanceStarted Action = "instance_started"

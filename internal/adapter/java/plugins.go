@@ -34,9 +34,11 @@ func (*Flavor) PluginsFor(mode domain.AuthMode) []app.Plugin {
 
 	return []app.Plugin{
 		{
+			ID:   "authme",
 			Name: "AuthMe",
 			File: authMeFile,
 			URL:  authMeURL,
+			Docs: "https://github.com/AuthMe/AuthMeReloaded",
 			Why: "Pide una contrasena al entrar. Sin esto, en modo sin " +
 				"conexion cualquiera podria usar el nombre de otro.",
 		},

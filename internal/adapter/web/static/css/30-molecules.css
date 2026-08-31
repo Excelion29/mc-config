@@ -239,3 +239,17 @@ form:has(#ed-java:checked) .solo-bedrock { display: none; }
   align-items: center;
   gap: var(--espacio-2);
 }
+
+/* --- Ficha de complemento -------------------------------------------------
+   Un complemento con su estado, su documentacion y el campo para cambiarle la
+   version. Va en su propio recuadro porque son varias cosas por complemento, y
+   en una tabla no cabrian sin apretarlas. */
+
+.tarjeta-plugin {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: var(--espacio-3);
+  margin-bottom: var(--espacio-3);
+}
+
+.tarjeta-plugin .ayuda { margin-top: var(--espacio-2); }

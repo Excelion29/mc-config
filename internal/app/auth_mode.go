@@ -21,13 +21,117 @@ type SettingsRepo interface {
 // por que saber eso: pide una capacidad, no una configuracion.
 type Access struct {
 	settings  SettingsRepo
+	versiones PluginVersionRepo
 	instances *Instances
 	audit     *Audit
 	log       *slog.Logger
 }
 
-func NewAccess(settings SettingsRepo, instances *Instances, audit *Audit, log *slog.Logger) *Access {
-	return &Access{settings: settings, instances: instances, audit: audit, log: log}
+func NewAccess(settings SettingsRepo, versiones PluginVersionRepo,
+	instances *Instances, audit *Audit, log *slog.Logger) *Access {
+
+	return &Access{settings: settings, versiones: versiones,
+		instances: instances, audit: audit, log: log}
+}
+
+// VersionesDePlugins da las versiones elegidas desde el panel.
+//
+// Ante un fallo devuelve el mapa vacio, y eso significa "manda el codigo": la
+// version verificada a mano. Es el lado seguro por el que caer.
+func (a *Access) VersionesDePlugins(ctx context.Context) map[string]PluginVersion {
+	v, err := a.versiones.All(ctx)
+	if err != nil {
+		a.log.Error("no se pudieron leer las versiones de los complementos; se usan las de fabrica",
+			"error", err)
+		return nil
+	}
+	return v
+}
+
+// CambiarVersion pone otra version de un complemento, sin desplegar.
+//
+// La de fabrica sigue en el codigo y es la que manda mientras nadie toque nada.
+// Esto existe porque atarse a un despliegue para subir un plugin significa no
+// subirlo nunca, y un plugin viejo tambien es un problema.
+//
+// Con url vacia se vuelve a la de fabrica.
+func (a *Access) CambiarVersion(ctx context.Context, actor *domain.User,
+	pluginID, url, ip string) error {
+
+	if !actor.Can(domain.PermServerOperate) {
+		return domain.ErrForbidden
+	}
+
+	actuales := a.instances.PluginsPara(domain.EditionJava, domain.AuthOffline)
+	anterior, ok := buscarPlugin(actuales, pluginID)
+	if !ok {
+		return domain.ErrPluginDesconocido
+	}
+
+	url = strings.TrimSpace(url)
+	if url == "" {
+		if err := a.versiones.Clear(ctx, pluginID); err != nil {
+			return err
+		}
+		a.retirarDeTodas(ctx, anterior.File)
+		a.audit.Record(ctx, actor, actor.Email, domain.ActionPluginVersionChanged,
+			anterior.Name+": de fabrica", ip)
+		return nil
+	}
+
+	archivo, err := domain.ArchivoDeJar(url)
+	if err != nil {
+		return err
+	}
+
+	if err := a.versiones.Set(ctx, PluginVersion{
+		PluginID: pluginID, URL: url, File: archivo,
+	}, actor.ID); err != nil {
+		return err
+	}
+
+	// El .jar viejo se va. Dos versiones del mismo plugin en plugins/ se cargan
+	// LAS DOS, y el servidor arranca peleandose consigo mismo sin decir por
+	// que. Se hace despues de guardar: si algo falla, es mejor quedarse sin el
+	// viejo que con los dos.
+	if archivo != anterior.File {
+		a.retirarDeTodas(ctx, anterior.File)
+	}
+
+	a.audit.Record(ctx, actor, actor.Email, domain.ActionPluginVersionChanged,
+		anterior.Name+": "+archivo, ip)
+	a.log.Warn("version de complemento cambiada desde el panel",
+		"plugin", pluginID, "archivo", archivo, "por", actor.Email)
+	return nil
+}
+
+// retirarDeTodas borra un .jar de todas las instancias de Java.
+//
+// No corta si falla: lo importante -la version nueva- ya esta guardado, y el
+// arranque instalara la que toque. Un .jar viejo que se resiste a borrarse es
+// un problema, pero no uno que deba impedir el cambio.
+func (a *Access) retirarDeTodas(ctx context.Context, archivo string) {
+	javas, _, err := a.instanciasJava(ctx)
+	if err != nil {
+		a.log.Warn("no se pudo listar las instancias para retirar el complemento viejo",
+			"error", err)
+		return
+	}
+	for _, inst := range javas {
+		if err := a.instances.RetirarPlugin(inst, archivo); err != nil {
+			a.log.Warn("quedo un complemento viejo sin borrar",
+				"instancia", inst.Name, "archivo", archivo, "error", err)
+		}
+	}
+}
+
+func buscarPlugin(lista []Plugin, id string) (Plugin, bool) {
+	for _, p := range lista {
+		if p.ID == id {
+			return p, true
+		}
+	}
+	return Plugin{}, false
 }
 
 // Mode devuelve el modo vigente.

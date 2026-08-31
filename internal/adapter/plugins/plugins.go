@@ -77,6 +77,24 @@ func (s *Store) Installed(dataDir string, lista []app.Plugin) []app.Plugin {
 // un plugin de autenticacion es lo ultimo que queremos. Si un dia hay que
 // subirlo, se cambia la URL y el nombre del archivo en el catalogo, y entonces
 // el cambio esta escrito y es visible en un diff.
+// Remove borra un .jar de la instancia, si esta.
+//
+// Se usa al cambiar de version: el .jar viejo TIENE que irse. Dos versiones del
+// mismo plugin en plugins/ se cargan las dos, y el servidor arranca con dos
+// copias peleandose, sin que el log diga que eso es lo que pasa.
+//
+// No borra la copia de la cache: esa vale para otros servidores que sigan con
+// la version vieja.
+func (s *Store) Remove(dataDir, file string) error {
+	if file == "" {
+		return nil
+	}
+	if err := os.Remove(filepath.Join(dataDir, "plugins", file)); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("borrando el complemento viejo: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) asegurar(ctx context.Context, p app.Plugin, ruta string) error {
 	if info, err := os.Stat(ruta); err == nil && info.Size() > 0 {
 		return nil

@@ -77,6 +77,7 @@ func AuditActions() []domain.Action {
 		domain.ActionResourceCreated, domain.ActionResourceUpdated,
 		domain.ActionResourceDeleted, domain.ActionResourceAssigned,
 		domain.ActionAuthModeChanged, domain.ActionPluginsInstalled,
+		domain.ActionPluginVersionChanged,
 		domain.ActionInstanceCreated, domain.ActionInstanceStarted,
 		domain.ActionInstanceStopped, domain.ActionInstanceDeleted,
 		domain.ActionPlayerAdded, domain.ActionPlayerUpdated,

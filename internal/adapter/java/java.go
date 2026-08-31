@@ -178,14 +178,26 @@ func (*Flavor) WritePermissions(dataDir string, ops []app.PlayerRef) error {
 	return WriteOps(dataDir, ops)
 }
 
-// ReloadPermissions aplica ops.json sin reiniciar.
+// ReloadPermissions NO puede aplicar ops.json en caliente. Y eso hay que
+// decirlo, no disimularlo.
+//
+// Java lee ops.json UNA vez, al arrancar. No existe un "ops reload" como el de
+// la whitelist: la unica forma de cambiarlo en vivo es el comando /op, que
+// reescribe el archivo por su cuenta y se pelearia con lo que acabamos de
+// guardar.
+//
+// Aqui habia un "whitelist reload" con un comentario diciendo que recargaba los
+// ops de paso. No es verdad: recarga la lista de permitidos y nada mas. El
+// panel se quedaba tan tranquilo y la persona no era operador dentro del juego,
+// sin que nada lo dijera.
+//
+// Se devuelve ErrNeedsRestart para que quien llama pueda avisar. El archivo ya
+// esta escrito: al siguiente arranque es operador.
 func (*Flavor) ReloadPermissions(ctx context.Context, rt app.ContainerRuntime, containerID string) error {
 	if containerID == "" {
 		return nil
 	}
-	// Java no tiene un "reload" de ops: se recarga junto con la whitelist al
-	// releer los archivos de acceso.
-	return rt.SendStdin(ctx, containerID, "whitelist reload")
+	return domain.ErrNeedsRestart
 }
 
 // boolProp escribe un booleano como lo espera server.properties.

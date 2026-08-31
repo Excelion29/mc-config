@@ -172,6 +172,19 @@ func (s *Server) setPlayerActive(w http.ResponseWriter, r *http.Request) {
 	s.redirectInfo(w, r, rutaJugadores, msg)
 }
 
+// avisoDeReinicio anade la coletilla cuando el cambio no llega al servidor
+// encendido.
+//
+// Java lee los operadores al arrancar y no tiene forma de recargarlos. Decir
+// solo "listo" dejaria a alguien probando comandos en el juego sin entender por
+// que no funcionan.
+func (s *Server) avisoDeReinicio(base string) string {
+	if s.instances.HayReinicioPendiente() {
+		return base + " Reinicia el servidor para que surta efecto dentro del juego."
+	}
+	return base
+}
+
 func (s *Server) setPlayerOp(w http.ResponseWriter, r *http.Request) {
 	id, isOp, ok := s.playerForm(w, r, "is_op")
 	if !ok {
@@ -186,7 +199,8 @@ func (s *Server) setPlayerOp(w http.ResponseWriter, r *http.Request) {
 		s.responderFila(w, r, id)
 		return
 	}
-	s.redirectInfo(w, r, rutaJugadores, "Permisos de operador actualizados.")
+	s.redirectInfo(w, r, rutaJugadores,
+		s.avisoDeReinicio("Permisos de operador actualizados."))
 }
 
 func (s *Server) deletePlayer(w http.ResponseWriter, r *http.Request) {

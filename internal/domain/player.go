@@ -68,8 +68,16 @@ func (p *Player) HaEntrado() bool {
 }
 
 // PuedeSerOp: dar operador exige saber quien es exactamente.
+//
+// En BEDROCK eso obliga a esperar: la identidad es el XUID, un numero de cuenta
+// de Xbox que no se conoce hasta que la persona entra la primera vez (D-14).
+//
+// En JAVA no hace falta esperar. Su identidad se sabe desde el alta: la da
+// Mojang si compro el juego, y si no se calcula del nombre. Exigirle lo mismo
+// que a Bedrock era arrastrar una limitacion de la otra edicion a donde no
+// existe.
 func (p *Player) PuedeSerOp() bool {
-	return p.HaEntrado()
+	return p.HaEntrado() || p.JavaName != ""
 }
 
 // NormalizeGamertag limpia espacios sobrantes pero CONSERVA las mayusculas.

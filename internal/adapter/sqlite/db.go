@@ -108,11 +108,12 @@ func (d *DB) Roles() *RoleRepo { return &RoleRepo{db: d.db} }
 
 // Users necesita el repositorio de roles: al leer un usuario se carga su rol
 // con los permisos, para que Can() responda sin volver a la base.
-func (d *DB) Users() *UserRepo         { return &UserRepo{db: d.db, roles: d.Roles()} }
-func (d *DB) Sessions() *SessionRepo   { return &SessionRepo{db: d.db} }
-func (d *DB) Audit() *AuditRepo        { return &AuditRepo{db: d.db} }
-func (d *DB) Worlds() *WorldRepo       { return &WorldRepo{db: d.db} }
-func (d *DB) Settings() *SettingsRepo  { return &SettingsRepo{db: d.db} }
-func (d *DB) Instances() *InstanceRepo { return &InstanceRepo{db: d.db} }
-func (d *DB) Players() *PlayerRepo     { return &PlayerRepo{db: d.db} }
-func (d *DB) Resources() *ResourceRepo { return &ResourceRepo{db: d.db} }
+func (d *DB) Users() *UserRepo                   { return &UserRepo{db: d.db, roles: d.Roles()} }
+func (d *DB) Sessions() *SessionRepo             { return &SessionRepo{db: d.db} }
+func (d *DB) Audit() *AuditRepo                  { return &AuditRepo{db: d.db} }
+func (d *DB) Worlds() *WorldRepo                 { return &WorldRepo{db: d.db} }
+func (d *DB) Settings() *SettingsRepo            { return &SettingsRepo{db: d.db} }
+func (d *DB) Instances() *InstanceRepo           { return &InstanceRepo{db: d.db} }
+func (d *DB) Players() *PlayerRepo               { return &PlayerRepo{db: d.db} }
+func (d *DB) Resources() *ResourceRepo           { return &ResourceRepo{db: d.db} }
+func (d *DB) PluginVersions() *PluginVersionRepo { return &PluginVersionRepo{db: d.db} }

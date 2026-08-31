@@ -136,21 +136,24 @@ func (w *ConnectionWatcher) propagar(ctx context.Context) {
 	w.instances.ApplyOps(ctx, ops)
 }
 
-// OpsFrom traduce jugadores del dominio a lo que pide el adaptador.
+// OpsPara traduce a operadores de una edicion, con el modo vigente.
 //
-// Solo de Bedrock por ahora: Java resuelve su UUID desde el nombre y no
-// necesita esperar a la primera conexion (H-J-8), asi que tendra su propia
-// traduccion cuando llegue F5.
-func OpsFrom(jugadores []domain.Player) []PlayerRef {
-	out := make([]PlayerRef, 0, len(jugadores))
+// Delega en RefsPara y no construye las referencias por su cuenta, y eso es el
+// arreglo: antes tenia su propia version, escrita solo para Bedrock, que metia
+// el XUID de Xbox dentro de ops.json de un servidor de JAVA. El servidor no
+// sabe que es ese numero, asi que la persona no era operador y el panel decia
+// que si.
+//
+// La lista de permitidos ya habia aprendido esta leccion; los operadores se
+// quedaron atras porque iban por otro camino. Ahora hay uno solo.
+func OpsPara(e domain.Edition, modo domain.AuthMode, jugadores []domain.Player) []PlayerRef {
+	var ops []domain.Player
 	for i := range jugadores {
-		p := &jugadores[i]
-		if !p.HaEntrado() {
-			continue
+		if jugadores[i].IsOp {
+			ops = append(ops, jugadores[i])
 		}
-		out = append(out, PlayerRef{ID: p.XUID, Name: p.Gamertag})
 	}
-	return out
+	return RefsPara(e, modo, ops)
 }
 
 // RefsFrom convierte nombres sueltos en referencias sin identificador.

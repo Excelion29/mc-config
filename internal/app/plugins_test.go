@@ -14,6 +14,7 @@ import (
 type tiendaFalsa struct {
 	puestos   map[string]bool
 	instalado []Plugin
+	borrado   []string
 	falla     error
 }
 
@@ -25,6 +26,15 @@ func (t *tiendaFalsa) Install(_ context.Context, _ string, plugins []Plugin) err
 	for _, p := range plugins {
 		t.puestos[p.File] = true
 	}
+	return nil
+}
+
+// Remove borra un .jar. Se apunta lo borrado para poder comprobar que al
+// cambiar de version NO se quedan las dos: dos copias del mismo plugin en
+// plugins/ se cargan las dos.
+func (t *tiendaFalsa) Remove(_, file string) error {
+	delete(t.puestos, file)
+	t.borrado = append(t.borrado, file)
 	return nil
 }
 

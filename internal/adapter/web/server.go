@@ -108,6 +108,7 @@ func (s *Server) Routes() http.Handler {
 			g.Use(s.requirePermission(domain.PermServerOperate))
 			g.Post("/access/plugins", s.installPlugins)
 			g.Post("/access/mode", s.setAuthMode)
+			g.Post("/access/plugin-version", s.setPluginVersion)
 			g.Post("/instances/start", s.startInstance)
 			g.Post("/instances/stop", s.stopInstance)
 		})

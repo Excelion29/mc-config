@@ -114,6 +114,8 @@ func (i *Instances) Start(ctx context.Context, actor *domain.User, id int64, con
 		return err
 	}
 
+	// Al arrancar se relee todo, asi que ya no hay nada pendiente.
+	i.olvidarReinicio(inst.ID)
 	i.repo.MarkStarted(ctx, inst.ID, i.clock())
 
 	i.audit.Record(ctx, actor, actor.Email, domain.ActionInstanceStarted, inst.Name, ip)

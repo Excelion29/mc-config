@@ -166,8 +166,9 @@ func build(log *slog.Logger) (*deps, error) {
 
 	// Acceso: el modo de autenticacion y los plugins que lo hacen posible.
 	// Se cierra el ciclo igual que con Players y Worlds.
-	acceso := app.NewAccess(db.Settings(), instances, audit, log)
+	acceso := app.NewAccess(db.Settings(), db.PluginVersions(), instances, audit, log)
 	instances.SetAuthModeSource(acceso.Mode)
+	instances.SetPluginVersions(acceso.VersionesDePlugins)
 	players.SetAuthModeSource(acceso.Mode)
 
 	// Instalador de plugins con cache compartida: los mismos .jar valen para

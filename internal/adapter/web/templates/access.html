@@ -179,24 +179,50 @@
           <strong>todos</strong> tus servidores de Java: {{$e.Donde}}.
         </p>
 
-        <div class="tabla-scroll">
-          <table>
-            <tbody>
-              {{range $e.Filas}}
-              <tr>
-                <td>
-                  <strong>{{.Name}}</strong>
-                  <br><span class="apagado">{{.Why}}</span>
-                </td>
-                <td>
-                  {{if .Puesto}}<span class="etiqueta ok">puesto</span>
-                  {{else}}<span class="etiqueta aviso">por instalar</span>{{end}}
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
+        {{/*
+          Cada complemento con su version, su documentacion y un campo para
+          cambiarla. La de fabrica esta en el codigo y manda mientras nadie
+          toque nada; esto existe para no tener que desplegar por subir un
+          plugin, porque atarlo a un despliegue significa no subirlo nunca.
+        */}}
+        {{range $e.Filas}}
+        <div class="tarjeta-plugin">
+          <div class="etiquetas">
+            <strong>{{.Name}}</strong>
+            {{if .Puesto}}<span class="etiqueta ok">puesto</span>
+            {{else}}<span class="etiqueta aviso">por instalar</span>{{end}}
+            {{if not .DeFabrica}}
+            <span class="etiqueta aviso"
+                  title="Lleva una version elegida desde el panel, no la que trae el codigo.">version propia</span>
+            {{end}}
+            {{if .Docs}}
+            <a class="enlace" href="{{.Docs}}" target="_blank" rel="noopener noreferrer">documentaci&oacute;n</a>
+            {{end}}
+          </div>
+
+          <p class="ayuda">{{.Why}}</p>
+
+          <form method="post" action="/access/plugin-version" class="filtros">
+            <input type="hidden" name="plugin_id" value="{{.ID}}">
+            <div class="campo">
+              <label for="v-{{.ID}}">Archivo instalado</label>
+              <input id="v-{{.ID}}" name="url" type="url" autocomplete="off"
+                     value="{{.URL}}">
+              <span class="ayuda">
+                Pega el enlace de otra versi&oacute;n para subirla, o
+                d&eacute;jalo vac&iacute;o para volver a la de f&aacute;brica.
+                Tiene que acabar en <code>.jar</code>: en GitHub es el del
+                <em>release</em>, no el de la p&aacute;gina.
+                <br>
+                Ahora mismo: <code>{{.File}}</code>
+              </span>
+            </div>
+            <div class="campo campo-acciones">
+              <button type="submit" class="boton-secundario">Guardar versi&oacute;n</button>
+            </div>
+          </form>
         </div>
+        {{end}}
       </fieldset>
 
       {{if $e.Faltan}}
@@ -383,7 +409,7 @@
             {{if and .Gamertag .JavaName}}
             <span class="apagado dato">&middot; {{.JavaName}}</span>
             {{end}}
-            {{if and .IsOp .HaEntrado}}
+            {{if .IsOp}}
             <span class="etiqueta ok" title="Puede usar comandos dentro del juego">admin del juego</span>
             {{end}}
           </td>
@@ -394,7 +420,7 @@
             {{if not .Active}}<span class="etiqueta aviso">bloqueado</span>
             {{else if .HaEntrado}}<span class="etiqueta ok">ha jugado</span>
             {{else}}
-            <span class="etiqueta" title="Puede entrar, pero aun no lo ha hecho. Hasta entonces no se le puede hacer admin del juego.">
+            <span class="etiqueta" title="Puede entrar, pero aun no lo ha hecho.">
               sin estrenar
             </span>
             {{end}}
@@ -405,7 +431,7 @@
                    cambia nada por si solo. */}}
               <a class="accion" href="#editar-jugador-{{.ID}}" title="Editar"
                  aria-label="Editar a {{.Etiqueta}}">{{template "ico-editar"}}</a>
-              {{if .HaEntrado}}
+              {{if .PuedeSerOp}}
               <form method="post" action="/players/op"
                     hx-post="/players/op" hx-target="closest tr" hx-swap="outerHTML">
                 <input type="hidden" name="id" value="{{.ID}}">
